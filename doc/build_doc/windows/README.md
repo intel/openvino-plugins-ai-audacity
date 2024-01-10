@@ -92,7 +92,7 @@ cmake --install . --config Release --prefix ./installed
 
 ```
 
-With the build / install complete, the Audacity build will find the built collateral via the WHISPERCPP_ROOTDIR. So you can set it like this:
+With the build / install complete, the Audacity build will find the built collateral via the CPP_STABLE_DIFFUSION_OV_ROOTDIR. So you can set it like this:
 ```
 set CPP_STABLE_DIFFUSION_OV_ROOTDIR=C:\path\to\stablediffusion-pipelines-cpp-build\installed
 set Path=%CPP_STABLE_DIFFUSION_OV_ROOTDIR%\bin;%Path%
@@ -129,7 +129,7 @@ cmake --build . --config Release
 
 When this is done, you can run Audacity like this (from audacity-build directory):
 ```
-bin\Release\Audacity.exe
+Release\Audacity.exe
 ```
 
 ### Audacity OpenVINO module build
@@ -144,7 +144,7 @@ git clone https://github.com/intel/openvino-plugins-ai-audacity.git
 cd openvino-plugins-ai-audacity
 
 :: Check out appropriate branch or tag 
-git checkout Audacity-3.4.2-R1
+git checkout v3.4.2-R1
 ```
 
 We need to copy the ```mod-openvino``` folder into the Audacity source tree.
