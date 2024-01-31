@@ -27,6 +27,20 @@ include_directories(${CPP_STABLE_DIFFUSION_OV_ROOTDIR}/include )
 message("stable_diffusion_ov library = ${stable_diffusion_ov}")
 message("stable_diffusion_audio_ov library = ${stable_diffusion_audio_ov}")
 
+#for musicgen
+#whether ITT is enabled or not, include ittutils.
+# This allows the project source files to unconditionally include <ittutils.h>
+# That header file will implement the preprocessor logic to *actually* enable ITT or not.
+include_directories( ittutils )
+
+# TODO: Maybe we can replace sentencepiece external dependency (used for tokenization) with some of the new tokenization features in OV 2023.3
+set(SENTENCEPIECE_ROOTDIR $ENV{SENTENCEPIECE_ROOTDIR})
+find_library(sentencepiece NAMES sentencepiece HINTS ${SENTENCEPIECE_ROOTDIR}/lib/ )
+message("sentencepiece lib = ${sentencepiece}")
+include_directories(${SENTENCEPIECE_ROOTDIR}/include)
+
+add_subdirectory(musicgen)
+include_directories(musicgen)
 
 set( SOURCES
       OVNoiseSuppression.cpp
@@ -35,12 +49,15 @@ set( SOURCES
       OVMusicSeparation.h
       OVMusicGeneration.cpp
       OVMusicGeneration.h
+      OVMusicGenerationV2.cpp
+      OVMusicGenerationV2.h
       OVMusicStyleRemix.cpp
       OVMusicStyleRemix.h
       OVWhisperTranscription.cpp
       OVWhisperTranscription.h
       htdemucs.cpp
       htdemucs.h
+      ${OV_MUSICGEN_SOURCES}
       OpenVINO.cpp
 )
 
@@ -52,6 +69,7 @@ set( LIBRARIES
       ${whisper}
       ${stable_diffusion_ov}
       ${stable_diffusion_audio_ov}
+      ${sentencepiece}
 )
 
 audacity_module( ${TARGET} "${SOURCES}" "${LIBRARIES}" "" "" )
