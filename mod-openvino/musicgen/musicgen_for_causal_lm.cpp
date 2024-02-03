@@ -6,7 +6,16 @@ MusicgenForCausalLM::MusicgenForCausalLM(ov::Core& core, MusicGenConfig& config)
     _decoder = std::make_shared< MusicgenModelStatic >(core, config);
 
     //load lm_heads IR
-    auto modelpath = FullPath(config.model_folder, "lm_heads.xml");
+    std::string model_folder = config.model_folder;
+    if (config.bStereo)
+    {
+        model_folder = FullPath(model_folder, "Stereo");
+
+        _audio_channels = 2;
+    }
+
+    auto modelpath = FullPath(model_folder, "lm_heads.xml");
+
     std::shared_ptr<ov::Model> model = core.read_model(modelpath);
 
     model->reshape({ {2, ov::Dimension(), 1024} });
@@ -38,6 +47,12 @@ void MusicgenForCausalLM::ShiftLeft(int64_t ntokens)
     _decoder->ShiftLeft(ntokens);
 }
 
+
+int64_t MusicgenForCausalLM::NumCodebooks()
+{
+    return _decoder->NumCodebooks();
+}
+
 int64_t MusicgenForCausalLM::MaxNewTokens()
 {
     return _decoder->MaxNewTokens();
@@ -53,7 +68,7 @@ torch::Tensor MusicgenForCausalLM::forward(torch::Tensor input_ids,
 )
 {
     ITT_SCOPED_TASK(MusicgenForCausalLM_forward)
-        _nforward_calls++;
+        
 
     auto hidden_states_ov = _decoder->forward(input_ids,
         attention_mask,
@@ -65,21 +80,15 @@ torch::Tensor MusicgenForCausalLM::forward(torch::Tensor input_ids,
 
     _lm_heads_infer_request.set_input_tensor(hidden_states_ov);
 
-    //produce logits by running lm_heads model (input tensor is already set)
+
     _lm_heads_infer_request.infer();
 
     auto logits_ov = _lm_heads_infer_request.get_output_tensor();
     auto logits = wrap_ov_tensor_as_torch(logits_ov);
 
-    //std::cout << "logits shape before reshape = " << logits.sizes() << std::endl;
-
     logits = logits.reshape({ -1, logits.size(2),  logits.size(3) });
 
-    //std::cout << "logits shape after reshape = " << logits.sizes() << std::endl;
-
-    //dump_tensor(logits, "ov_logits.raw");
-
-
+    _nforward_calls++;
 
     return logits;
 }
@@ -90,7 +99,7 @@ std::pair< torch::Tensor, torch::Tensor> MusicgenForCausalLM::build_delay_patter
     using namespace torch::indexing;
 
     // (bsz * num_codebooks, seq_len) -> (bsz, num_codebooks, seq_len)
-    input_ids = input_ids.reshape({ -1, _num_codebooks, input_ids.sizes().back() });
+    input_ids = input_ids.reshape({ -1, _decoder->NumCodebooks(), input_ids.sizes().back()});
     auto bsz = input_ids.sizes()[0];
     auto num_codebooks = input_ids.sizes()[1];
     auto seq_len = input_ids.sizes()[2];

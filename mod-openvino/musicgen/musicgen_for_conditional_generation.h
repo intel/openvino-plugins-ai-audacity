@@ -35,6 +35,7 @@ public:
     struct GenerateReturn
     {
         std::shared_ptr<std::vector<float>> wav;
+        std::shared_ptr<std::vector<float>> wav1;
         torch::Tensor input_ids;
     };
 

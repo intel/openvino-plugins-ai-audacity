@@ -27,12 +27,38 @@ MusicGen::MusicGen(MusicGenConfig& config)
 	_impl = std::make_shared< Impl >(_config);
 }
 
-std::shared_ptr<std::vector<float>> MusicGen::Generate(std::optional<std::string> prompt,
-	std::optional<std::shared_ptr<std::vector<float>>> audio_to_continue,
+static inline torch::Tensor pack_wav_to_tensor(std::shared_ptr<std::vector<float>> atc, int64_t ncontext_samples)
+{
+	auto audio_to_continue_tensor = torch::zeros({ 1, ncontext_samples });
+
+	int64_t atc_num_samples = atc->size();
+	int64_t tensor_offset = 0;
+	int64_t atc_offset = 0;
+	int64_t size_to_copy = ncontext_samples;
+
+	if (atc_num_samples < ncontext_samples)
+	{
+		tensor_offset = ncontext_samples - atc->size();
+		size_to_copy = atc_num_samples;
+	}
+	else if (atc_num_samples > ncontext_samples)
+	{
+		atc_offset = atc_num_samples - ncontext_samples;
+		size_to_copy = ncontext_samples;
+	}
+
+	memcpy((float*)(audio_to_continue_tensor.data_ptr()) + tensor_offset,
+		atc->data() + atc_offset, size_to_copy * sizeof(float));
+
+	return audio_to_continue_tensor;
+}
+
+std::pair<std::shared_ptr<std::vector<float>>, std::shared_ptr<std::vector<float>>> MusicGen::Generate(std::optional<std::string> prompt,
+	std::optional<std::pair<std::shared_ptr<std::vector<float>>, std::shared_ptr<std::vector<float>>>> audio_to_continue,
 	float total_desired_length_seconds,
 	std::optional< unsigned int > seed,
 	float guidance_scale,
-	float top_k,
+	int top_k,
    std::optional< CallbackParams > callback_params)
 {
 	if (!prompt)
@@ -96,39 +122,37 @@ std::shared_ptr<std::vector<float>> MusicGen::Generate(std::optional<std::string
 	
 	std::optional< torch::Tensor > audio_to_continue_tensor;
 
+	//todo: handle stereo case
 	if (audio_to_continue)
 	{
-		audio_to_continue_tensor = torch::zeros({ 1, 1, ncontext_samples });
-		auto atc = *audio_to_continue;
+		audio_to_continue_tensor = pack_wav_to_tensor(audio_to_continue->first, ncontext_samples);
 
-		int64_t atc_num_samples = atc->size();
-		int64_t tensor_offset = 0;
-		int64_t atc_offset = 0;
-		int64_t size_to_copy = ncontext_samples;
+		if (audio_to_continue->second)
+		{
+			auto audio_to_continue_tensor1 = pack_wav_to_tensor(audio_to_continue->second, ncontext_samples);
+			audio_to_continue_tensor = torch::stack({ audio_to_continue_tensor->squeeze(0), audio_to_continue_tensor1.squeeze()});
 
-		if (atc_num_samples < ncontext_samples)
-		{
-			tensor_offset = ncontext_samples - atc->size();
-			size_to_copy = atc_num_samples;
-		}
-		else if (atc_num_samples > ncontext_samples)
-		{
-			atc_offset = atc_num_samples - ncontext_samples;
-			size_to_copy = ncontext_samples;
 		}
 
-		memcpy((float*)(audio_to_continue_tensor->data_ptr()) + tensor_offset,
-			atc->data() + atc_offset, size_to_copy * sizeof(float));
+		std::cout << "audio_to_continue_tensor shape before unsqueeze = " << audio_to_continue_tensor->sizes() << std::endl;
+
+		audio_to_continue_tensor = audio_to_continue_tensor->unsqueeze(0);
+
+		std::cout << "audio_to_continue_tensor shape = " << audio_to_continue_tensor->sizes() << std::endl;
 	}
 
-   std::shared_ptr< std::vector<float> > output_wav;
+   std::shared_ptr< std::vector<float> > output_wav0;
+   std::shared_ptr< std::vector<float> > output_wav1;
 
    //this will cause us to *not* copy the re-encoded audio that was
-   // passed in (although the user may want that in some mode).
+   // passed in (although the user may want that in some modes).
+#if 1
    if (audio_to_continue)
    {
-      output_wav = std::make_shared<std::vector<float>>();
+	   output_wav0 = std::make_shared<std::vector<float>>();
+	   output_wav1 = std::make_shared<std::vector<float>>();
    }
+#endif
   
 	size_t iterationi = 0;
 	while (total_tokens_left_to_generate > 0)
@@ -152,9 +176,9 @@ std::shared_ptr<std::vector<float>> MusicGen::Generate(std::optional<std::string
 		auto gen_ret = _impl->_gen->generate(input_tensor, max_length_this_iteration + context_tokens_this_it, attention_mask, tracking, audio_to_continue_tensor, {}, guidance_scale, top_k,
                                            callback_params);
 
-		if (!output_wav)
+		if (!output_wav0)
 		{
-			output_wav = gen_ret.wav;
+			output_wav0 = gen_ret.wav;
 		}
 		else
 		{
@@ -163,42 +187,48 @@ std::shared_ptr<std::vector<float>> MusicGen::Generate(std::optional<std::string
 			//todo: crossfade between the start of the new clip and the end of the old clip.
 			// Right now there are sometimes 'pops' or 'clicks' introduced at the point where
 			// we merge these together.
-			output_wav->insert(output_wav->end(), wav->begin() + ncontext_samples, wav->end());
+			output_wav0->insert(output_wav0->end(), wav->begin() + ncontext_samples, wav->end());
+		}
+
+		if (gen_ret.wav1)
+		{
+			if (!output_wav1)
+			{
+				output_wav1 = gen_ret.wav1;
+			}
+			else
+			{
+				auto wav = gen_ret.wav1;
+
+				//todo: crossfade between the start of the new clip and the end of the old clip.
+				// Right now there are sometimes 'pops' or 'clicks' introduced at the point where
+				// we merge these together.
+				output_wav1->insert(output_wav1->end(), wav->begin() + ncontext_samples, wav->end());
+			}
 		}
 
 		total_tokens_left_to_generate -= max_length_this_iteration;
 
+		//todo, handle stereo case.
 		if (total_tokens_left_to_generate > 0)
 		{
-			audio_to_continue_tensor = torch::from_blob(output_wav->data() + (output_wav->size() - ncontext_samples), { 1, 1, ncontext_samples });
+			audio_to_continue_tensor = torch::from_blob(output_wav0->data() + (output_wav0->size() - ncontext_samples), { 1, ncontext_samples });
+
+			if (output_wav1)
+			{
+				auto audio_to_continue_tensor1 = torch::from_blob(output_wav1->data() + (output_wav1->size() - ncontext_samples), { 1, ncontext_samples });
+
+				audio_to_continue_tensor = torch::stack({ audio_to_continue_tensor->squeeze(0), audio_to_continue_tensor1.squeeze() });
+			}
+
+			audio_to_continue_tensor = audio_to_continue_tensor->unsqueeze(0);
+
+			std::cout << "audio_to_continue_tensor shape = " << audio_to_continue_tensor->sizes() << std::endl;
 		}
 
 		iterationi++;
 	}
 
-#if 0
-	//generate first snippet
-	auto gen_ret = _impl->_gen->generate(input_tensor, total_tokens_left_to_generate, attention_mask, {}, {}, guidance_scale, top_k);
 
-	auto wav = gen_ret.wav;
-
-	torch::Tensor wav_tensor = torch::from_blob(wav->data() + (wav->size() - ncontext_samples), { 1, 1, ncontext_samples });
-
-
-	for (int i = 0; i < 0; i++)
-	{
-		std::cout << i << ": generate" << std::endl;
-
-		std::cout << "wav_tensor shape = " << wav_tensor.sizes() << std::endl;
-		gen_ret = _impl->_gen->generate(input_tensor, attention_mask, wav_tensor);
-
-		auto wav1 = gen_ret.wav;
-
-		wav->insert(wav->end(), wav1->begin() + ncontext_samples, wav1->end());
-
-		wav_tensor = torch::from_blob(wav->data() + (wav->size() - ncontext_samples), { 1, 1, ncontext_samples });
-	}
-#endif
-
-	return output_wav;
+	return { output_wav0, output_wav1 };
 }

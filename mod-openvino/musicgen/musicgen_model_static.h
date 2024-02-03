@@ -44,6 +44,8 @@ public:
         _decoder_model->ShiftLeft(ntokens);
     }
 
+    int64_t NumCodebooks() { return _num_codebooks; };
+
     ov::Tensor get_last_hidden_state() { return _decoder_model->get_last_hidden_state(); };
 
     ov::Tensor forward(std::optional<torch::Tensor> input_ids,
@@ -67,4 +69,6 @@ private:
     std::shared_ptr< MusicgenSinusoidalPositionalEmbedding > _embed_positions;
 
     uint64_t _total_decode_time = 0;
+
+    int64_t _num_codebooks = 4;
 };

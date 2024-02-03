@@ -6,10 +6,21 @@ class MusicgenSinusoidalPositionalEmbedding
 {
 public:
 
-    MusicgenSinusoidalPositionalEmbedding(int64_t num_positions, int64_t embedding_dim)
+    MusicgenSinusoidalPositionalEmbedding(int64_t num_positions, int64_t embedding_dim, MusicGenConfig& config)
         : _embedding_dim(embedding_dim)
     {
-        make_weights(num_positions, embedding_dim);
+        //make_weights(num_positions, embedding_dim);
+
+        std::string model_folder = config.model_folder;
+        if (config.bStereo)
+        {
+            model_folder = FullPath(model_folder, "Stereo");
+        }
+
+        auto weights_file = FullPath(model_folder,
+            "sinusoidal_positional_embedding_weights_" + std::to_string(num_positions) + "_" + std::to_string(embedding_dim) + ".raw");
+
+        _emb_weights = read_tensor(weights_file, {num_positions, embedding_dim});
     }
 
     torch::Tensor forward(torch::Tensor input_ids, int64_t past_key_values_length)
@@ -22,11 +33,9 @@ public:
         // Create the position ids from the input token ids.
         auto position_ids = torch::arange(seq_len) + past_key_values_length;
 
-        // expand embeddings if needed
         if (seq_len > _emb_weights.size(0))
         {
-            //not implemented now.
-            throw std::runtime_error("MusicgenSinusoidalPositionalEmbedding: forward: seq_len > _emb_weights.size(0)");
+            throw std::runtime_error("MusicgenSinusoidalPositionalEmbedding: forward: unexpected case... seq_len > _emb_weights.size(0)");
         }
 
         return _emb_weights.index_select(0, position_ids.view(-1));
@@ -34,14 +43,12 @@ public:
 
 private:
 
+    //this is actually unused right now. We can replicate the starting values of the nn.parameter weights with 
+    // this function. But they change during training, so we actually just need to grab the values from the checkpoint,
+    // which we've dumped as a .raw file.
     void make_weights(int64_t num_embeddings, int64_t embedding_dim)
     {
-        _emb_weights = get_embedding(num_embeddings, embedding_dim);
-
-        //dump_tensor(_emb_weights, "ov_emb_weights.raw");
-
-        //hack to make bit-for-bit match. 
-        //_emb_weights = read_tensor("raw_input_tensors\\emb_weights_start_of_forward.raw", _emb_weights.sizes());
+        _emb_weights = get_embedding(num_embeddings, embedding_dim); 
     }
 
     torch::Tensor get_embedding(int64_t num_embeddings, int64_t embedding_dim)
@@ -69,6 +76,15 @@ MusicgenModelStatic::MusicgenModelStatic(ov::Core& core, MusicGenConfig& config)
     auto model_folder = config.model_folder;
     auto cache_dir = config.cache_folder;
 
+    if (config.bStereo)
+    {
+        _num_codebooks = 8;
+    }
+    else
+    {
+        _num_codebooks = 4;
+    }
+
     //If device0 and device1 match, use the batch2 variant -- unless the device is NPU, which doesn't support batch2 right now.
     if ((config.musicgen_decode_device0 == config.musicgen_decode_device1) && config.musicgen_decode_device0 != "NPU")
     {
@@ -88,13 +104,20 @@ MusicgenModelStatic::MusicgenModelStatic(ov::Core& core, MusicGenConfig& config)
     //creating MusicgenSinusoidalPositionalEmbedding instance with config.max_position_embeddings = 2048 config.hidden_size = 1024
     int64_t max_position_embeddings = 2048;
     int64_t hidden_size = 1024;
-    _embed_positions = std::make_shared< MusicgenSinusoidalPositionalEmbedding >(max_position_embeddings, hidden_size);
+    _embed_positions = std::make_shared< MusicgenSinusoidalPositionalEmbedding >(max_position_embeddings, hidden_size, config);
 
     {
-        auto modelpath = FullPath(model_folder, "embed_tokens.xml");
+        
+        std::string embed_tokens_model_folder = model_folder;
+        if (config.bStereo)
+        {
+            embed_tokens_model_folder = FullPath(embed_tokens_model_folder, "Stereo");
+        }
+
+        auto modelpath = FullPath(embed_tokens_model_folder, "embed_tokens.xml");
         std::shared_ptr<ov::Model> model = core.read_model(modelpath);
 
-        model->reshape({ {2, 4, ov::Dimension()} });
+        model->reshape({ {2, _num_codebooks, ov::Dimension()} });
 
         std::cout << "embed_tokens:" << std::endl;
         logBasicModelInfo(model);
@@ -118,15 +141,14 @@ ov::Tensor MusicgenModelStatic::forward(std::optional<torch::Tensor> input_ids,
 {
     ITT_SCOPED_TASK(MusicgenModelStatic_forward)
 
-        int64_t past_length = _decoder_model->PastLength();
+    int64_t past_length = _decoder_model->PastLength();
 
     torch::Tensor input;
     std::vector<int64_t> input_shape;
+
     if (input_ids)
     {
-        //todo: this seems important. Probably need to make it configurable somehow.
-        int64_t num_codebooks = 4;
-        input = torch::reshape(*input_ids, { -1, num_codebooks , (*input_ids).sizes().back() });
+        input = torch::reshape(*input_ids, { -1, _num_codebooks , (*input_ids).sizes().back() });
         auto bsz = input.sizes()[0];
         auto seq_len = input.sizes()[2];
 
@@ -149,10 +171,6 @@ ov::Tensor MusicgenModelStatic::forward(std::optional<torch::Tensor> input_ids,
         //std::cout << "_embed_tokens returned tensor of shape = " << inputs_embeds->sizes() << std::endl;
     }
 
-    //dump_tensor(*inputs_embeds, "ov_inputs_embeds.raw");
-
-
-
     //todo?
     //attention_mask = _prepare_4d_causal_attention_mask(
     //    attention_mask, input_shape, inputs_embeds, past_key_values_length
@@ -168,14 +186,8 @@ ov::Tensor MusicgenModelStatic::forward(std::optional<torch::Tensor> input_ids,
         //dump_tensor(*encoder_attention_mask, "ov_encoder_attention_mask.raw");
     }
 
-
-
     //positions = self.decoder.embed_positions(input, past_key_values_length)
     auto positions = _embed_positions->forward(input, past_length);
-
-    //dump_tensor(positions, "ov_positions.raw");
-    //std::cout << "positions shape = " << positions.sizes() << std::endl;
-
 
     auto hidden_states = *inputs_embeds + positions;
 

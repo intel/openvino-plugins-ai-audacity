@@ -12,12 +12,12 @@ public:
 	MusicGen(MusicGenConfig &config);
 
 
-	std::shared_ptr<std::vector<float>> Generate(std::optional<std::string> prompt,
-		std::optional<std::shared_ptr<std::vector<float>>> audio_to_continue,
+	std::pair<std::shared_ptr<std::vector<float>>, std::shared_ptr<std::vector<float>>> Generate(std::optional<std::string> prompt,
+		std::optional<std::pair<std::shared_ptr<std::vector<float>>, std::shared_ptr<std::vector<float>>>> audio_to_continue,
 		float total_desired_length_seconds,
 		std::optional< unsigned int > seed,
 		float guidance_scale = 3.f,
-		float top_k = 250,
+		int top_k = 250,
       std::optional< CallbackParams > callback_params = {});
 
 private:

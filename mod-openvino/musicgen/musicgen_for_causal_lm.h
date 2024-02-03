@@ -24,6 +24,9 @@ public:
     void ShiftLeft(int64_t ntokens);
     int64_t MaxNewTokens();
 
+    int64_t NumCodebooks();
+    int64_t AudioChannels() { return _audio_channels; };
+
     //returns logits tensor
     torch::Tensor forward(torch::Tensor input_ids,
         std::optional< torch::Tensor > attention_mask,
@@ -43,7 +46,6 @@ private:
     ov::InferRequest _lm_heads_infer_request;
 
     int _nforward_calls = 1;
-    int64_t _num_codebooks = 4;
-    int _audio_channels = 1;
+    int64_t _audio_channels = 1;
 
 };

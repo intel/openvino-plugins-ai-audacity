@@ -22,6 +22,11 @@ public:
         std::string initial_device = config.initial_decode_device;
         auto initial_tensortype = initial_device == "CPU" ? ov::element::f32 : ov::element::f16;
 
+        if (config.bStereo)
+        {
+            model_folder = FullPath(model_folder, "Stereo");
+        }
+
         using namespace std::chrono;
         using Clock = std::chrono::high_resolution_clock;
 
@@ -221,7 +226,7 @@ public:
                 case MusicGenConfig::ContinuationContext::FIVE_SECONDS:
                 {
                     model_path = FullPath(model_folder, "musicgen_decoder_static0_5s.xml");
-                    auto attn_mask_raw_file = FullPath(model_folder, "attention_mask_from_prepare_4d_causal_5s.raw");
+                    auto attn_mask_raw_file = FullPath(config.model_folder, "attention_mask_from_prepare_4d_causal_5s.raw");
                     _attention_mask = read_tensor(attn_mask_raw_file, { 2, 1, 251, 251 });
                 }
                 break;
@@ -229,7 +234,7 @@ public:
                 case MusicGenConfig::ContinuationContext::TEN_SECONDS:
                 {
                     model_path = FullPath(model_folder, "musicgen_decoder_static0_10s.xml");
-                    auto attn_mask_raw_file = FullPath(model_folder, "attention_mask_from_prepare_4d_causal_10s.raw");
+                    auto attn_mask_raw_file = FullPath(config.model_folder, "attention_mask_from_prepare_4d_causal_10s.raw");
                     _attention_mask = read_tensor(attn_mask_raw_file, { 2, 1, 501, 501 });
                 }
                 break;

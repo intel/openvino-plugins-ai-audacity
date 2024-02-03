@@ -53,7 +53,14 @@ MusicgenForConditionalGeneration::MusicgenForConditionalGeneration(MusicGenConfi
 
     {
         //prep enc-to-dec proj model
-        auto modelpath = FullPath(model_folder, "enc_to_dec_proj.xml");
+
+        std::string enc_to_dec_model_folder = model_folder;
+        if (config.bStereo)
+        {
+            enc_to_dec_model_folder = FullPath(enc_to_dec_model_folder, "Stereo");
+        }
+
+        auto modelpath = FullPath(enc_to_dec_model_folder, "enc_to_dec_proj.xml");
         std::shared_ptr<ov::Model> model = core.read_model(modelpath);
 
         model->reshape({ {2, ov::Dimension(1, 64), 768} });
@@ -66,7 +73,7 @@ MusicgenForConditionalGeneration::MusicgenForConditionalGeneration(MusicGenConfi
     }
 
     {
-        size_t num_encodec_secs = 5;
+        size_t num_encodec_secs = 20;
 
         auto modelpath = FullPath(model_folder, "encodec_" + std::to_string(num_encodec_secs) + "s.xml");
         std::shared_ptr<ov::Model> model = core.read_model(modelpath);
@@ -189,7 +196,7 @@ std::pair<torch::Tensor, torch::Tensor> MusicgenForConditionalGeneration::forwar
         encoder_hidden_states = encoder_hidden_states * (*attention_mask).index({ "...", None });
     }
 
-    //todo
+    //todo?
     /*
     if (labels is not None) and (decoder_input_ids is None and decoder_inputs_embeds is None):
         decoder_input_ids = shift_tokens_right(
@@ -256,26 +263,77 @@ MusicgenForConditionalGeneration::GenerateReturn MusicgenForConditionalGeneratio
     int64_t pad_token_id = 2048;
 
     int64_t batch_size = 1;
-    int64_t num_codebooks = 4;
+    int64_t num_codebooks = _decoder->NumCodebooks();
 
     //auto inputs_tensor = read_tensor("raw_input_tensors\\inputs_tensor.raw", { 1, 12 }, torch::kInt64);
-    auto input_ids = torch::full({ 4, 1 }, pad_token_id, torch::kInt64);
+    auto input_ids = torch::full({ num_codebooks, 1 }, pad_token_id, torch::kInt64);
 
     //std::optional< torch::Tensor > decoder_input_ids;
     if (audio_to_continue)
     {
         std::cout << "encoding audio to continue.." << std::endl;
-        auto audio_codes = _encoder->encode(*audio_to_continue);
-        std::cout << "done encoding" << std::endl;
-
-        auto frames = audio_codes.size(0);
-        auto bsz = audio_codes.size(1);
-        auto codebooks = audio_codes.size(2);
-        auto seq_len = audio_codes.size(3);
-
-        if (frames != 1)
+        torch::Tensor audio_codes;
+        int64_t frames, bsz, codebooks, seq_len;
+        if (_decoder->AudioChannels() == 1)
         {
-            throw std::runtime_error("generate: expected frames to be 1");
+            if (audio_to_continue->size(1) != 1)
+            {
+                throw std::runtime_error("Models are configured for mono, but audio-to-continue != 1 channel");
+            }
+
+            audio_codes = _encoder->encode(*audio_to_continue);
+          
+            frames = audio_codes.size(0);
+            bsz = audio_codes.size(1);
+            codebooks = audio_codes.size(2);
+            seq_len = audio_codes.size(3);
+
+            if (frames != 1)
+            {
+                throw std::runtime_error("generate: expected frames to be 1");
+            }
+
+            
+        }
+        else if (_decoder->AudioChannels() == 2)
+        {
+            if (audio_to_continue->size(1) != 2)
+            {
+                throw std::runtime_error("Models are configured for stereo, but audio-to-continue != 2 channels");
+            }
+
+            using namespace torch::indexing;
+
+            auto input_vals_left = audio_to_continue->index({ Slice(), Slice(None, 1), Slice() });
+            
+            //careful! audio_codes_left is a thin wrapper around the encoder output tensor. 
+            // this is why we do the index_put below before generating the right one (as it will implicitly)
+            // change the values of audio_codes_left!
+            auto audio_codes_left = _encoder->encode(input_vals_left);
+
+            frames = audio_codes_left.size(0);
+            bsz = audio_codes_left.size(1);
+            codebooks = audio_codes_left.size(2);
+            seq_len = audio_codes_left.size(3);
+
+            // copy alternating left / right channel codes into stereo codebook
+            audio_codes = audio_codes_left.new_ones({ frames, bsz, 2 * codebooks, seq_len });
+
+            audio_codes.index_put_({ Slice(), Slice(), Slice(None, None, 2), Slice() }, audio_codes_left);
+
+            auto input_vals_right = audio_to_continue->index({ Slice(), Slice(1, None), Slice() });
+            
+            auto audio_codes_right = _encoder->encode(input_vals_right);
+
+            audio_codes.index_put_({ Slice(), Slice(), Slice(1, None, 2), Slice() }, audio_codes_right);
+
+            
+
+            std::cout << "done producing audio_codes" << std::endl;
+        }
+        else
+        {
+            throw std::runtime_error("AudioChannels() is not 1 or 2... (something is very wrong)");
         }
 
         auto decoder_input_ids = audio_codes.index({ 0, "..." }).reshape({ bsz * num_codebooks , seq_len });
@@ -335,6 +393,27 @@ MusicgenForConditionalGeneration::GenerateReturn MusicgenForConditionalGeneratio
 
     ret.input_ids = output_ids;
 
+    dump_tensor(output_ids, "ov_output_ids.raw");
+
+#if 0
+    {
+        using namespace torch::indexing;
+        auto golden = read_tensor("output_ids.raw", output_ids.sizes(), torch::kInt64);
+
+        for (int64_t i = 0; i < golden.sizes()[1]; i++)
+        {
+            auto gi = golden.index({ Slice(), Slice(i, i + 1) });
+            auto our_i = output_ids.index({ Slice(), Slice(i, i + 1) });
+
+            if (!gi.equal(our_i))
+            {
+                std::cout << "mismatch between golden at index " << i << std::endl;
+                break;
+            }
+        }
+    }
+#endif
+
     //std::cout << "output_ids size = " << output_ids.sizes() << std::endl;
 
     // apply the pattern mask to the final ids
@@ -350,7 +429,18 @@ MusicgenForConditionalGeneration::GenerateReturn MusicgenForConditionalGeneratio
     using namespace torch::indexing;
     output_ids = output_ids.index({ None, "..." });
 
-    ret.wav = ids_to_wav(output_ids);
+    if (_decoder->AudioChannels() == 1)
+    {
+        ret.wav = ids_to_wav(output_ids);
+    }
+    else
+    {
+        auto left_input = output_ids.index({ Slice(), Slice(), Slice(None, None, 2), Slice() });
+        ret.wav = ids_to_wav(left_input);
+
+        auto right_input = output_ids.index({ Slice(), Slice(), Slice(1, None, 2), Slice() });
+        ret.wav1 = ids_to_wav(right_input);
+    }
 
     return ret;
 }
@@ -474,8 +564,11 @@ torch::Tensor MusicgenForConditionalGeneration::sample(torch::Tensor input_ids,
     std::cout << "going into while loop" << std::endl;
     int64_t tokens_generated_count = -4;
 
+    int nforward_calls = 0;
     while (true)
     {
+        nforward_calls++;
+
         auto decoder_input_ids = prepare_inputs_for_generation(input_ids, decoder_delay_pattern_mask, guidance_scale);
 
         //std::cout << "decoder_input_ids.dtype = " << decoder_input_ids.dtype() << ", decoder_input_ids shape = " << decoder_input_ids.sizes() << std::endl;
@@ -498,6 +591,7 @@ torch::Tensor MusicgenForConditionalGeneration::sample(torch::Tensor input_ids,
         auto next_token_scores = _logits_processor(input_ids, next_token_logits, guidance_scale);
 
         next_token_scores = _logits_warper(input_ids, next_token_scores, top_k, -INFINITY);
+
 
         //dump_tensor(next_token_scores, "ov_next_token_scores_into_softmax.raw");
         torch::Tensor probs;
@@ -522,6 +616,17 @@ torch::Tensor MusicgenForConditionalGeneration::sample(torch::Tensor input_ids,
         //std::exit(0);
 
         input_ids = torch::cat({ input_ids, next_tokens.index({Slice(), None}) }, -1);
+
+#if 0
+        if (input_ids.sizes()[1] == 3)
+        {
+            //std::cout << "input_ids = " << input_ids.index({ Slice(), Slice(65, None) }) << std::endl;
+            std::cout << "input_ids = " << input_ids << std::endl;
+            std::cout << "exiting!" << std::endl;
+            std::exit(0);
+        }
+#endif
+
 
         tokens_generated_count++;
 

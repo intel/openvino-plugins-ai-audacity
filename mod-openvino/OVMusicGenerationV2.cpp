@@ -261,6 +261,8 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
 
                   _musicgen_config.m_continuation_context = continuation_context;
 
+                  _musicgen_config.bStereo = true;
+
                   if (_musicgen_config.musicgen_decode_device0 == "CPU")
                   {
                      _musicgen_config.initial_decode_device = "CPU";
@@ -331,15 +333,11 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
          descriptor_str += ", Guidance Scale = " + std::to_string(mGuidanceScale);
          descriptor_str += ", TopK = " + std::to_string(mTopK);
 
-         
-
          added_trackName = wxString("Generated: (" + descriptor_str + ")");
-
-        
 
          std::cout << "Duration = " << (float)mDurationT->GetValue() << std::endl;
 
-         std::optional< std::shared_ptr<std::vector<float>> > audio_to_continue;
+         std::optional<std::pair<std::shared_ptr<std::vector<float>>, std::shared_ptr<std::vector<float>>>> audio_to_continue;
 
          if (_AudioContinuationCheckBox->GetValue())
          {
@@ -383,6 +381,20 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
 
                //flush it
                auto pTmpTrack = *tmp_tracklist->Any<WaveTrack>().begin();
+
+               if (track->Channels().size() > 1)
+               {
+                  auto right = track->GetChannel(1);
+                  bOkay = right->GetFloats(entire_input.get(), start_s, total_samples);
+                  if (!bOkay)
+                  {
+                     throw std::runtime_error("unable to get all right samples. GetFloats() failed for " +
+                        std::to_string(total_samples) + " samples");
+                  }
+                  auto& tmpRight = **iter;
+                  tmpRight.Append((samplePtr)entire_input.get(), floatSample, total_samples);
+               }
+
                pTmpTrack->Flush();
 
                if (pTmpTrack->GetRate() != 32000)
@@ -390,6 +402,7 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
                   pTmpTrack->Resample(32000, mProgress);
                }
 
+               std::pair<std::shared_ptr<std::vector<float>>, std::shared_ptr<std::vector<float>>> wav_pair;
                {
                   auto pResampledTrack = pTmpTrack->GetChannel(0);
 
@@ -401,18 +414,38 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
 
                   total_samples = (end_s - start_s).as_size_t();
 
-                  std::shared_ptr< std::vector<float> > resampled_samples = std::make_shared< std::vector<float> >(total_samples);
-                  bool bOkay = pResampledTrack->GetFloats(resampled_samples->data(), start_s, total_samples);
+                  std::shared_ptr< std::vector<float> > resampled_samples_left = std::make_shared< std::vector<float> >(total_samples);
+                  bool bOkay = pResampledTrack->GetFloats(resampled_samples_left->data(), start_s, total_samples);
                   if (!bOkay)
                   {
                      throw std::runtime_error("unable to get all left samples. GetFloats() failed for " +
                         std::to_string(total_samples) + "samples");
                   }
 
-                  audio_to_continue = resampled_samples;
+                  wav_pair.first = resampled_samples_left;
 
+                  if (pTmpTrack->Channels().size() > 1)
+                  {
+                     auto pResampledTrackR = pTmpTrack->GetChannel(1);
+                     std::shared_ptr< std::vector<float> > resampled_samples_right = std::make_shared< std::vector<float> >(total_samples);
+                     bool bOkay = pResampledTrackR->GetFloats(resampled_samples_right->data(), start_s, total_samples);
+                     if (!bOkay)
+                     {
+                        throw std::runtime_error("unable to get all right samples. GetFloats() failed for " +
+                           std::to_string(total_samples) + "samples");
+                     }
+
+                     wav_pair.second = resampled_samples_right;
+                  }
+                  else
+                  {
+                     wav_pair.second = resampled_samples_left;
+                  }
+                  
                   std::cout << "okay, set audio to continue to " << total_samples << " samples..." << std::endl;
                }
+
+               audio_to_continue = wav_pair;
             }
          }
 
@@ -456,11 +489,12 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
 
          std::cout << "generated!" << std::endl;
 
-         auto generated_samples_L = musicgen_pipeline_run_future.get();
+         auto res_wav_pair = musicgen_pipeline_run_future.get();
+         auto generated_samples_L = res_wav_pair.first;
          if (!generated_samples_L)
             return false;
 
-         std::shared_ptr<std::vector<float>> generated_samples_R;
+         auto generated_samples_R = res_wav_pair.second;
 
          settings.extra.SetDuration(mDurationT->GetValue());
          const auto duration = settings.extra.GetDuration();
@@ -799,7 +833,7 @@ void EffectOVMusicGenerationV2::DoPopulateOrExchange(
 
             std::cout << "track end time = " << t1 << std::endl;
             std::cout << "mT0 = " << mT0 << std::endl;
-            if (track->IsEmpty(t0, t1) || (track->Channels().size() > 1))
+            if (track->IsEmpty(t0, t1))
             {
                _AudioContinuationCheckBox->Enable(false);
             }

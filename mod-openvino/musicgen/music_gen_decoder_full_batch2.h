@@ -19,6 +19,11 @@ public:
 
         auto tensortype = device == "CPU" ? ov::element::f32 : ov::element::f16;
 
+        if (config.bStereo)
+        {
+            model_folder = FullPath(model_folder, "Stereo");
+        }
+
         //std::string device = "GPU";
         //auto tensortype = ov::element::f16;
 
@@ -192,14 +197,13 @@ public:
  
         //todo: this is only needed for song continuation, so make it possible to construct without it, if we're not doing that.
         {
-            
             std::string model_path;
             switch (config.m_continuation_context)
             {
                 case MusicGenConfig::ContinuationContext::FIVE_SECONDS:
                 {
                     model_path = FullPath(model_folder, "musicgen_decoder_static0_5s.xml");
-                    auto attn_mask_raw_file = FullPath(model_folder, "attention_mask_from_prepare_4d_causal_5s.raw");
+                    auto attn_mask_raw_file = FullPath(config.model_folder, "attention_mask_from_prepare_4d_causal_5s.raw");
                     _attention_mask = read_tensor(attn_mask_raw_file, { 2, 1, 251, 251 });
                 }
                 break;
@@ -207,7 +211,7 @@ public:
                 case MusicGenConfig::ContinuationContext::TEN_SECONDS:
                 {
                     model_path = FullPath(model_folder, "musicgen_decoder_static0_10s.xml");
-                    auto attn_mask_raw_file = FullPath(model_folder, "attention_mask_from_prepare_4d_causal_10s.raw");
+                    auto attn_mask_raw_file = FullPath(config.model_folder, "attention_mask_from_prepare_4d_causal_10s.raw");
                     _attention_mask = read_tensor(attn_mask_raw_file, { 2, 1, 501, 501 });
                 }
                 break;
