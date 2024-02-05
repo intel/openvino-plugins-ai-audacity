@@ -78,8 +78,11 @@ export LD_LIBRARY_PATH=${WHISPERCPP_ROOTDIR}/lib:$LD_LIBRARY_PATH
 
 ### OpenVINO Stable-Diffusion CPP
 ```
-# clone it
+# clone it & check out v0.1 tag
 git clone https://github.com/intel/stablediffusion-pipelines-cpp.git
+cd stablediffusion-pipelines-cpp
+git checkout v0.1
+cd ..
 
 #create build folder
 mkdir stablediffusion-pipelines-cpp-build
