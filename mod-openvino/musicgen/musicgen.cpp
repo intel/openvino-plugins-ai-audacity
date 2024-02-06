@@ -54,7 +54,7 @@ static inline torch::Tensor pack_wav_to_tensor(std::shared_ptr<std::vector<float
 }
 
 std::pair<std::shared_ptr<std::vector<float>>, std::shared_ptr<std::vector<float>>> MusicGen::Generate(std::optional<std::string> prompt,
-	std::optional<std::pair<std::shared_ptr<std::vector<float>>, std::shared_ptr<std::vector<float>>>> audio_to_continue,
+   std::optional<AudioContinuationParams> audio_to_continue_params,
 	float total_desired_length_seconds,
 	std::optional< unsigned int > seed,
 	float guidance_scale,
@@ -121,18 +121,38 @@ std::pair<std::shared_ptr<std::vector<float>>, std::shared_ptr<std::vector<float
 	}
 	
 	std::optional< torch::Tensor > audio_to_continue_tensor;
-
+   size_t audio_to_continue_samples = 0;
 	//todo: handle stereo case
-	if (audio_to_continue)
+	if (audio_to_continue_params)
 	{
-		audio_to_continue_tensor = pack_wav_to_tensor(audio_to_continue->first, ncontext_samples);
+      auto audio_to_continue = audio_to_continue_params->audio_to_continue;
 
-		if (audio_to_continue->second)
+      if ( !audio_to_continue.first )
+      {
+         throw std::invalid_argument("audio_to_continue_params were set, but audio_to_continue_params.audio_to_continue.first is not set.");
+      }
+
+      audio_to_continue_samples = audio_to_continue.first->size();
+     
+		audio_to_continue_tensor = pack_wav_to_tensor(audio_to_continue.first, ncontext_samples);
+
+		if (audio_to_continue.second)
 		{
-			auto audio_to_continue_tensor1 = pack_wav_to_tensor(audio_to_continue->second, ncontext_samples);
+         // double check that user set same number of 'right' samples as 'left'
+         if (audio_to_continue.second->size() != audio_to_continue_samples)
+         {
+            throw std::invalid_argument("audio_to_continue_params.audio_to_continue.first->size() != ...second->size()!");
+         }
+
+			auto audio_to_continue_tensor1 = pack_wav_to_tensor(audio_to_continue.second, ncontext_samples);
 			audio_to_continue_tensor = torch::stack({ audio_to_continue_tensor->squeeze(0), audio_to_continue_tensor1.squeeze()});
 
 		}
+
+      if (audio_to_continue_samples > ncontext_samples)
+      {
+         audio_to_continue_samples = ncontext_samples;
+      }
 
 		std::cout << "audio_to_continue_tensor shape before unsqueeze = " << audio_to_continue_tensor->sizes() << std::endl;
 
@@ -144,16 +164,14 @@ std::pair<std::shared_ptr<std::vector<float>>, std::shared_ptr<std::vector<float
    std::shared_ptr< std::vector<float> > output_wav0;
    std::shared_ptr< std::vector<float> > output_wav1;
 
-   //this will cause us to *not* copy the re-encoded audio that was
-   // passed in (although the user may want that in some modes).
-#if 1
-   if (audio_to_continue)
+   if (audio_to_continue_params && !audio_to_continue_params->bReturnAudioToContinueInOutput)
    {
+      //this will cause us to *not* copy the re-encoded audio that was
+      // passed in (although the user may want that in some modes).
 	   output_wav0 = std::make_shared<std::vector<float>>();
 	   output_wav1 = std::make_shared<std::vector<float>>();
    }
-#endif
-  
+
 	size_t iterationi = 0;
 	while (total_tokens_left_to_generate > 0)
 	{
@@ -178,7 +196,19 @@ std::pair<std::shared_ptr<std::vector<float>>, std::shared_ptr<std::vector<float
 
 		if (!output_wav0)
 		{
-			output_wav0 = gen_ret.wav;
+         // If we're doing audio continuation, and the user wants to receive the context as output, and we had to pad their input to fill the context.
+         if (audio_to_continue_params && audio_to_continue_params->bReturnAudioToContinueInOutput && (ncontext_samples > audio_to_continue_samples))
+         {
+            output_wav0 = std::make_shared<std::vector<float>>();
+            size_t offset = ncontext_samples - audio_to_continue_samples;
+
+            auto wav = gen_ret.wav;
+            output_wav0->insert(output_wav0->end(), wav->begin() + offset, wav->end());
+         }
+         else
+         {
+            output_wav0 = gen_ret.wav;
+         }
 		}
 		else
 		{
@@ -194,7 +224,19 @@ std::pair<std::shared_ptr<std::vector<float>>, std::shared_ptr<std::vector<float
 		{
 			if (!output_wav1)
 			{
-				output_wav1 = gen_ret.wav1;
+            // If we're doing audio continuation, and the user wants to receive the context as output, and we had to pad their input to fill the context.
+            if (audio_to_continue_params && audio_to_continue_params->bReturnAudioToContinueInOutput && (ncontext_samples > audio_to_continue_samples))
+            {
+               output_wav1 = std::make_shared<std::vector<float>>();
+               size_t offset = ncontext_samples - audio_to_continue_samples;
+
+               auto wav = gen_ret.wav1;
+               output_wav1->insert(output_wav1->end(), wav->begin() + offset, wav->end());
+            }
+            else
+            {
+               output_wav1 = gen_ret.wav1;
+            }
 			}
 			else
 			{

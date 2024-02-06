@@ -23,6 +23,7 @@
 #include <wx/button.h>
 #include <wx/checkbox.h>
 #include <wx/wrapsizer.h>
+#include <wx/stattext.h>
 
 #include "ShuttleGui.h"
 
@@ -31,6 +32,7 @@
 #include "FileNames.h"
 #include "CodeConversions.h"
 #include "SyncLock.h"
+#include "ConfigInterface.h"
 
 #include <future>
 
@@ -42,6 +44,9 @@ namespace { BuiltinEffectsModule::Registration< EffectOVMusicGenerationV2 > reg;
 
 BEGIN_EVENT_TABLE(EffectOVMusicGenerationV2, wxEvtHandler)
    EVT_BUTTON(ID_Type_UnloadModelsButton, EffectOVMusicGenerationV2::OnUnloadModelsButtonClicked)
+   EVT_CHOICE(ID_Type_ContextLength, EffectOVMusicGenerationV2::OnContextLengthChanged)
+   EVT_CHECKBOX(ID_Type_AudioContinuationCheckBox, EffectOVMusicGenerationV2::OnContextLengthChanged)
+   EVT_CHECKBOX(ID_Type_AudioContinuationAsNewTrackCheckBox, EffectOVMusicGenerationV2::OnContextLengthChanged)
 END_EVENT_TABLE()
 
 EffectOVMusicGenerationV2::EffectOVMusicGenerationV2()
@@ -72,8 +77,10 @@ EffectOVMusicGenerationV2::EffectOVMusicGenerationV2()
       mGuiContextLengthSelections.push_back({ TranslatableString{ wxString(d), {}} });
    }
 
-   std::vector<std::string> model_selection_choices = { "musicgen-small-fp16",
-                                                        "musicgen-small-int8" };
+   std::vector<std::string> model_selection_choices = { "musicgen-small-fp16-stereo",
+                                                        "musicgen-small-int8-stereo",
+                                                        "musicgen-small-fp16-mono",
+                                                        "musicgen-small-int8-mono" };
    for (auto d : model_selection_choices)
    {
       mGuiModelSelections.push_back({ TranslatableString{ wxString(d), {}} });
@@ -202,7 +209,7 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
       }
 
       MusicGenConfig::ModelSelection model_selection;
-      if (m_modelSelectionChoice == 0)
+      if ((m_modelSelectionChoice % 2) == 0)
       {
          model_selection = MusicGenConfig::ModelSelection::MUSICGEN_SMALL_FP16;
       }
@@ -210,6 +217,8 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
       {
          model_selection = MusicGenConfig::ModelSelection::MUSICGEN_SMALL_INT8;
       }
+
+      bool bStereo = (m_modelSelectionChoice < 2);
 
       std::cout << "text_encoder_device = " << text_encoder_device << std::endl;
       std::cout << "MusicGen Decode Device 0 = " << musicgen_dec0_device << std::endl;
@@ -228,7 +237,7 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
 
          auto musicgen_pipeline_creation_future = std::async(std::launch::async,
             [this, &musicgen_model_folder, &cache_path, &text_encoder_device, &musicgen_dec0_device, &musicgen_dec1_device,
-             &continuation_context, &model_selection]
+             &continuation_context, &model_selection, &bStereo]
             {
 
                //TODO: This should be much more efficient. No need to destroy *everything*, just update the
@@ -250,6 +259,10 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
                   _musicgen = {};
                }
 
+               if (bStereo != _musicgen_config.bStereo)
+               {
+                  _musicgen = {};
+               }
 
                if (!_musicgen)
                {
@@ -261,7 +274,7 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
 
                   _musicgen_config.m_continuation_context = continuation_context;
 
-                  _musicgen_config.bStereo = true;
+                  _musicgen_config.bStereo = bStereo;
 
                   if (_musicgen_config.musicgen_decode_device0 == "CPU")
                   {
@@ -337,13 +350,16 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
 
          std::cout << "Duration = " << (float)mDurationT->GetValue() << std::endl;
 
-         std::optional<std::pair<std::shared_ptr<std::vector<float>>, std::shared_ptr<std::vector<float>>>> audio_to_continue;
+         std::optional<MusicGen::AudioContinuationParams> audio_to_continue_params;
 
+         double audio_to_continue_start, audio_to_continue_end;
+         size_t audio_to_continue_samples = 0;
          if (_AudioContinuationCheckBox->GetValue())
          {
+            MusicGen::AudioContinuationParams params;
             auto track = *(outputs.Get().Selected<WaveTrack>().begin());
 
-            auto mono = track->GetChannel(0);
+            auto left = track->GetChannel(0);
 
             // create a temporary track list to append samples to
             auto tmp_tracklist = track->WideEmptyCopy();
@@ -353,46 +369,74 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
             auto iter =
                pTmpTrack->Channels().begin();
 
-            auto end = mT0;
-
-            if (end > mono->GetStartTime())
             {
-               auto start = mT1 - 10.f;
+               // If an existing (non-empty) track is highlighted, and the highlighted region
+                // overlaps with existing segment.
+               if (((mT0 >= left->GetStartTime()) && (mT0 < left->GetEndTime())) || ((mT1 >= left->GetStartTime()) && (mT1 < left->GetEndTime())))
+               {
+                  audio_to_continue_start = mT0;
+                  audio_to_continue_end = mT1;
+               }
+               else
+               {
+                  audio_to_continue_start = mT0 - 10.f;
+                  audio_to_continue_end = mT0;
+               }
 
-               if (start < mono->GetStartTime())
-                  start = mono->GetStartTime();
+               double max_context_length = 0.f;
+               switch (_musicgen_config.m_continuation_context)
+               {
+                  case MusicGenConfig::ContinuationContext::FIVE_SECONDS:
+                     max_context_length = 5.;
+                  break;
 
-               auto start_s = mono->TimeToLongSamples(start);
-               auto end_s = mono->TimeToLongSamples(end);
+                  case MusicGenConfig::ContinuationContext::TEN_SECONDS:
+                     max_context_length = 10.;
+                  break;
+               }
 
-               size_t total_samples = (end_s - start_s).as_size_t();
+               if ((audio_to_continue_end - audio_to_continue_start) > max_context_length)
+               {
+                  audio_to_continue_start = audio_to_continue_end - max_context_length;
+               }
 
-               Floats entire_input{ total_samples };
+               std::cout << "audio_to_continue_start = " << audio_to_continue_start << std::endl;
+               std::cout << "audio_to_continue_end = " << audio_to_continue_end << std::endl;
 
-               bool bOkay = mono->GetFloats(entire_input.get(), start_s, total_samples);
+               if (audio_to_continue_start < left->GetStartTime())
+                  audio_to_continue_start = left->GetStartTime();
+
+               auto start_s = left->TimeToLongSamples(audio_to_continue_start);
+               auto end_s = left->TimeToLongSamples(audio_to_continue_end);
+
+               size_t audio_to_continue_samples = (end_s - start_s).as_size_t();
+
+               Floats entire_input{ audio_to_continue_samples };
+
+               bool bOkay = left->GetFloats(entire_input.get(), start_s, audio_to_continue_samples);
                if (!bOkay)
                {
                   throw std::runtime_error("unable to get all left samples. GetFloats() failed for " +
-                     std::to_string(total_samples) + "samples");
+                     std::to_string(audio_to_continue_samples) + "samples");
                }
 
-               auto& tmpMono = **iter++;
-               tmpMono.Append((samplePtr)entire_input.get(), floatSample, total_samples);
+               auto& tmpLeft = **iter++;
+               tmpLeft.Append((samplePtr)entire_input.get(), floatSample, audio_to_continue_samples);
 
                //flush it
                auto pTmpTrack = *tmp_tracklist->Any<WaveTrack>().begin();
 
-               if (track->Channels().size() > 1)
+               if ((track->Channels().size() > 1) && (_musicgen_config.bStereo))
                {
                   auto right = track->GetChannel(1);
-                  bOkay = right->GetFloats(entire_input.get(), start_s, total_samples);
+                  bOkay = right->GetFloats(entire_input.get(), start_s, audio_to_continue_samples);
                   if (!bOkay)
                   {
                      throw std::runtime_error("unable to get all right samples. GetFloats() failed for " +
-                        std::to_string(total_samples) + " samples");
+                        std::to_string(audio_to_continue_samples) + " samples");
                   }
                   auto& tmpRight = **iter;
-                  tmpRight.Append((samplePtr)entire_input.get(), floatSample, total_samples);
+                  tmpRight.Append((samplePtr)entire_input.get(), floatSample, audio_to_continue_samples);
                }
 
                pTmpTrack->Flush();
@@ -406,51 +450,57 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
                {
                   auto pResampledTrack = pTmpTrack->GetChannel(0);
 
-                  start = pResampledTrack->GetStartTime();
-                  end = pResampledTrack->GetEndTime();
+                  auto start = pResampledTrack->GetStartTime();
+                  auto end = pResampledTrack->GetEndTime();
 
                   auto start_s = pResampledTrack->TimeToLongSamples(start);
                   auto end_s = pResampledTrack->TimeToLongSamples(end);
 
-                  total_samples = (end_s - start_s).as_size_t();
+                  audio_to_continue_samples = (end_s - start_s).as_size_t();
 
-                  std::shared_ptr< std::vector<float> > resampled_samples_left = std::make_shared< std::vector<float> >(total_samples);
-                  bool bOkay = pResampledTrack->GetFloats(resampled_samples_left->data(), start_s, total_samples);
+                  std::shared_ptr< std::vector<float> > resampled_samples_left = std::make_shared< std::vector<float> >(audio_to_continue_samples);
+                  bool bOkay = pResampledTrack->GetFloats(resampled_samples_left->data(), start_s, audio_to_continue_samples);
                   if (!bOkay)
                   {
                      throw std::runtime_error("unable to get all left samples. GetFloats() failed for " +
-                        std::to_string(total_samples) + "samples");
+                        std::to_string(audio_to_continue_samples) + "samples");
                   }
 
+                  
                   wav_pair.first = resampled_samples_left;
 
-                  if (pTmpTrack->Channels().size() > 1)
+                  if (_musicgen_config.bStereo)
                   {
-                     auto pResampledTrackR = pTmpTrack->GetChannel(1);
-                     std::shared_ptr< std::vector<float> > resampled_samples_right = std::make_shared< std::vector<float> >(total_samples);
-                     bool bOkay = pResampledTrackR->GetFloats(resampled_samples_right->data(), start_s, total_samples);
-                     if (!bOkay)
+                     if (pTmpTrack->Channels().size() > 1)
                      {
-                        throw std::runtime_error("unable to get all right samples. GetFloats() failed for " +
-                           std::to_string(total_samples) + "samples");
-                     }
+                        auto pResampledTrackR = pTmpTrack->GetChannel(1);
+                        std::shared_ptr< std::vector<float> > resampled_samples_right = std::make_shared< std::vector<float> >(audio_to_continue_samples);
+                        bool bOkay = pResampledTrackR->GetFloats(resampled_samples_right->data(), start_s, audio_to_continue_samples);
+                        if (!bOkay)
+                        {
+                           throw std::runtime_error("unable to get all right samples. GetFloats() failed for " +
+                              std::to_string(audio_to_continue_samples) + "samples");
+                        }
 
-                     wav_pair.second = resampled_samples_right;
-                  }
-                  else
-                  {
-                     wav_pair.second = resampled_samples_left;
+                        wav_pair.second = resampled_samples_right;
+                     }
+                     else
+                     {
+                        wav_pair.second = resampled_samples_left;
+                     }
                   }
                   
-                  std::cout << "okay, set audio to continue to " << total_samples << " samples..." << std::endl;
+                  std::cout << "okay, set audio to continue to " << audio_to_continue_samples << " samples..." << std::endl;
                }
 
-               audio_to_continue = wav_pair;
+               params.audio_to_continue = wav_pair;
+               params.bReturnAudioToContinueInOutput = _AudioContinuationAsNewTrackCheckBox->GetValue();
+               audio_to_continue_params = params;
             }
          }
 
          auto musicgen_pipeline_run_future = std::async(std::launch::async,
-            [this, &seed, &audio_to_continue]
+            [this, &seed, &audio_to_continue_params]
             {
 
                CallbackParams callback_params;
@@ -459,7 +509,7 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
                callback_params.callback = musicgen_callback;
 
                auto wav = _musicgen->Generate(_prompt,
-                  audio_to_continue, 
+                  audio_to_continue_params,
                   (float)mDurationT->GetValue(),
                   seed,
                   mGuidanceScale,
@@ -496,8 +546,13 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
 
          auto generated_samples_R = res_wav_pair.second;
 
-         settings.extra.SetDuration(mDurationT->GetValue());
-         const auto duration = settings.extra.GetDuration();
+         auto duration = settings.extra.GetDuration();
+         if (_AudioContinuationAsNewTrackCheckBox->GetValue())
+         {
+            duration += audio_to_continue_end - audio_to_continue_start;
+         }
+
+         settings.extra.SetDuration(duration);
 
          //clip samples to max duration
          size_t max_output_samples = duration * 32000;
@@ -545,18 +600,21 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
             }
 #endif
 
-            //if we can't move clips, and we're generating into an empty space,
-            //make sure there's room.
-            if (!editClipCanMove &&
-               track->IsEmpty(mT0, mT1 + 1.0 / track->GetRate()) &&
-               !track->IsEmpty(mT0,
-                  mT0 + duration - (mT1 - mT0) - 1.0 / track->GetRate()))
+            if (!_AudioContinuationAsNewTrackCheckBox->GetValue())
             {
-               EffectUIServices::DoMessageBox(*this,
-                  XO("There is not enough room available to generate the audio"),
-                  wxICON_STOP,
-                  XO("Error"));
-               return false;
+               //if we can't move clips, and we're generating into an empty space,
+               //make sure there's room.
+               if (!editClipCanMove &&
+                  track->IsEmpty(mT0, mT1 + 1.0 / track->GetRate()) &&
+                  !track->IsEmpty(mT0,
+                     mT0 + duration - (mT1 - mT0) - 1.0 / track->GetRate()))
+               {
+                  EffectUIServices::DoMessageBox(*this,
+                     XO("There is not enough room available to generate the audio"),
+                     wxICON_STOP,
+                     XO("Error"));
+                  return false;
+               }
             }
 
             if (duration > 0.0)
@@ -568,27 +626,50 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
 
                // create a temporary track list to append samples to
                auto tmp_tracklist = track->WideEmptyCopy();
+
                auto iter =
                   (*tmp_tracklist->Any<WaveTrack>().begin())->Channels().begin();
 
-               //append output samples to L & R channels.
-               auto& tmpLeft = **iter++;
-               tmpLeft.Append((samplePtr)generated_samples_L->data(), floatSample, generated_samples_L->size());
-
                if (track->NChannels() > 1)
                {
+                  //append output samples to L & R channels.
+                  auto& tmpLeft = **iter++;
+                  tmpLeft.Append((samplePtr)generated_samples_L->data(), floatSample, generated_samples_L->size());
+
                   auto& tmpRight = **iter;
 
                   if (generated_samples_R)
                   {
-                     std::cout << "appending right samples" << std::endl;
                      tmpRight.Append((samplePtr)generated_samples_R->data(), floatSample, generated_samples_R->size());
                   }
                   else
                   {
-                     std::cout << "appending right samples from left" << std::endl;
                      tmpRight.Append((samplePtr)generated_samples_L->data(), floatSample, generated_samples_L->size());
                   }
+               }
+               else
+               {
+                  auto& tmpMono = **iter++;
+
+                  //if we're populating a mono track, but we had stereo track selected which produced L & R. Convert to mono quick.
+                  if (generated_samples_L && generated_samples_R)
+                  {
+                     Floats entire_input{ generated_samples_L->size() };
+                     float* pL = generated_samples_L->data();
+                     float* pR = generated_samples_R->data();
+                     float* pMono = entire_input.get();
+                     for (size_t i = 0; i < generated_samples_L->size(); i++)
+                     {
+                        pMono[i] = pL[i] + pR[i] / 2.f;
+                     }
+
+                     tmpMono.Append((samplePtr)pMono, floatSample, generated_samples_L->size());
+                  }
+                  else
+                  {
+                     tmpMono.Append((samplePtr)generated_samples_L->data(), floatSample, generated_samples_L->size());
+                  }
+
                }
 
                //flush it
@@ -596,18 +677,56 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
                pTmpTrack->Flush();
 
                // The track we just populated with samples is 32000 Hz.
-               // Within the ClearAndPaste() operation below, it will automatically
-               // resample this to whatever the 'target' track sample rate is.
                pTmpTrack->SetRate(32000);
 
-               PasteTimeWarper warper{ mT1, mT0 + duration };
-               const auto& selectedRegion =
-                  ViewInfo::Get(*pProject).selectedRegion;
+               if (_AudioContinuationAsNewTrackCheckBox->GetValue())
+               {
+                  auto newOutputTrackList = track->WideEmptyCopy();
 
-               track->ClearAndPaste(
-                  selectedRegion.t0(), selectedRegion.t1(),
-                  *tmp_tracklist, true, false, &warper);
+                  auto newOutputTrack = *newOutputTrackList->Any<WaveTrack>().begin();
 
+                  newOutputTrack->SetRate(32000);
+
+                  std::cout << "Pasting " << audio_to_continue_start << " : " << audio_to_continue_start + duration << std::endl;
+                  // Clear & Paste into new output track
+                  newOutputTrack->ClearAndPaste(audio_to_continue_start,
+                     audio_to_continue_start + duration, *tmp_tracklist);
+
+                  if (TracksBehaviorsSolo.ReadEnum() == SoloBehaviorSimple)
+                  {
+                     //If in 'simple' mode, if original track is solo,
+                     // mute the new track and set it to *not* be solo.
+                     if (newOutputTrack->GetSolo())
+                     {
+                        newOutputTrack->SetMute(true);
+                        newOutputTrack->SetSolo(false);
+                     }
+                  }
+
+                  newOutputTrack->Split(audio_to_continue_start, audio_to_continue_end);
+
+                  //auto v = *newOutputTrackList;
+                 // Add the new track to the output.
+                  outputs.AddToOutputTracks(std::move(*newOutputTrackList));
+
+                  // audio_to_continue_start may have been moved forward a bit, so update it.
+                  //mT0 = audio_to_continue_start;
+
+                  //in audio continuation case, original outputs size is exactly 1. We need to break out of
+                  // the loop here, as the loop is iterating over outputs... this is ugly. Clean it up.
+                  break;
+               }
+               else
+               {
+                  PasteTimeWarper warper{ mT1, mT0 + duration };
+                  const auto& selectedRegion =
+                     ViewInfo::Get(*pProject).selectedRegion;
+
+                  std::cout << "Pasting " << selectedRegion.t0() << " : " << selectedRegion.t1() << std::endl;
+                  track->ClearAndPaste(
+                     selectedRegion.t0(), selectedRegion.t1(),
+                     *tmp_tracklist, true, false, &warper);
+               }
 
                if (!bGoodResult) {
                   return false;
@@ -630,7 +749,7 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
 
             outputs.Commit();
 
-            mT1 = mT0 + duration; // Update selection.
+            //mT1 = mT0 + duration; // Update selection.
          }
 
       }
@@ -714,7 +833,10 @@ void EffectOVMusicGenerationV2::DoPopulateOrExchange(
       S.StartMultiColumn(2, wxLEFT);
       {
          S.AddPrompt(XXO("&Duration:"));
+         
          auto& extra = access.Get().extra;
+         std::cout << "Creating prompt with duration = " << extra.GetDuration() << std::endl;
+
          mDurationT = safenew
             NumericTextCtrl(FormatterContext::SampleRateContext(mProjectRate),
                S.GetParent(), wxID_ANY,
@@ -742,7 +864,7 @@ void EffectOVMusicGenerationV2::DoPopulateOrExchange(
       }
       S.EndMultiColumn();
 
-      S.StartMultiColumn(4, wxCENTER);
+      S.StartMultiColumn(4, wxLEFT);
       {
             S.StartMultiColumn(2, wxCENTER);
             {
@@ -814,7 +936,8 @@ void EffectOVMusicGenerationV2::DoPopulateOrExchange(
 
       S.StartMultiColumn(2, wxLEFT);
       {
-         _AudioContinuationCheckBox = S.AddCheckBox(XXO("&Audio Continuation"), false);
+         _AudioContinuationCheckBox = S.Id(ID_Type_AudioContinuationCheckBox).AddCheckBox(XXO("&Audio Continuation"), false);
+         _AudioContinuationAsNewTrackCheckBox = S.Id(ID_Type_AudioContinuationAsNewTrackCheckBox).AddCheckBox(XXO("&Audio Continuation on New Track"), false);
 
          EffectOutputTracks outputs{ *mTracks, GetType(), {{ mT0, mT1 }} };
          auto track_selection_size = outputs.Get().Selected<WaveTrack>().size();
@@ -823,6 +946,7 @@ void EffectOVMusicGenerationV2::DoPopulateOrExchange(
          if (track_selection_size != 1)
          {
             _AudioContinuationCheckBox->Enable(false);
+            _AudioContinuationAsNewTrackCheckBox->Enable(false);
          }
          else
          {
@@ -836,20 +960,63 @@ void EffectOVMusicGenerationV2::DoPopulateOrExchange(
             if (track->IsEmpty(t0, t1))
             {
                _AudioContinuationCheckBox->Enable(false);
+               _AudioContinuationAsNewTrackCheckBox->Enable(false);
             }
             else
             {
+               // Not sure if I totally love this idea, but if a user's selection starts within 0.01 seconds
+               // of the end of this track, let's just snap it exactly to the end as this is *probably* what
+               // they intended?
+               if (std::abs(mT0 - t1) <= 0.01)
+               {
+                  mT0 = t1;
+               }
+
+               //same with the end selection.
+               if (std::abs(mT1 - t1) <= 0.01)
+               {
+                  mT1 = t1;
+               }
+
                //if the start position of the user's track selection is within 0.1 seconds of the end time, we can
                // make a pretty safe assumption that their intention is to perform music continuation.
                if (((mT0 - t1) >= 0.) && ((mT0 - t1) <= 0.1))
                {
                   _AudioContinuationCheckBox->SetValue(true);
                }
+               else
+               {
+                  // If an existing (non-empty) track is highlighted, and the highlighted region
+                  // overlaps with existing segment.
+                  if (((mT0 >= t0) && (mT0 < t1)) || ((mT1 >= t0) && (mT1 < t1)))
+                  {
+                     double duration;
+                     GetConfig(GetDefinition(), PluginSettings::Private,
+                        CurrentSettingsGroup(),
+                        EffectSettingsExtra::DurationKey(), duration, 30.);
+
+                     std::cout << "Setting last used duration of " << duration << std::endl;
+                     mDurationT->SetValue(duration);
+
+                     _AudioContinuationCheckBox->SetValue(true);
+                     _AudioContinuationAsNewTrackCheckBox->SetValue(true);
+                  }
+               }
             }
          }
+      }
+      S.EndMultiColumn();
 
-         
+      
 
+      S.StartMultiColumn(2, wxLEFT);
+      {
+         _continuationContextWarning = S.AddVariableText(XO("Some default text"), false,
+            wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT);
+
+         _continuationContextWarning->SetFont(_continuationContextWarning->GetFont().Scale(1.5));
+
+         SetContinuationContextWarning();
          
       }
       S.EndMultiColumn();
@@ -861,23 +1028,90 @@ void EffectOVMusicGenerationV2::DoPopulateOrExchange(
 
 }
 
+void EffectOVMusicGenerationV2::SetContinuationContextWarning()
+{
+   if (!_AudioContinuationCheckBox->GetValue())
+   {
+      _AudioContinuationAsNewTrackCheckBox->SetValue(false);
+      _AudioContinuationAsNewTrackCheckBox->Enable(false);
+      _continuationContextWarning->Hide();
+      return;
+   }
+   else
+   {
+      if (!_AudioContinuationAsNewTrackCheckBox->IsEnabled())
+      {
+         _AudioContinuationAsNewTrackCheckBox->Enable(true);
+      }
+   }
+
+   EffectOutputTracks outputs{ *mTracks, GetType(), {{ mT0, mT1 }} };
+   auto track = *(outputs.Get().Selected<WaveTrack>().begin());
+
+   auto t0 = track->GetStartTime();
+   auto t1 = track->GetEndTime();
+   if (((mT0 >= t0) && (mT0 < t1)) || ((mT1 >= t0) && (mT1 < t1)))
+   {
+      //std::string warning_message =
+      //
+
+      double current_selection_size = mT1 - mT0;
+      std::cout << "mTypeChoiceContextLength->GetSelection() = " << mTypeChoiceContextLength->GetCurrentSelection() << std::endl;
+
+      double context_selection_size = (mTypeChoiceContextLength->GetCurrentSelection() == 1) ? 10. : 5;
+
+      if (current_selection_size > context_selection_size)
+      {
+         std::string warning_message = "Note: Given the 'Context Length' chosen above, only the last " + std::to_string((int)context_selection_size) + " seconds of your selection will be used as continuation context.";
+         std::cout << "Setting message to: " << warning_message << std::endl;
+         auto warn_msg = wxString(warning_message);
+         _continuationContextWarning->SetLabelText(warn_msg);
+      }
+      else
+      {
+         std::string warning_message = "Note: The selected audio segment of " + std::to_string(current_selection_size) + " seconds will be used as continuation context.";
+         auto warn_msg = wxString(warning_message);
+         _continuationContextWarning->SetLabelText(warn_msg);
+      }
+
+   }
+   else
+   {
+      int context_selection_size = (m_contextLengthChoice == 0) ? 5 : 10;
+      std::string warning_message = "Note: Given the chosen 'Context Length' above, the previous " + std::to_string(context_selection_size) + " seconds prior to your selection will be used as continuation context.";
+      auto warn_msg = wxString(warning_message);
+      _continuationContextWarning->SetLabelText(warn_msg);
+   }
+
+   _continuationContextWarning->Hide();
+   _continuationContextWarning->Show();
+
+}
+
+void EffectOVMusicGenerationV2::OnContextLengthChanged(wxCommandEvent& evt)
+{
+   std::cout << "OnContextLengthChanged called" << std::endl;
+   SetContinuationContextWarning();
+}
 
 void EffectOVMusicGenerationV2::OnUnloadModelsButtonClicked(wxCommandEvent& evt)
 {
 
-   std::cout << "Unload clicked, but it's not hooked up to anything (yet)!" << std::endl;
-#if 0
+   _musicgen = {};
+
    if (mUnloadModelsButton)
    {
       mUnloadModelsButton->Enable(false);
    }
-#endif
+
 }
 
 
 
 bool EffectOVMusicGenerationV2::TransferDataToWindow(const EffectSettings &settings)
 {
+   std::cout << "TransferDataToWindow. settings.extra.GetDuration() = " << settings.extra.GetDuration() << std::endl;
+
    if (!mUIParent->TransferDataToWindow())
    {
       return false;
@@ -885,22 +1119,31 @@ bool EffectOVMusicGenerationV2::TransferDataToWindow(const EffectSettings &setti
 
    EffectEditor::EnablePreview(mUIParent, false);
 
-   std::cout << "settings.extra.GetDuration() = " << settings.extra.GetDuration() << std::endl;
-   mDurationT->SetValue(settings.extra.GetDuration());
+   if (mDurationT)
+   {
+      std::cout << "EffectOVMusicGenerationV2::TransferDataToWindow: Setting mDurationT to " << settings.extra.GetDuration() << std::endl;
+      //mDurationT->SetValue(settings.extra.GetDuration());
+   }
+
    return true;
 
 }
 
 bool EffectOVMusicGenerationV2::TransferDataFromWindow(EffectSettings & settings)
 {
-
+   std::cout << "TransferDataFromWindow. settings.extra.GetDuration() = " << settings.extra.GetDuration() << std::endl;
    if (!mUIParent->Validate() || !mUIParent->TransferDataFromWindow())
    {
       return false;
    }
 
-
-   settings.extra.SetDuration(mDurationT->GetValue());
+   if (mDurationT)
+   {
+      std::cout << "EffectOVMusicGenerationV2::TransferDataFromWindow: Setting settings.extra.SetDuration to " << mDurationT->GetValue() << std::endl;
+      settings.extra.SetDuration(mDurationT->GetValue());
+   }
+   
+   
    //EnablePreview(false);  //Port this
    return true;
 }

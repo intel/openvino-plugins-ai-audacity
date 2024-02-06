@@ -11,9 +11,14 @@ public:
 
 	MusicGen(MusicGenConfig &config);
 
+   struct AudioContinuationParams
+   {
+      std::pair<std::shared_ptr<std::vector<float>>, std::shared_ptr<std::vector<float>>> audio_to_continue;
+      bool bReturnAudioToContinueInOutput = true;
+   };
 
 	std::pair<std::shared_ptr<std::vector<float>>, std::shared_ptr<std::vector<float>>> Generate(std::optional<std::string> prompt,
-		std::optional<std::pair<std::shared_ptr<std::vector<float>>, std::shared_ptr<std::vector<float>>>> audio_to_continue,
+		std::optional<AudioContinuationParams> audio_to_continue_params,
 		float total_desired_length_seconds,
 		std::optional< unsigned int > seed,
 		float guidance_scale = 3.f,

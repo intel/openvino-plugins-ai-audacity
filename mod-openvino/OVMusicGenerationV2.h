@@ -4,6 +4,7 @@
 #pragma once
 
 class wxString;
+class wxStaticText;
 class wxCheckBox;
 class LabelTrack;
 class wxTextCtrl;
@@ -78,10 +79,14 @@ private:
       ID_Type_GuidanceScale,
       ID_Type_TopK,
 
+      ID_Type_AudioContinuationCheckBox,
+      ID_Type_AudioContinuationAsNewTrackCheckBox,
+
    };
 
+   void OnContextLengthChanged(wxCommandEvent& evt);
    void OnUnloadModelsButtonClicked(wxCommandEvent& evt);
-
+   
    wxChoice* mTypeChoiceDeviceCtrl_TextEncoder;
 
    wxChoice* mTypeChoiceDeviceCtrl_UNetPositive;
@@ -108,7 +113,8 @@ private:
 
    wxButton* mUnloadModelsButton;
 
-   NumericTextCtrl* mDurationT;
+   NumericTextCtrl* mDurationT = nullptr;
+   double _previous_duration;
 
    std::mutex mProgMutex;
    float mProgressFrac = 0.f;
@@ -132,11 +138,15 @@ private:
    wxChoice* mTypeChoiceModelSelection;
 
    wxCheckBox* _AudioContinuationCheckBox;
+   wxCheckBox* _AudioContinuationAsNewTrackCheckBox;
 
    float mGuidanceScale = 3.0f;
 
    int mTopK = 50;
    wxTextCtrl* mTopKCtl;
+
+   void SetContinuationContextWarning();
+   wxStaticText* _continuationContextWarning = nullptr;
    
 
    DECLARE_EVENT_TABLE()
