@@ -169,7 +169,11 @@ std::pair<std::shared_ptr<std::vector<float>>, std::shared_ptr<std::vector<float
       //this will cause us to *not* copy the re-encoded audio that was
       // passed in (although the user may want that in some modes).
 	   output_wav0 = std::make_shared<std::vector<float>>();
-	   output_wav1 = std::make_shared<std::vector<float>>();
+
+      if (_config.bStereo)
+      {
+         output_wav1 = std::make_shared<std::vector<float>>();
+      }
    }
 
 	size_t iterationi = 0;

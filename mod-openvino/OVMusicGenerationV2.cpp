@@ -426,7 +426,7 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
                //flush it
                auto pTmpTrack = *tmp_tracklist->Any<WaveTrack>().begin();
 
-               if ((track->Channels().size() > 1) && (_musicgen_config.bStereo))
+               if (track->Channels().size() > 1)
                {
                   auto right = track->GetChannel(1);
                   bOkay = right->GetFloats(entire_input.get(), start_s, audio_to_continue_samples);
@@ -486,6 +486,12 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
                      }
                      else
                      {
+                        //we're setting both R & L channels to the same thing -- so divide by 2.
+                        float* pResampled = resampled_samples_left->data();
+                        for (size_t i = 0; i < resampled_samples_left->size(); i++)
+                        {
+                           pResampled[i] /= 2.f;
+                        }
                         wav_pair.second = resampled_samples_left;
                      }
                   }
