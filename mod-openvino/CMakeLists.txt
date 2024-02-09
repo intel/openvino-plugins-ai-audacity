@@ -47,12 +47,12 @@ set( SOURCES
       OVNoiseSuppression.h
       OVMusicSeparation.cpp
       OVMusicSeparation.h
-      OVMusicGeneration.cpp
-      OVMusicGeneration.h
+      #OVMusicGeneration.cpp
+      #OVMusicGeneration.h
       OVMusicGenerationV2.cpp
       OVMusicGenerationV2.h
-      OVMusicStyleRemix.cpp
-      OVMusicStyleRemix.h
+      #OVMusicStyleRemix.cpp
+      #OVMusicStyleRemix.h
       OVWhisperTranscription.cpp
       OVWhisperTranscription.h
       htdemucs.cpp
@@ -67,8 +67,8 @@ set( LIBRARIES
       openvino::runtime
       ${TORCH_LIBRARIES}
       ${whisper}
-      ${stable_diffusion_ov}
-      ${stable_diffusion_audio_ov}
+      #${stable_diffusion_ov}
+      #${stable_diffusion_audio_ov}
       ${sentencepiece}
 )
 

@@ -1064,7 +1064,8 @@ void EffectOVMusicGenerationV2::SetContinuationContextWarning()
       double current_selection_size = mT1 - mT0;
       std::cout << "mTypeChoiceContextLength->GetSelection() = " << mTypeChoiceContextLength->GetCurrentSelection() << std::endl;
 
-      double context_selection_size = (mTypeChoiceContextLength->GetCurrentSelection() == 1) ? 10. : 5;
+      int context_length_choice = mTypeChoiceContextLength->GetCurrentSelection() == -1 ? m_contextLengthChoice : mTypeChoiceContextLength->GetCurrentSelection();
+      double context_selection_size = (context_length_choice == 1) ? 10. : 5;
 
       if (current_selection_size > context_selection_size)
       {

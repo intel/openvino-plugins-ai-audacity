@@ -1,5 +1,6 @@
 #pragma once
 
+#include <openvino/opsets/opset8.hpp>
 #include "musicgen_decoder_model.h"
 #include "musicgen_utils.h"
 #include "musicgen_config.h"
@@ -26,6 +27,109 @@ public:
 
         //std::string device = "GPU";
         //auto tensortype = ov::element::f16;
+
+#if 1
+#if 0
+        //prep decoder model
+        {
+            std::shared_ptr<ov::Model> model = core.read_model("C:\\Users\\vmd\\Workspace\\OPENVINO_NOTEBOOKS\\openvino_notebooks\\notebooks\\250-music-generation\\models\\mg.xml");
+            logBasicModelInfo(model);
+            std::cout << "exiting!" << std::endl;
+            std::exit(0);
+
+            ov::preprocess::PrePostProcessor ppp(model);
+
+            for (size_t layeri = 0; layeri < N_LAYERS; layeri++)
+            {
+                for (size_t i = 0; i < 4; i++)
+                {
+                    std::string tensorname = "past_key_value_" + std::to_string(layeri) + "_" + std::to_string(i);
+                    ppp.input(tensorname).tensor().set_element_type(tensortype);
+                }
+
+                for (int i = 0; i < 2; i++)
+                {
+                    std::string tensorname = "new_key_value_" + std::to_string(layeri) + "_" + std::to_string(i);
+                    ppp.output(tensorname).tensor().set_element_type(tensortype);
+
+                }
+            }
+
+#else
+        //prep decoder model
+        {
+            std::string decoder_model_path, binfile;
+            switch (config.model_selection)
+            {
+            case MusicGenConfig::ModelSelection::MUSICGEN_SMALL_FP16:
+                decoder_model_path = FullPath(model_folder, "musicgen_decoder_static.xml");
+                binfile = FullPath(model_folder, "musicgen_decoder_combined_weights.bin");
+                break;
+
+            case  MusicGenConfig::ModelSelection::MUSICGEN_SMALL_INT8:
+                decoder_model_path = FullPath(model_folder, "musicgen_decoder_static_int8.xml");
+                binfile = FullPath(model_folder, "musicgen_decoder_combined_weights_int8.bin");
+                break;
+
+            default:
+                throw std::runtime_error("Invalid model selection");
+                break;
+            }
+
+            std::cout << " Using model=" << decoder_model_path << ", " << binfile << std::endl;
+
+            std::shared_ptr<ov::Model> model = core.read_model(decoder_model_path, binfile);
+
+            //auto gpu_context = core.get_default_context("GPU").as<ov::intel_gpu::ocl::ClContext>();
+            //cl_context context_handle = gpu_context.get();
+
+            //std::cout << "context_handle = " << (void*)context_handle << std::endl;
+            {
+                size_t max_tokens = 1004;
+                std::map<ov::Output<ov::Node>, ov::PartialShape> port_to_shape;
+                port_to_shape[model->input("input_hidden_states")] = { 2, 1, 1024 };
+                port_to_shape[model->input("encoder_attention_mask")] = { 2, 1, 1, 64 };
+                port_to_shape[model->input("custom_attention_mask")] = { 1, max_tokens + 1 };
+
+                for (size_t layeri = 0; layeri < N_LAYERS; layeri++)
+                {
+                    for (size_t i = 0; i < 4; i++)
+                    {
+                        std::string tensorname = "past_key_value_" + std::to_string(layeri) + "_" + std::to_string(i);
+                        
+                        if (i < 2)
+                        {
+                            port_to_shape[model->input(tensorname)] = { 2, 16, max_tokens, 64 };
+                        }
+                        else
+                        {
+                            port_to_shape[model->input(tensorname)] = { 2, 16, 64, 64 };
+                        }
+                    }
+                }
+
+                model->reshape(port_to_shape);
+            }
+
+            ov::preprocess::PrePostProcessor ppp(model);
+
+            for (size_t layeri = 0; layeri < N_LAYERS; layeri++)
+            {
+                for (size_t i = 0; i < 4; i++)
+                {
+                    std::string tensorname = "past_key_value_" + std::to_string(layeri) + "_" + std::to_string(i);
+                    ppp.input(tensorname).tensor().set_element_type(tensortype);
+                }
+
+                for (int i = 0; i < 2; i++)
+                {
+                    std::string tensorname = "new_key_value_" + std::to_string(layeri) + "_" + std::to_string(i);
+                    ppp.output(tensorname).tensor().set_element_type(tensortype);
+
+                }
+            }
+#endif
+#else
 
         //prep decoder model
         {
@@ -73,9 +177,11 @@ public:
                 }
             }
 
+#endif
+
             model = ppp.build();
 
-            //logBasicModelInfo(model);
+            logBasicModelInfo(model);
 
             //std::string xml = "some_model_saved.xml";
             //std::string bin = "some_model_saved.bin";
@@ -89,6 +195,9 @@ public:
             ov::CompiledModel compiledModel = core.compile_model(model, device);
             uint64_t  t1 = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
             std::cout << "    compile time = " << (t1 - t0) << " ms" << std::endl;
+
+            //std::cout << "exiting!" << std::endl;
+            //std::exit(0);
 
             _infer_request = compiledModel.create_infer_request();
 
@@ -217,7 +326,52 @@ public:
                 break;
             }
 
-            std::shared_ptr<ov::Model> model = core.read_model(model_path);
+            auto binfile = FullPath(model_folder, "musicgen_decoder_combined_weights.bin");
+
+            std::cout << "reading model as " << model_path << ", " << binfile << std::endl;
+            std::shared_ptr<ov::Model> model = core.read_model(model_path, binfile);
+
+#if 0
+            size_t total_byte_size = 0;
+            for (const std::shared_ptr<ov::Node>& node : model->get_ops()) {
+                auto const_node = std::dynamic_pointer_cast<ov::opset8::Constant>(node);
+
+                if (const_node)
+                {
+                    std::cout << "yep it's a const" << std::endl;
+
+                    std::cout << "shape = " << const_node->get_shape() << std::endl;
+
+                    size_t total_elements = 1;
+                    for (auto s : const_node->get_shape())
+                    {
+                        total_elements *= s;
+                    }
+
+                    if (total_elements < 16)
+                    {
+                        std::cout << "values: ";
+                        for (size_t i = 0; i < total_elements; i++)
+                        {
+                            std::cout << const_node->convert_value_to_string(i) << ", ";
+                        }
+                        std::cout << std::endl;
+                        //std::cout << *const_node << std::endl;
+                    }
+
+                    auto byte_size = const_node->get_byte_size();
+                    total_byte_size += byte_size;
+                }
+                else
+                {
+                    //std::cout << "nope not a const.." << std::endl;
+                }
+
+            }
+
+            std::cout << "total const byte size = " << total_byte_size << std::endl;
+            std::exit(0);
+#endif
             ov::preprocess::PrePostProcessor ppp(model);
 
             for (size_t layeri = 0; layeri < N_LAYERS; layeri++)

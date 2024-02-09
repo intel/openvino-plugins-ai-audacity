@@ -28,7 +28,9 @@ public:
 		    break;
 		}
 
-		std::shared_ptr<ov::Model> model = core.read_model(modelpath);
+		auto binfile = FullPath(model_folder, "encodec_encoder_combined_weights.bin");
+
+		std::shared_ptr<ov::Model> model = core.read_model(modelpath, binfile);
 		logBasicModelInfo(model);
 
 		ov::CompiledModel compiledModel = core.compile_model(model, config.encodec_enc_device);

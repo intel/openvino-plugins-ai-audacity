@@ -39,15 +39,17 @@ public:
             {
                 auto tensortype = devices[dbi] == "CPU" ? ov::element::f32 : ov::element::f16;
 
-                std::string decoder_model_path;
+                std::string decoder_model_path, binfile;
                 switch (config.model_selection)
                 {
                    case MusicGenConfig::ModelSelection::MUSICGEN_SMALL_FP16:
                    decoder_model_path = FullPath(model_folder, "musicgen_decoder_static_batch1.xml");
+                   binfile = FullPath(model_folder, "musicgen_decoder_combined_weights.bin");
                    break;
 
                    case  MusicGenConfig::ModelSelection::MUSICGEN_SMALL_INT8:
                    decoder_model_path = FullPath(model_folder, "musicgen_decoder_static_batch1_int8.xml");
+                   binfile = FullPath(model_folder, "musicgen_decoder_combined_weights_int8.bin");
                    break;
 
                    default:
@@ -55,9 +57,9 @@ public:
                       break;
                 }
 
-                std::cout << " Using model=" << decoder_model_path << std::endl;
+                std::cout << " Using model=" << decoder_model_path << ", " << binfile << std::endl;
 
-                std::shared_ptr<ov::Model> model = core.read_model(decoder_model_path);
+                std::shared_ptr<ov::Model> model = core.read_model(decoder_model_path, binfile);
 
                 ov::preprocess::PrePostProcessor ppp(model);
 
@@ -240,7 +242,10 @@ public:
                 break;
             }
 
-            std::shared_ptr<ov::Model> model = core.read_model(model_path);
+            auto binfile = FullPath(model_folder, "musicgen_decoder_combined_weights.bin");
+            std::cout << "reading model as " << model_path << ", " << binfile << std::endl;
+
+            std::shared_ptr<ov::Model> model = core.read_model(model_path, binfile);
 
             ov::preprocess::PrePostProcessor ppp(model);
 

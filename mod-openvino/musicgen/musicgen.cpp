@@ -76,6 +76,9 @@ std::pair<std::shared_ptr<std::vector<float>>, std::shared_ptr<std::vector<float
 		std::cout << "Seed not set. Defaulting to 1 " << std::endl;
 	}
 
+   std::cout << "musicgen: top_k = " << top_k << std::endl;
+   std::cout << "musicgen: guidance_scale = " << guidance_scale << std::endl;
+
 	//tokenize
 	std::vector<int> ids;
 	_impl->processor.Encode(*prompt, &ids);

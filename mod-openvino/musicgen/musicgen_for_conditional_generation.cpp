@@ -76,8 +76,11 @@ MusicgenForConditionalGeneration::MusicgenForConditionalGeneration(MusicGenConfi
         size_t num_encodec_secs = 20;
 
         auto modelpath = FullPath(model_folder, "encodec_" + std::to_string(num_encodec_secs) + "s.xml");
-        std::shared_ptr<ov::Model> model = core.read_model(modelpath);
+        auto binfile = FullPath(model_folder, "encodec_combined_weights.bin");
 
+        std::shared_ptr<ov::Model> model = core.read_model(modelpath, binfile);
+
+        
         model->reshape({ 1, 1, 4, num_encodec_secs*50 });
 
         std::cout << "encodec: " << std::endl;
