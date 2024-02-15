@@ -43,6 +43,8 @@ struct MusicGenConfig
 
 	//folder to cache compiled openvino models into.
 	std::optional< std::string > cache_folder = std::optional< std::string >{};
+
+	std::optional< std::string > performance_hint = std::optional< std::string >{};
 };
 
 struct CallbackParams

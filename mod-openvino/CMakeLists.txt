@@ -39,6 +39,8 @@ find_library(sentencepiece NAMES sentencepiece HINTS ${SENTENCEPIECE_ROOTDIR}/li
 message("sentencepiece lib = ${sentencepiece}")
 include_directories(${SENTENCEPIECE_ROOTDIR}/include)
 
+find_package(OpenCL REQUIRED)
+
 add_subdirectory(musicgen)
 include_directories(musicgen)
 
@@ -65,6 +67,7 @@ set( LIBRARIES
    PRIVATE
       Audacity
       openvino::runtime
+	  OpenCL::OpenCL
       ${TORCH_LIBRARIES}
       ${whisper}
       #${stable_diffusion_ov}

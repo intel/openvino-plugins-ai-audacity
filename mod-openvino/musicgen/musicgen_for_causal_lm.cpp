@@ -23,7 +23,13 @@ MusicgenForCausalLM::MusicgenForCausalLM(ov::Core& core, MusicGenConfig& config)
     //std::cout << "lm_heads:" << std::endl;
     //logBasicModelInfo(model);
 
-    auto lm_heads_compiled_model = core.compile_model(model, "CPU");
+    bool bIsDev0GPU = config.musicgen_decode_device0.find("GPU") != std::string::npos;
+    bool bIsDev1GPU = config.musicgen_decode_device1.find("GPU") != std::string::npos;
+
+    std::string device = (bIsDev0GPU || bIsDev1GPU) ? (bIsDev0GPU ? config.musicgen_decode_device0 : config.musicgen_decode_device1) : "CPU";
+
+    std::cout << "Compiling lm heads model for device=" << device << std::endl;
+    auto lm_heads_compiled_model = core.compile_model(model, device);
 
     _lm_heads_infer_request = lm_heads_compiled_model.create_infer_request();
 
@@ -80,8 +86,10 @@ torch::Tensor MusicgenForCausalLM::forward(torch::Tensor input_ids,
 
     _lm_heads_infer_request.set_input_tensor(hidden_states_ov);
 
-
-    _lm_heads_infer_request.infer();
+    {
+        ITT_SCOPED_TASK(lm_heads_infer)
+        _lm_heads_infer_request.infer();
+    }
 
     auto logits_ov = _lm_heads_infer_request.get_output_tensor();
     auto logits = wrap_ov_tensor_as_torch(logits_ov);

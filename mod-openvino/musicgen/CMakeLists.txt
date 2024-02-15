@@ -3,6 +3,8 @@ set( OV_MUSICGEN_SOURCES
 musicgen/musicgen_decoder_model.h 
 musicgen/music_gen_decoder_full_batch2.h 
 musicgen/music_gen_decoder_full_batch1.h 
+musicgen/music_gen_decoder_cl.h 
+musicgen/music_gen_decoder_cl.cpp 
 musicgen/musicgen_utils.h 
 musicgen/encodec_encoder.h 
 musicgen/musicgen_model_static.h

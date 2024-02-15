@@ -231,19 +231,19 @@ std::pair<std::shared_ptr<std::vector<float>>, std::shared_ptr<std::vector<float
 		{
 			if (!output_wav1)
 			{
-            // If we're doing audio continuation, and the user wants to receive the context as output, and we had to pad their input to fill the context.
-            if (audio_to_continue_params && audio_to_continue_params->bReturnAudioToContinueInOutput && (ncontext_samples > audio_to_continue_samples))
-            {
-               output_wav1 = std::make_shared<std::vector<float>>();
-               size_t offset = ncontext_samples - audio_to_continue_samples;
+				// If we're doing audio continuation, and the user wants to receive the context as output, and we had to pad their input to fill the context.
+				if (audio_to_continue_params && audio_to_continue_params->bReturnAudioToContinueInOutput && (ncontext_samples > audio_to_continue_samples))
+				{
+				   output_wav1 = std::make_shared<std::vector<float>>();
+				   size_t offset = ncontext_samples - audio_to_continue_samples;
 
-               auto wav = gen_ret.wav1;
-               output_wav1->insert(output_wav1->end(), wav->begin() + offset, wav->end());
-            }
-            else
-            {
-               output_wav1 = gen_ret.wav1;
-            }
+				   auto wav = gen_ret.wav1;
+				   output_wav1->insert(output_wav1->end(), wav->begin() + offset, wav->end());
+				}
+				else
+				{
+				   output_wav1 = gen_ret.wav1;
+				}
 			}
 			else
 			{

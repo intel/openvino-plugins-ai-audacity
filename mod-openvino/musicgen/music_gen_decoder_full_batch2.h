@@ -636,6 +636,7 @@ public:
             {
                 ITT_SCOPED_TASK(update_past_key_values);
 
+#if 0
                 //insert the new key / value tensors into the past keys tensor
                 for (size_t layeri = 0; layeri < N_LAYERS; layeri++)
                 {
@@ -646,6 +647,36 @@ public:
                         _past_key_values_torch[layeri][i].index_put_({ Slice(), Slice(), Slice(_past_length, _past_length + 1), Slice() }, _new_key_values[layeri][i]);
                     }
                 }
+#else
+                
+                
+                //strides = Strides{ 2056192, 128512, 128, 2 }
+                //shape = [2, 16, 1004, 64]
+
+                for (size_t layeri = 0; layeri < N_LAYERS; layeri++)
+                {
+                    for (int i = 0; i < 2; i++)
+                    {
+                        auto past_strides = _past_key_values_ov[layeri][i].get_strides();
+                        auto new_strides = _new_key_values_ov[layeri][i].get_strides();
+                        auto shape = _past_key_values_ov[layeri][i].get_shape();
+
+                        unsigned char* pPastTensor = (unsigned char *)(_past_key_values_ov[layeri][i].data<float>());
+                        unsigned char* pNewTensor = (unsigned char*)(_new_key_values_ov[layeri][i].data<float>());
+                        for (size_t b = 0; b < shape[0]; b++)
+                        {
+                            for (size_t c = 0; c < shape[1]; c++)
+                            {
+                                size_t byte_offset_past = b * past_strides[0] + c * past_strides[1] + _past_length * past_strides[2];
+                                size_t byte_offset_new = b * new_strides[0] + c * new_strides[1];
+
+                                memcpy(pPastTensor + byte_offset_past, pNewTensor + byte_offset_new, shape[3] * sizeof(ov::float16));
+                            }
+                        }
+                    }
+                }
+                
+#endif
 
                 _past_length++;
             }

@@ -2,6 +2,7 @@
 
 #include <torch/torch.h>
 #include <openvino/openvino.hpp>
+#include <optional>
 
 class MusicgenDecoderModel
 {

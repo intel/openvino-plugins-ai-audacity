@@ -1,6 +1,7 @@
 #include "musicgen_model_static.h"
 #include "music_gen_decoder_full_batch2.h"
 #include "music_gen_decoder_full_batch1.h"
+#include "music_gen_decoder_cl.h"
 
 class MusicgenSinusoidalPositionalEmbedding
 {
@@ -85,6 +86,15 @@ MusicgenModelStatic::MusicgenModelStatic(ov::Core& core, MusicGenConfig& config)
         _num_codebooks = 4;
     }
 
+    bool bIsDev0GPU = config.musicgen_decode_device0.find("GPU") != std::string::npos;
+
+    //if both devices specified are the same GPU device, use the CL-optimized variant.
+    if ((config.musicgen_decode_device0 == config.musicgen_decode_device1) &&  bIsDev0GPU)
+    {
+        std::cout << "Using OpenCL-backed Decoder with device=" << config.musicgen_decode_device0 << std::endl;
+        _decoder_model = std::make_shared< MusicgenDecoderModelCL >(core, config);
+    }
+    else
     //If device0 and device1 match, use the batch2 variant -- unless the device is NPU, which doesn't support batch2 right now.
     if ((config.musicgen_decode_device0 == config.musicgen_decode_device1) && config.musicgen_decode_device0 != "NPU")
     {

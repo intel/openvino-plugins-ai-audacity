@@ -127,4 +127,5 @@ private:
 
     torch::Generator _generator;
 
+    std::shared_ptr<ov::Core> _core;
 };

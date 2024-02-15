@@ -177,6 +177,34 @@ static torch::Tensor read_tensor(std::string filename, at::IntArrayRef shape, at
     return torch::from_blob(pTensorData, shape, options);
 }
 
+static inline void print_compiled_model_properties(ov::CompiledModel& compiledModel)
+{
+    auto supported_properties = compiledModel.get_property(ov::supported_properties);
+    std::cout << "Model:" << std::endl;
+    for (const auto& cfg : supported_properties) {
+        if (cfg == ov::supported_properties)
+            continue;
+        auto prop = compiledModel.get_property(cfg);
+        if (cfg == ov::device::properties) {
+            auto devices_properties = prop.as<ov::AnyMap>();
+            for (auto& item : devices_properties) {
+                std::cout << "  " << item.first << ": " << std::endl;
+                for (auto& item2 : item.second.as<ov::AnyMap>()) {
+                    OPENVINO_SUPPRESS_DEPRECATED_START
+                        if (item2.first == ov::supported_properties || item2.first == "SUPPORTED_CONFIG_KEYS)" ||
+                            item2.first == "SUPPORTED_METRICS")
+                            continue;
+                    OPENVINO_SUPPRESS_DEPRECATED_END
+                        std::cout << "    " << item2.first << ": " << item2.second.as<std::string>() << std::endl;
+                }
+            }
+        }
+        else {
+            std::cout << "  " << cfg << ": " << prop.as<std::string>() << std::endl;
+        }
+    }
+}
+
 static inline void logBasicModelInfo(const std::shared_ptr<ov::Model>& model) {
     std::cout << "Model name: " << model->get_friendly_name() << std::endl;
 
@@ -205,4 +233,37 @@ static inline void logBasicModelInfo(const std::shared_ptr<ov::Model>& model) {
     }
 
     return;
+}
+
+static ov::hint::PerformanceMode get_performance_hint(const std::string& device, const std::string& hint, const ov::Core& core)
+{
+    ov::hint::PerformanceMode ov_perf_hint = ov::hint::PerformanceMode::LATENCY;
+
+    auto supported_properties = core.get_property(device, ov::supported_properties);
+    if (std::find(supported_properties.begin(), supported_properties.end(), ov::hint::performance_mode) !=
+        supported_properties.end()) {
+        if (hint != "") {
+            if (hint == "throughput" || hint == "tput") {
+                ov_perf_hint = ov::hint::PerformanceMode::THROUGHPUT;
+            }
+            else if (hint == "latency") {
+                ov_perf_hint = ov::hint::PerformanceMode::LATENCY;
+            }
+            else if (hint == "cumulative_throughput" || hint == "ctput") {
+                ov_perf_hint = ov::hint::PerformanceMode::CUMULATIVE_THROUGHPUT;
+            }
+            else {
+                 throw std::runtime_error(
+                    "Incorrect performance hint string. Supported string are "
+                    "`throughput`(tput), `latency', 'cumulative_throughput'(ctput) value or 'none'.");
+            }
+        }
+    }
+    else
+    {
+       throw std::runtime_error("could not find performance mode in supported properties for device = " + device);
+    }
+
+    return ov_perf_hint;
+
 }

@@ -11,12 +11,22 @@ void MusicgenForConditionalGeneration::SetSeed(unsigned int seed)
     _generator = generator;
 }
 
+
+
 MusicgenForConditionalGeneration::MusicgenForConditionalGeneration(MusicGenConfig& config)
 {
     auto model_folder = config.model_folder;
     std::string cache_dir = *config.cache_folder;
 
-    ov::Core core;
+    _core = std::make_shared< ov::Core >();
+    auto& core = *_core;
+
+    //set various device configuration
+    {
+        std::map<std::string, ov::AnyMap> config;
+
+    }
+
 
     if (config.cache_folder)
     {
@@ -396,7 +406,7 @@ MusicgenForConditionalGeneration::GenerateReturn MusicgenForConditionalGeneratio
 
     ret.input_ids = output_ids;
 
-    dump_tensor(output_ids, "ov_output_ids.raw");
+    //dump_tensor(output_ids, "ov_output_ids.raw");
 
 #if 0
     {
