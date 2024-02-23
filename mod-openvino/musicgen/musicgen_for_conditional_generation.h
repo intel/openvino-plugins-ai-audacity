@@ -13,119 +13,122 @@
 #include "encodec_encoder.h"
 #include "musicgen_config.h"
 
-
-struct BaseModelOutput
+namespace ov_musicgen
 {
-    // Sequence of hidden-states at the output of the last layer of the model.
-    std::optional<torch::Tensor> last_hidden_state = {};
 
-    // Hidden-states of the model at the output of each layer plus the optional initial embedding outputs.
-    std::optional<torch::Tensor> hidden_states = {};
+   struct BaseModelOutput
+   {
+      // Sequence of hidden-states at the output of the last layer of the model.
+      std::optional<torch::Tensor> last_hidden_state = {};
 
-    //Attentions weights after the attention softmax, used to compute the weighted average in the self - attention heads.
-    std::optional<torch::Tensor> attentions = {};
-};
+      // Hidden-states of the model at the output of each layer plus the optional initial embedding outputs.
+      std::optional<torch::Tensor> hidden_states = {};
 
-class MusicgenForConditionalGeneration
-{
-public:
+      //Attentions weights after the attention softmax, used to compute the weighted average in the self - attention heads.
+      std::optional<torch::Tensor> attentions = {};
+   };
 
-    MusicgenForConditionalGeneration(MusicGenConfig& config);
+   class MusicgenForConditionalGeneration
+   {
+   public:
 
-    struct GenerateReturn
-    {
-        std::shared_ptr<std::vector<float>> wav;
-        std::shared_ptr<std::vector<float>> wav1;
-        torch::Tensor input_ids;
-    };
+      MusicgenForConditionalGeneration(MusicGenConfig& config);
 
-    struct CallbackTracking
-    {
-       size_t total_tokens_generated_so_far;
-       size_t total_tokens_to_generate;
-    };
+      struct GenerateReturn
+      {
+         std::shared_ptr<std::vector<float>> wav;
+         std::shared_ptr<std::vector<float>> wav1;
+         torch::Tensor input_ids;
+      };
 
-    GenerateReturn generate(torch::Tensor inputs_tensor,
-        int64_t max_token_length,
-        torch::Tensor attention_mask,
-        CallbackTracking &tracking,
-        std::optional< torch::Tensor > audio_to_continue = {},
-        std::optional< torch::Tensor > input_ids_to_continue = {},
-        float guidance_scale = 3.f,
-        int64_t top_k = 250,
-        std::optional< CallbackParams > callback_params = {});
+      struct CallbackTracking
+      {
+         size_t total_tokens_generated_so_far;
+         size_t total_tokens_to_generate;
+      };
 
-    int64_t MaxNewTokens()
-    {
-        return _decoder->MaxNewTokens();
-    }
+      GenerateReturn generate(torch::Tensor inputs_tensor,
+         int64_t max_token_length,
+         torch::Tensor attention_mask,
+         CallbackTracking& tracking,
+         std::optional< torch::Tensor > audio_to_continue = {},
+         std::optional< torch::Tensor > input_ids_to_continue = {},
+         float guidance_scale = 3.f,
+         int64_t top_k = 250,
+         std::optional< CallbackParams > callback_params = {});
 
-    void SetSeed(unsigned int seed);
+      int64_t MaxNewTokens()
+      {
+         return _decoder->MaxNewTokens();
+      }
 
-    std::shared_ptr<std::vector<float>> ids_to_wav(torch::Tensor ids);
+      void SetSeed(unsigned int seed);
 
-private:
+      std::shared_ptr<std::vector<float>> ids_to_wav(torch::Tensor ids);
 
-    torch::Tensor apply_delay_pattern_mask(torch::Tensor input_ids, torch::Tensor decoder_pad_token_mask);
+   private:
 
-    torch::Tensor prepare_inputs_for_generation(torch::Tensor decoder_input_ids,
-        torch::Tensor decoder_delay_pattern_mask,
-        std::optional<float> guidance_scale);
+      torch::Tensor apply_delay_pattern_mask(torch::Tensor input_ids, torch::Tensor decoder_pad_token_mask);
 
-    //todo: change to operator?
-    std::pair<torch::Tensor, torch::Tensor> forward(std::optional<torch::Tensor> input_ids,
-        std::optional<torch::Tensor> attention_mask,
-        std::optional<torch::Tensor> input_values,
-        std::optional<torch::Tensor> padding_mask,
-        std::optional<torch::Tensor> decoder_input_ids,
-        std::optional< BaseModelOutput > encoder_outputs,
-        std::optional< torch::Tensor > encoder_hidden_states_in = {});
+      torch::Tensor prepare_inputs_for_generation(torch::Tensor decoder_input_ids,
+         torch::Tensor decoder_delay_pattern_mask,
+         std::optional<float> guidance_scale);
 
-    //transformers\generation\utils.py: GenerationMixin: sample
-    torch::Tensor sample(torch::Tensor input_ids, torch::Tensor attention_mask,
-        torch::Tensor decoder_delay_pattern_mask,
-        std::optional< BaseModelOutput > encoder_outputs,
-        size_t max_length,
-        float guidance_scale,
-        int64_t top_k,
-        CallbackTracking& tracking,
-        std::optional< CallbackParams > callback_params);
+      //todo: change to operator?
+      std::pair<torch::Tensor, torch::Tensor> forward(std::optional<torch::Tensor> input_ids,
+         std::optional<torch::Tensor> attention_mask,
+         std::optional<torch::Tensor> input_values,
+         std::optional<torch::Tensor> padding_mask,
+         std::optional<torch::Tensor> decoder_input_ids,
+         std::optional< BaseModelOutput > encoder_outputs,
+         std::optional< torch::Tensor > encoder_hidden_states_in = {});
 
-    void ShiftLeft(int64_t ntokens)
-    {
-        _decoder->ShiftLeft(ntokens);
-    }
+      //transformers\generation\utils.py: GenerationMixin: sample
+      torch::Tensor sample(torch::Tensor input_ids, torch::Tensor attention_mask,
+         torch::Tensor decoder_delay_pattern_mask,
+         std::optional< BaseModelOutput > encoder_outputs,
+         size_t max_length,
+         float guidance_scale,
+         int64_t top_k,
+         CallbackTracking& tracking,
+         std::optional< CallbackParams > callback_params);
 
-
-    torch::Tensor _enc_to_dec_proj(torch::Tensor encoder_hidden_states);
-
-    //transformers\generation\logits_process.py, ClassifierFreeGuidanceLogitsProcessor.
-    torch::Tensor _logits_processor(torch::Tensor input_ids, torch::Tensor next_token_logits, float guidance_scale);
-
-    //transformers\generation\logits_process.py, TopKLogitsWarper.
-    torch::Tensor _logits_warper(torch::Tensor input_ids,
-        torch::Tensor next_token_scores, int64_t top_k, float filter_value);
-
-    std::shared_ptr< MusicgenForCausalLM > _decoder;
-
-    std::shared_ptr< MusicGenEncodecEncoder > _encoder;
-
-    ov::InferRequest _enc_to_dec_proj_infer_request;
-
-    int _nforward_calls = 1;
-
-    ov::InferRequest _encodec_infer_request;
-
-    ov::InferRequest _text_encoder_infer_request;
+      void ShiftLeft(int64_t ntokens)
+      {
+         _decoder->ShiftLeft(ntokens);
+      }
 
 
-    //current state
-    torch::Tensor _current_input_ids;
-    torch::Tensor _current_encoder_hidden_states;
-    torch::Tensor _current_decoder_delay_pattern_mask;
-    torch::Tensor _current_attention_mask;
+      torch::Tensor _enc_to_dec_proj(torch::Tensor encoder_hidden_states);
 
-    torch::Generator _generator;
+      //transformers\generation\logits_process.py, ClassifierFreeGuidanceLogitsProcessor.
+      torch::Tensor _logits_processor(torch::Tensor input_ids, torch::Tensor next_token_logits, float guidance_scale);
 
-    std::shared_ptr<ov::Core> _core;
-};
+      //transformers\generation\logits_process.py, TopKLogitsWarper.
+      torch::Tensor _logits_warper(torch::Tensor input_ids,
+         torch::Tensor next_token_scores, int64_t top_k, float filter_value);
+
+      std::shared_ptr< MusicgenForCausalLM > _decoder;
+
+      std::shared_ptr< MusicGenEncodecEncoder > _encoder;
+
+      ov::InferRequest _enc_to_dec_proj_infer_request;
+
+      int _nforward_calls = 1;
+
+      ov::InferRequest _encodec_infer_request;
+
+      ov::InferRequest _text_encoder_infer_request;
+
+
+      //current state
+      torch::Tensor _current_input_ids;
+      torch::Tensor _current_encoder_hidden_states;
+      torch::Tensor _current_decoder_delay_pattern_mask;
+      torch::Tensor _current_attention_mask;
+
+      torch::Generator _generator;
+
+      std::shared_ptr<ov::Core> _core;
+   };
+}

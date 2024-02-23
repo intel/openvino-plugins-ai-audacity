@@ -126,8 +126,8 @@ private:
 
    bool mIsCancelled = false;
 
-   std::shared_ptr<MusicGen> _musicgen;
-   MusicGenConfig _musicgen_config;
+   std::shared_ptr<ov_musicgen::MusicGen> _musicgen;
+   ov_musicgen::MusicGenConfig _musicgen_config;
 
    std::vector< EnumValueSymbol > mGuiContextLengthSelections;
    int m_contextLengthChoice = 0;

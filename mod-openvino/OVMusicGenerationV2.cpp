@@ -152,9 +152,10 @@ bool EffectOVMusicGenerationV2::MusicGenCallback(float perc_complete)
 
    if (mIsCancelled)
    {
-      std::cout << "Triggering cancel." << std::endl;
       return false;
    }
+
+   return true;
 }
 
 static bool musicgen_callback(float perc_complete, void* user)
@@ -187,35 +188,32 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
       FilePath model_folder = FileNames::MkDir(wxFileName(FileNames::BaseDir(), wxT("openvino-models")).GetFullPath());
       std::string musicgen_model_folder = audacity::ToUTF8(wxFileName(model_folder, wxString("musicgen"))
          .GetFullPath());
-
-      std::cout << "musicgen_model_folder = " << musicgen_model_folder << std::endl;
-
-      
+  
       auto text_encoder_device = audacity::ToUTF8(mTypeChoiceDeviceCtrl_TextEncoder->GetString(m_deviceSelectionChoice_TextEncoder));
       
       auto musicgen_dec0_device = audacity::ToUTF8(mTypeChoiceDeviceCtrl_UNetPositive->GetString(m_deviceSelectionChoice_MusicGenDecode0));
       auto musicgen_dec1_device = audacity::ToUTF8(mTypeChoiceDeviceCtrl_UNetNegative->GetString(m_deviceSelectionChoice_MusicGenDecode1));
 
-      MusicGenConfig::ContinuationContext continuation_context;
+      ov_musicgen::MusicGenConfig::ContinuationContext continuation_context;
       if (m_contextLengthChoice == 0)
       {
          std::cout << "continuation context of 5 seconds..." << std::endl;
-         continuation_context = MusicGenConfig::ContinuationContext::FIVE_SECONDS;
+         continuation_context = ov_musicgen::MusicGenConfig::ContinuationContext::FIVE_SECONDS;
       }
       else
       {
          std::cout << "continuation context of 10 seconds..." << std::endl;
-         continuation_context = MusicGenConfig::ContinuationContext::TEN_SECONDS;
+         continuation_context = ov_musicgen::MusicGenConfig::ContinuationContext::TEN_SECONDS;
       }
 
-      MusicGenConfig::ModelSelection model_selection;
+      ov_musicgen::MusicGenConfig::ModelSelection model_selection;
       if ((m_modelSelectionChoice % 2) == 0)
       {
-         model_selection = MusicGenConfig::ModelSelection::MUSICGEN_SMALL_FP16;
+         model_selection = ov_musicgen::MusicGenConfig::ModelSelection::MUSICGEN_SMALL_FP16;
       }
       else
       {
-         model_selection = MusicGenConfig::ModelSelection::MUSICGEN_SMALL_INT8;
+         model_selection = ov_musicgen::MusicGenConfig::ModelSelection::MUSICGEN_SMALL_INT8;
       }
 
       bool bStereo = (m_modelSelectionChoice < 2);
@@ -287,7 +285,7 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
 
                   _musicgen_config.model_selection = model_selection;
 
-                  _musicgen = std::make_shared< MusicGen >(_musicgen_config);
+                  _musicgen = std::make_shared< ov_musicgen::MusicGen >(_musicgen_config);
                }
             });
 
@@ -350,13 +348,13 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
 
          std::cout << "Duration = " << (float)mDurationT->GetValue() << std::endl;
 
-         std::optional<MusicGen::AudioContinuationParams> audio_to_continue_params;
+         std::optional<ov_musicgen::MusicGen::AudioContinuationParams> audio_to_continue_params;
 
          double audio_to_continue_start, audio_to_continue_end;
          size_t audio_to_continue_samples = 0;
          if (_AudioContinuationCheckBox->GetValue())
          {
-            MusicGen::AudioContinuationParams params;
+            ov_musicgen::MusicGen::AudioContinuationParams params;
             auto track = *(outputs.Get().Selected<WaveTrack>().begin());
 
             auto left = track->GetChannel(0);
@@ -386,11 +384,11 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
                double max_context_length = 0.f;
                switch (_musicgen_config.m_continuation_context)
                {
-                  case MusicGenConfig::ContinuationContext::FIVE_SECONDS:
+                  case ov_musicgen::MusicGenConfig::ContinuationContext::FIVE_SECONDS:
                      max_context_length = 5.;
                   break;
 
-                  case MusicGenConfig::ContinuationContext::TEN_SECONDS:
+                  case ov_musicgen::MusicGenConfig::ContinuationContext::TEN_SECONDS:
                      max_context_length = 10.;
                   break;
                }
@@ -509,7 +507,7 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
             [this, &seed, &audio_to_continue_params]
             {
 
-               CallbackParams callback_params;
+               ov_musicgen::CallbackParams callback_params;
                callback_params.user = this;
                callback_params.every_n_new_tokens = 5;
                callback_params.callback = musicgen_callback;
