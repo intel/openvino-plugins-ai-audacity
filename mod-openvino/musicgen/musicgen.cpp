@@ -99,7 +99,7 @@ namespace ov_musicgen
       //const int64_t max_new_tokens_per_generate = 1000;
 
       // 50 samples / sec
-      int64_t total_tokens_left_to_generate = (int64_t)(std::ceilf(total_desired_length_seconds * 50));
+      int64_t total_tokens_left_to_generate = (int64_t)(std::ceil(total_desired_length_seconds * 50));
 
       MusicgenForConditionalGeneration::CallbackTracking tracking;
       tracking.total_tokens_generated_so_far = 0;

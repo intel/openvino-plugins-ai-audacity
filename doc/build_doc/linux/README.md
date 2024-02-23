@@ -15,13 +15,13 @@ Here are some of the dependencies that you need to grab. If applicable, I'll als
 ```
 sudo apt install build-essential
 ```
-* OpenVINO - You can use public version from [here](https://storage.openvinotoolkit.org/repositories/openvino/packages/2023.2/linux/l_openvino_toolkit_ubuntu22_2023.2.0.13089.cfd42bd2cb0_x86_64.tgz)
+* OpenVINO - Download appropriate version from [here](https://storage.openvinotoolkit.org/repositories/openvino/packages/2023.3/linux/). For these instructions, we will use ```l_openvino_toolkit_ubuntu22_*x86_64tgz```.
 ```
 # Extract it
-tar xvf l_openvino_toolkit_ubuntu22_2023.2.0.13089.cfd42bd2cb0_x86_64.tgz 
+tar xvf l_openvino_toolkit_ubuntu22_*x86_64.tgz 
 
 #install dependencies
-cd l_openvino_toolkit_ubuntu22_2023.2.0.13089.cfd42bd2cb0_x86_64/install_dependencies/
+cd l_openvino_toolkit_ubuntu22_*_x86_64/install_dependencies/
 sudo -E ./install_openvino_dependencies.sh
 cd ..
 
@@ -39,10 +39,10 @@ export LIBTORCH_ROOTDIR=/path/to/libtorch
 ```
 
 ## Sub-Component builds
-We're now going to build whisper.cpp and stablediffusion-pipelines-cpp.  
+We're now going to build whisper.cpp, stablediffusion-pipelines-cpp, and sentencepiece.  
 ```
 # OpenVINO
-source /path/to/l_openvino_toolkit_ubuntu22_2023.2.0.13089.cfd42bd2cb0_x86_64/setupvars.sh
+source /path/to/l_openvino_toolkit_ubuntu22_*_x86_64/setupvars.sh
 
 # Libtorch
 export LIBTORCH_ROOTDIR=/path/to/libtorch
@@ -50,10 +50,10 @@ export LIBTORCH_ROOTDIR=/path/to/libtorch
 
 ### Whisper.cpp 
 ```
-# Clone it & check out specific commit
+# Clone it & check out specific tag
 git clone https://github.com/ggerganov/whisper.cpp
 cd whisper.cpp
-git checkout ec7a6f04f9c32adec2e6b0995b8c728c5bf56f35
+git checkout v1.5.4
 cd ..
 
 # Create build folder
@@ -99,6 +99,30 @@ export CPP_STABLE_DIFFUSION_OV_ROOTDIR=/path/to/stablediffusion-pipelines-cpp-bu
 export LD_LIBRARY_PATH=${CPP_STABLE_DIFFUSION_OV_ROOTDIR}/lib:$LD_LIBRARY_PATH
 
 ```
+
+
+### sentencepiece
+```
+git clone https://github.com/google/sentencepiece.git
+cd sentencepiece/
+git checkout v0.2.0
+cd ..
+
+mkdir sentencepiece-build
+cd sentencepiece-build/
+cmake ../sentencepiece
+
+# Build it
+make -j 8
+
+# Install it
+cmake --install . --config Release --prefix ./installed
+
+# Set environment variable that Audacity module will use to find this component.
+export SENTENCEPIECE_ROOTDIR=/path/to/entencepiece-build/installed
+
+```
+
 
 ## Audacity 
 
@@ -177,7 +201,7 @@ Okay, now we're going to (finally) build the module. Here's a recap of the envir
 
 ```
 # OpenVINO
-source /path/to/l_openvino_toolkit_ubuntu22_2023.2.0.13089.cfd42bd2cb0_x86_64/setupvars.sh
+source /path/to/l_openvino_toolkit_ubuntu22_*_x86_64/setupvars.sh
 
 # Libtorch
 export LIBTORCH_ROOTDIR=/path/to/libtorch

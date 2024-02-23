@@ -143,8 +143,7 @@ namespace ov_musicgen
          _infer_request = compiledModel.create_infer_request();
 
 
-
-         _cl_stuff->context = gpu_context;
+         _cl_stuff->context = gpu_context.get();
          cl::Device cl_device = cl::Device(_cl_stuff->context.getInfo<CL_CONTEXT_DEVICES>()[0].get(), true);
          cl_command_queue_properties props = CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE;
          _cl_stuff->queue = cl::CommandQueue(_cl_stuff->context, cl_device, props);

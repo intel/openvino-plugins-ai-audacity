@@ -57,7 +57,7 @@ namespace ov_musicgen
       torch::Tensor get_embedding(int64_t num_embeddings, int64_t embedding_dim)
       {
          auto half_dim = embedding_dim / 2;
-         float emb_val = std::logf(10000.f) / (half_dim - 1);
+         float emb_val = std::log(10000.f) / (half_dim - 1);
          auto emb = torch::exp(torch::arange(half_dim) * -emb_val);
          emb = torch::arange(num_embeddings).unsqueeze(1) * emb.unsqueeze(0);
          emb = torch::cat({ torch::cos(emb), torch::sin(emb) }, 1).view({ num_embeddings, -1 });

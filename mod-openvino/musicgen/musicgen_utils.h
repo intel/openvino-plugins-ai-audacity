@@ -161,7 +161,7 @@ static torch::Tensor read_tensor(std::string filename, at::IntArrayRef shape, at
 
     }
 
-    void* pTensorData = _aligned_malloc(nelements * sizeof(size_of_element), 4096);
+    void* pTensorData = malloc(nelements * sizeof(size_of_element));
     std::ifstream rf(filename, std::ios::binary);
     if (!rf.is_open())
     {
