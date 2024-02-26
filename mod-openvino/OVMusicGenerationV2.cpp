@@ -238,55 +238,69 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
              &continuation_context, &model_selection, &bStereo]
             {
 
-               //TODO: This should be much more efficient. No need to destroy *everything*, just update the
-               // pieces of the pipelines that have changed.
-               if ((musicgen_dec0_device != _musicgen_config.musicgen_decode_device0) ||
-                  (musicgen_dec1_device != _musicgen_config.musicgen_decode_device1))
+               try
                {
-                  //force destroy music gen if config has changed.
-                  _musicgen = {};
-               }
-
-               if (continuation_context != _musicgen_config.m_continuation_context)
-               {
-                  _musicgen = {};
-               }
-
-               if (model_selection != _musicgen_config.model_selection)
-               {
-                  _musicgen = {};
-               }
-
-               if (bStereo != _musicgen_config.bStereo)
-               {
-                  _musicgen = {};
-               }
-
-               if (!_musicgen)
-               {
-                  _musicgen_config.musicgen_decode_device0 = musicgen_dec0_device;
-                  _musicgen_config.musicgen_decode_device1 = musicgen_dec1_device;
-
-                  _musicgen_config.cache_folder = cache_path;
-                  _musicgen_config.model_folder = musicgen_model_folder;
-
-                  _musicgen_config.m_continuation_context = continuation_context;
-
-                  _musicgen_config.bStereo = bStereo;
-
-                  if (_musicgen_config.musicgen_decode_device0 == "CPU")
+                  //TODO: This should be much more efficient. No need to destroy *everything*, just update the
+                  // pieces of the pipelines that have changed.
+                  if ((musicgen_dec0_device != _musicgen_config.musicgen_decode_device0) ||
+                     (musicgen_dec1_device != _musicgen_config.musicgen_decode_device1))
                   {
-                     _musicgen_config.initial_decode_device = "CPU";
-                  }
-                  else
-                  {
-                     _musicgen_config.initial_decode_device = "GPU";
+                     //force destroy music gen if config has changed.
+                     _musicgen = {};
                   }
 
-                  _musicgen_config.model_selection = model_selection;
+                  if (continuation_context != _musicgen_config.m_continuation_context)
+                  {
+                     _musicgen = {};
+                  }
 
-                  _musicgen = std::make_shared< ov_musicgen::MusicGen >(_musicgen_config);
+                  if (model_selection != _musicgen_config.model_selection)
+                  {
+                     _musicgen = {};
+                  }
+
+                  if (bStereo != _musicgen_config.bStereo)
+                  {
+                     _musicgen = {};
+                  }
+
+                  if (!_musicgen)
+                  {
+                     _musicgen_config.musicgen_decode_device0 = musicgen_dec0_device;
+                     _musicgen_config.musicgen_decode_device1 = musicgen_dec1_device;
+
+                     _musicgen_config.cache_folder = cache_path;
+                     _musicgen_config.model_folder = musicgen_model_folder;
+
+                     _musicgen_config.m_continuation_context = continuation_context;
+
+                     _musicgen_config.bStereo = bStereo;
+
+                     if (_musicgen_config.musicgen_decode_device0 == "CPU")
+                     {
+                        _musicgen_config.initial_decode_device = "CPU";
+                     }
+                     else
+                     {
+                        _musicgen_config.initial_decode_device = "GPU";
+                     }
+
+                     _musicgen_config.model_selection = model_selection;
+
+                     _musicgen = std::make_shared< ov_musicgen::MusicGen >(_musicgen_config);
+                  }
                }
+               catch (const std::exception& error) {
+                  std::cout << "In Music Generation V2, exception: " << error.what() << std::endl;
+                  wxLogError("In Music Generation V2, exception: %s", error.what());
+                  EffectUIServices::DoMessageBox(*this,
+                     XO("Music Generation failed. See details in Help->Diagnostics->Show Log..."),
+                     wxICON_STOP,
+                     XO("Error"));
+                  _musicgen = {};
+               }
+
+
             });
 
          float total_time = 0.f;

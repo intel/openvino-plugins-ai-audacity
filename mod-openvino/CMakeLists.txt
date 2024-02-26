@@ -72,7 +72,7 @@ audacity_module( ${TARGET} "${SOURCES}" "${LIBRARIES}" "" "" )
 
 if(MSVC)
    target_compile_options(${TARGET} PRIVATE
-   /analyze /sdl /Gy /DYNAMICBASE /GS
+   /analyze /sdl /Gy /DYNAMICBASE /GS /D _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
    )
 endif()
 
