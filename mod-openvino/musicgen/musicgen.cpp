@@ -1,7 +1,6 @@
 #include "musicgen.h"
 #include <ittutils.h>
 #include "musicgen_for_conditional_generation.h"
-#include <sentencepiece_processor.h>
 
 namespace ov_musicgen
 {
@@ -11,14 +10,18 @@ namespace ov_musicgen
       {
          _gen = std::make_shared< MusicgenForConditionalGeneration >(config);
 
-         auto tokenizer_model_file = FullPath(config.model_folder, "musicgen_small_spiece.model");
-         const auto status = processor.Load(tokenizer_model_file);
-         if (!status.ok()) {
-            throw std::runtime_error("Error loading sentencepiece model file. Error = " + status.ToString());
-         }
+         ov::Core core;
+         //TODO: This will need to get changed to 'openvino_tokenizers.dll' for future OpenVINO / openvino-tokenizers releases.
+         core.add_extension("user_ov_extensions.dll");
+
+         auto tokenizer_model_path = FullPath(config.model_folder, "musicgen-small-tokenizer.xml");
+         auto tokenizer_model = core.read_model(tokenizer_model_path);
+
+         auto compiled_model = core.compile_model(tokenizer_model, "CPU");
+         _tok_infer_request = compiled_model.create_infer_request();
       }
 
-      sentencepiece::SentencePieceProcessor processor;
+      ov::InferRequest _tok_infer_request;
       std::shared_ptr< MusicgenForConditionalGeneration > _gen;
    };
 
@@ -79,13 +82,23 @@ namespace ov_musicgen
       }
 
       //tokenize
-      std::vector<int> ids;
-      _impl->processor.Encode(*prompt, &ids);
       std::vector<int64_t> ids_64;
-      for (auto id : ids)
-         ids_64.push_back(id);
-      ids_64.push_back(1);
+      {
+         _impl->_tok_infer_request.set_input_tensor(ov::Tensor{ ov::element::string, {1}, &(*prompt) });
+         _impl->_tok_infer_request.infer();
 
+         auto input_ids = _impl->_tok_infer_request.get_tensor("input_ids");
+         auto pInputIds = input_ids.data<int64_t>();
+         for (size_t i = 0; i < input_ids.get_size(); i++)
+         {
+            ids_64.push_back(pInputIds[i]);
+         }
+      }
+
+      //std::cout << "ids_64 = " << ids_64 << std::endl;
+
+      //TODO: Rather than throwing an exception here. Reduce length to 64 (first 63 + manually appended '1'), print warning that we are running with truncated prompt.
+      // (we can de-tokenize truncated id's to give exact prompt that was used).
       if (ids_64.size() > 64)
       {
          throw std::runtime_error("Given prompt is too long (it cannot exceed 64 tokens after tokenization)");

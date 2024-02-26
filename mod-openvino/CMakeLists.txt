@@ -33,12 +33,6 @@ message("stable_diffusion_audio_ov library = ${stable_diffusion_audio_ov}")
 # That header file will implement the preprocessor logic to *actually* enable ITT or not.
 include_directories( ittutils )
 
-# TODO: Maybe we can replace sentencepiece external dependency (used for tokenization) with some of the new tokenization features in OV 2023.3
-set(SENTENCEPIECE_ROOTDIR $ENV{SENTENCEPIECE_ROOTDIR})
-find_library(sentencepiece NAMES sentencepiece HINTS ${SENTENCEPIECE_ROOTDIR}/lib/ )
-message("sentencepiece lib = ${sentencepiece}")
-include_directories(${SENTENCEPIECE_ROOTDIR}/include)
-
 find_package(OpenCL REQUIRED)
 
 add_subdirectory(musicgen)
@@ -72,7 +66,6 @@ set( LIBRARIES
       ${whisper}
       #${stable_diffusion_ov}
       #${stable_diffusion_audio_ov}
-      ${sentencepiece}
 )
 
 audacity_module( ${TARGET} "${SOURCES}" "${LIBRARIES}" "" "" )
