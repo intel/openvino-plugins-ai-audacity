@@ -35,6 +35,8 @@
 #include "FileNames.h"
 #include "CodeConversions.h"
 
+#include "OVStringUtils.h"
+
 #include <openvino/openvino.hpp>
 
 static const std::map<std::string, std::pair<int, std::string>> g_lang = {
@@ -674,7 +676,9 @@ bool EffectOVWhisperTranscription::Whisper(std::vector<float>& mono_samples, Lab
       .GetFullPath());
 
    FilePath cache_folder = FileNames::MkDir(wxFileName(FileNames::DataDir(), wxT("openvino-model-cache")).GetFullPath());
-   std::string cache_path = audacity::ToUTF8(wxFileName(cache_folder).GetFullPath());
+
+   //Note: Using a variant of wstring conversion that seems to work more reliably when there are special characters present in the path.
+   std::string cache_path = wstring_to_string(wxFileName(cache_folder).GetFullPath().ToStdWstring());
 
    std::string smode = mSupportedModes[m_modeSelectionChoice];
    std::cout << "Mode = " << smode << std::endl;
