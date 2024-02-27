@@ -27,7 +27,6 @@ include_directories(${CPP_STABLE_DIFFUSION_OV_ROOTDIR}/include )
 message("stable_diffusion_ov library = ${stable_diffusion_ov}")
 message("stable_diffusion_audio_ov library = ${stable_diffusion_audio_ov}")
 
-
 set( SOURCES
       OVNoiseSuppression.cpp
       OVNoiseSuppression.h
@@ -42,6 +41,7 @@ set( SOURCES
       htdemucs.cpp
       htdemucs.h
       OpenVINO.cpp
+      OVStringUtils.h
 )
 
 set( LIBRARIES

@@ -25,6 +25,8 @@
 #include "LoadEffects.h"
 #include <future>
 
+#include "OVStringUtils.h"
+
 #include <openvino/openvino.hpp>
 
 const ComponentInterfaceSymbol EffectOVNoiseSuppression::Symbol{ XO("OpenVINO Noise Suppression") };
@@ -135,7 +137,7 @@ void EffectOVNoiseSuppression::CompileNoiseSuppression(ov::CompiledModel& compil
    std::cout << "Using model path = " << model_path << std::endl;
 
    FilePath cache_folder = FileNames::MkDir(wxFileName(FileNames::DataDir(), wxT("openvino-model-cache")).GetFullPath());
-   std::string cache_path = audacity::ToUTF8(wxFileName(cache_folder).GetFullPath());
+   std::string cache_path = wstring_to_string(wxFileName(cache_folder).GetFullPath().ToStdWstring());
 
    ov::Core core;
 

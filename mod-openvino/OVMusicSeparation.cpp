@@ -23,6 +23,8 @@
 #include "CodeConversions.h"
 #include <future>
 
+#include "OVStringUtils.h"
+
 const ComponentInterfaceSymbol EffectOVMusicSeparation::Symbol{ XO("OpenVINO Music Separation") };
 
 namespace { BuiltinEffectsModule::Registration< EffectOVMusicSeparation > reg; }
@@ -167,7 +169,9 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
          .GetFullPath());
 
       FilePath cache_folder = FileNames::MkDir(wxFileName(FileNames::DataDir(), wxT("openvino-model-cache")).GetFullPath());
-      std::string cache_path = audacity::ToUTF8(wxFileName(cache_folder).GetFullPath());
+
+      //Note: Using a variant of wstring conversion that seems to work more reliably when there are special characters present in the path.
+      std::string cache_path = wstring_to_string(wxFileName(cache_folder).GetFullPath().ToStdWstring());
 
       std::cout << "demucs_v4_path = " << demucs_v4_path << std::endl;
       std::cout << "cache_path = " << cache_path << std::endl;
