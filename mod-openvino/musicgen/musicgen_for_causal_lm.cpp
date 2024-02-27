@@ -77,14 +77,13 @@ namespace ov_musicgen
    {
       ITT_SCOPED_TASK(MusicgenForCausalLM_forward)
 
-
-         auto hidden_states_ov = _decoder->forward(input_ids,
-            attention_mask,
-            encoder_hidden_states,
-            encoder_attention_mask,
-            head_mask,
-            cross_attn_head_mask,
-            inputs_embeds);
+      auto hidden_states_ov = _decoder->forward(input_ids,
+         attention_mask,
+         encoder_hidden_states,
+         encoder_attention_mask,
+         head_mask,
+         cross_attn_head_mask,
+         inputs_embeds);
 
       _lm_heads_infer_request.set_input_tensor(hidden_states_ov);
 

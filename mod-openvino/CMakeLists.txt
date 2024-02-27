@@ -38,7 +38,6 @@ find_package(OpenCL REQUIRED)
 add_subdirectory(musicgen)
 include_directories(musicgen)
 
-
 set( SOURCES
       OVNoiseSuppression.cpp
       OVNoiseSuppression.h

@@ -47,9 +47,9 @@ namespace ov_musicgen
          size_t total_tokens_to_generate;
       };
 
-      GenerateReturn generate(torch::Tensor inputs_tensor,
+      GenerateReturn generate(std::optional < torch::Tensor > inputs_tensor,
          int64_t max_token_length,
-         torch::Tensor attention_mask,
+         std::optional < torch::Tensor > attention_mask,
          CallbackTracking& tracking,
          std::optional< torch::Tensor > audio_to_continue = {},
          std::optional< torch::Tensor > input_ids_to_continue = {},
@@ -84,7 +84,7 @@ namespace ov_musicgen
          std::optional< torch::Tensor > encoder_hidden_states_in = {});
 
       //transformers\generation\utils.py: GenerationMixin: sample
-      torch::Tensor sample(torch::Tensor input_ids, torch::Tensor attention_mask,
+      torch::Tensor sample(torch::Tensor input_ids, std::optional < torch::Tensor > attention_mask,
          torch::Tensor decoder_delay_pattern_mask,
          std::optional< BaseModelOutput > encoder_outputs,
          size_t max_length,
@@ -119,13 +119,6 @@ namespace ov_musicgen
       ov::InferRequest _encodec_infer_request;
 
       ov::InferRequest _text_encoder_infer_request;
-
-
-      //current state
-      torch::Tensor _current_input_ids;
-      torch::Tensor _current_encoder_hidden_states;
-      torch::Tensor _current_decoder_delay_pattern_mask;
-      torch::Tensor _current_attention_mask;
 
       torch::Generator _generator;
 

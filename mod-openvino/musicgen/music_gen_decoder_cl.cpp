@@ -425,7 +425,7 @@ namespace ov_musicgen
 
    }
 
-   ov::Tensor MusicgenDecoderModelCL::run(torch::Tensor hidden_states, std::optional<torch::Tensor> encoder_hidden_states, torch::Tensor encoder_attention_mask)
+   ov::Tensor MusicgenDecoderModelCL::run(torch::Tensor hidden_states, std::optional<torch::Tensor> encoder_hidden_states, std::optional<torch::Tensor> encoder_attention_mask)
    {
       ITT_SCOPED_TASK(MusicgenModelStatic_run)
          ov::Tensor last_hidden_states_ret;
@@ -459,7 +459,10 @@ namespace ov_musicgen
          input_encoder_attention_mask.copy_(torch::full(input_encoder_attention_mask.sizes(), -INFINITY));
 
          //then slice the valid values in.
-         input_encoder_attention_mask.index_put_({ Slice(), Slice(), Slice(), Slice(0, encoder_attention_mask.sizes()[3]) }, encoder_attention_mask);
+         if (encoder_attention_mask)
+         {
+            input_encoder_attention_mask.index_put_({ Slice(), Slice(), Slice(), Slice(0, encoder_attention_mask->sizes()[3]) }, *encoder_attention_mask);
+         }
 
          {
             ITT_SCOPED_TASK(infer)
@@ -525,7 +528,10 @@ namespace ov_musicgen
             using namespace torch::indexing;
             _hidden_states.index_put_({ Slice(), Slice(), Slice() }, hidden_states);
 
-            _encoder_attention_mask.index_put_({ Slice(), Slice(), Slice(), Slice(0, encoder_attention_mask.sizes()[3]) }, encoder_attention_mask);
+            if (encoder_attention_mask)
+            {
+               _encoder_attention_mask.index_put_({ Slice(), Slice(), Slice(), Slice(0, encoder_attention_mask->sizes()[3]) }, *encoder_attention_mask);
+            }
          }
 
          if (_cl_stuff->update_past_keys_fut.valid())

@@ -342,7 +342,7 @@ namespace ov_musicgen
          return _decoder_batch[0]._past_key_values_ov[0][0].get_shape()[2];
       }
 
-      virtual ov::Tensor run(torch::Tensor hidden_states, std::optional<torch::Tensor> encoder_hidden_states, torch::Tensor encoder_attention_mask) override
+      virtual ov::Tensor run(torch::Tensor hidden_states, std::optional<torch::Tensor> encoder_hidden_states, std::optional<torch::Tensor> encoder_attention_mask) override
       {
          ITT_SCOPED_TASK(MusicgenModelStatic_run)
             ov::Tensor last_hidden_states_ret;
@@ -398,7 +398,10 @@ namespace ov_musicgen
             input_encoder_attention_mask.copy_(torch::full(input_encoder_attention_mask.sizes(), -INFINITY));
 
             //then slice the valid values in.
-            input_encoder_attention_mask.index_put_({ Slice(), Slice(), Slice(), Slice(0, encoder_attention_mask.sizes()[3]) }, encoder_attention_mask);
+            if (encoder_attention_mask)
+            {
+               input_encoder_attention_mask.index_put_({ Slice(), Slice(), Slice(), Slice(0, encoder_attention_mask->sizes()[3]) }, *encoder_attention_mask);
+            }
 
             {
                ITT_SCOPED_TASK(infer)
@@ -467,7 +470,10 @@ namespace ov_musicgen
                using namespace torch::indexing;
                _decoder_batch[dbi]._hidden_states.index_put_({ Slice(), Slice(), Slice() }, hidden_states.index({ Slice(dbi, dbi + 1), Slice(), Slice() }));
 
-               _decoder_batch[dbi]._encoder_attention_mask.index_put_({ Slice(), Slice(), Slice(), Slice(0, encoder_attention_mask.sizes()[3]) }, encoder_attention_mask.index({ Slice(dbi, dbi + 1), Slice(), Slice(), Slice() }));
+               if (encoder_attention_mask)
+               {
+                  _decoder_batch[dbi]._encoder_attention_mask.index_put_({ Slice(), Slice(), Slice(), Slice(0, encoder_attention_mask->sizes()[3]) }, encoder_attention_mask->index({ Slice(dbi, dbi + 1), Slice(), Slice(), Slice() }));
+               }
             }
 
             // dump_tensor(_decoder_batch[0]._encoder_attention_mask, "encoder_attention_mask0.raw");

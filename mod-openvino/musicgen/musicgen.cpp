@@ -70,11 +70,6 @@ namespace ov_musicgen
       int top_k,
       std::optional< CallbackParams > callback_params)
    {
-      if (!prompt)
-      {
-         throw std::runtime_error("Prompt is required (right now)");
-      }
-
       if (seed)
       {
          std::cout << "Setting seed of " << *seed << std::endl;
@@ -85,31 +80,41 @@ namespace ov_musicgen
          std::cout << "Seed not set. Defaulting to 1 " << std::endl;
       }
 
-      //tokenize
+      std::optional< torch::Tensor > prompt_tokenized_ids;
+      std::optional< torch::Tensor > attention_mask;
       std::vector<int64_t> ids_64;
-      {
-         _impl->_tok_infer_request.set_input_tensor(ov::Tensor{ ov::element::string, {1}, &(*prompt) });
-         _impl->_tok_infer_request.infer();
 
-         auto input_ids = _impl->_tok_infer_request.get_tensor("input_ids");
-         auto pInputIds = input_ids.data<int64_t>();
-         for (size_t i = 0; i < input_ids.get_size(); i++)
+      //if a prompt was passed, and it's not an empty string.
+      if (prompt && !(prompt->empty()) && (*prompt != ""))
+      {
+         //tokenize
          {
-            ids_64.push_back(pInputIds[i]);
+            _impl->_tok_infer_request.set_input_tensor(ov::Tensor{ ov::element::string, {1}, &(*prompt) });
+            _impl->_tok_infer_request.infer();
+
+            auto input_ids = _impl->_tok_infer_request.get_tensor("input_ids");
+            auto pInputIds = input_ids.data<int64_t>();
+            for (size_t i = 0; i < input_ids.get_size(); i++)
+            {
+               ids_64.push_back(pInputIds[i]);
+            }
          }
+
+         //TODO: Rather than throwing an exception here. Reduce length to 64 (first 63 + manually appended '1'), print warning that we are running with truncated prompt.
+         // (we can de-tokenize truncated id's to give exact prompt that was used).
+         if (ids_64.size() > 64)
+         {
+            throw std::runtime_error("Given prompt is too long (it cannot exceed 64 tokens after tokenization)");
+         }
+
+         prompt_tokenized_ids = torch::from_blob(ids_64.data(), { 1, (int64_t)ids_64.size() }, torch::kInt64);
+         attention_mask = torch::cat({ torch::ones(prompt_tokenized_ids->sizes()),  torch::zeros(prompt_tokenized_ids->sizes()) });
       }
-
-      //std::cout << "ids_64 = " << ids_64 << std::endl;
-
-      //TODO: Rather than throwing an exception here. Reduce length to 64 (first 63 + manually appended '1'), print warning that we are running with truncated prompt.
-      // (we can de-tokenize truncated id's to give exact prompt that was used).
-      if (ids_64.size() > 64)
+      else
       {
-         throw std::runtime_error("Given prompt is too long (it cannot exceed 64 tokens after tokenization)");
+         std::cout << "prompt is empty.." << std::endl;
+         attention_mask = torch::zeros({ 2, 1 });
       }
-
-      torch::Tensor input_tensor = torch::from_blob(ids_64.data(), { 1, (int64_t)ids_64.size() }, torch::kInt64);
-      torch::Tensor attention_mask = torch::cat({ torch::ones(input_tensor.sizes()),  torch::zeros(input_tensor.sizes()) });
 
       //generare will +4 to the tokens, so we need to subtract it here (yuck)
       const int64_t max_new_tokens_per_generate = std::max((int64_t)1000, _impl->_gen->MaxNewTokens() - 4);
@@ -205,7 +210,7 @@ namespace ov_musicgen
          int64_t max_length_this_iteration = std::min(max_new_tokens_we_can_generate_this_it,
             total_tokens_left_to_generate);
 
-         auto gen_ret = _impl->_gen->generate(input_tensor, max_length_this_iteration + context_tokens_this_it, attention_mask, tracking, audio_to_continue_tensor, {}, guidance_scale, top_k,
+         auto gen_ret = _impl->_gen->generate(prompt_tokenized_ids, max_length_this_iteration + context_tokens_this_it, attention_mask, tracking, audio_to_continue_tensor, {}, guidance_scale, top_k,
             callback_params);
 
          if (!gen_ret.wav)

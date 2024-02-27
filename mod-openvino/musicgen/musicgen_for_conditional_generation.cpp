@@ -168,18 +168,29 @@ namespace ov_musicgen
       torch::Tensor encoder_hidden_states;
       if (!encoder_hidden_states_in)
       {
-         encoder_hidden_states = *(*encoder_outputs).last_hidden_state;
-         //todo?
-         //if (
-         //    self.text_encoder.config.hidden_size != self.decoder.config.hidden_size
-         //    and self.decoder.config.cross_attention_hidden_size is None
-         //): 
-         //    encoder_hidden_states = self.enc_to_dec_proj(encoder_hidden_states)
+         if (encoder_outputs)
+         {
+            if ((*encoder_outputs).last_hidden_state)
+            {
+               encoder_hidden_states = *(*encoder_outputs).last_hidden_state;
 
-         //todo: If encoder_outputs).last_hidden_state doesn't change per each call to forward,
-         // why are we running this enc_to_dec_proj each time? Seems like we can run it once up
-         // front, and then just keep reusing it...
-         encoder_hidden_states = _enc_to_dec_proj(encoder_hidden_states);
+               encoder_hidden_states = _enc_to_dec_proj(encoder_hidden_states);
+            }
+            else
+            {
+               throw std::runtime_error("Unexpected condition. encoder_outputs is set, but last_hidden_state is not.");
+            }
+
+            if (attention_mask)
+            {
+               using namespace torch::indexing;
+               encoder_hidden_states = encoder_hidden_states * (*attention_mask).index({ "...", None });
+            }
+         }
+         else
+         {
+            encoder_hidden_states = torch::zeros({ 2, 1, 1024 });
+         }
       }
       else
       {
@@ -187,11 +198,7 @@ namespace ov_musicgen
       }
 
 
-      if (attention_mask)
-      {
-         using namespace torch::indexing;
-         encoder_hidden_states = encoder_hidden_states * (*attention_mask).index({ "...", None });
-      }
+      
 
       //todo?
       /*
@@ -234,9 +241,9 @@ namespace ov_musicgen
           encoder_hidden_states };
    }
 
-   MusicgenForConditionalGeneration::GenerateReturn MusicgenForConditionalGeneration::generate(torch::Tensor inputs_tensor,
+   MusicgenForConditionalGeneration::GenerateReturn MusicgenForConditionalGeneration::generate(std::optional < torch::Tensor > inputs_tensor,
       int64_t max_token_length,
-      torch::Tensor attention_mask,
+      std::optional < torch::Tensor > attention_mask,
       CallbackTracking& tracking,
       std::optional< torch::Tensor > audio_to_continue,
       std::optional< torch::Tensor > input_ids_to_continue,
@@ -343,8 +350,9 @@ namespace ov_musicgen
 
       //run text encoder
       std::optional< BaseModelOutput > encoder_outputs;
+      if(inputs_tensor)
       {
-         auto txt_encode_input = wrap_torch_tensor_as_ov(inputs_tensor);
+         auto txt_encode_input = wrap_torch_tensor_as_ov(*inputs_tensor);
          _text_encoder_infer_request.set_input_tensor(txt_encode_input);
          _text_encoder_infer_request.infer();
 
@@ -385,7 +393,6 @@ namespace ov_musicgen
       
       if (!output_ids.defined())
       {
-         std::cout << "!output_ids.defined" << std::endl;
          // this can happen in the event of user cancellation (via callback). In this case,
          // sample() will return an undefined torch::Tensor object.
          return ret;
@@ -517,7 +524,7 @@ namespace ov_musicgen
    }
 
    torch::Tensor MusicgenForConditionalGeneration::sample(torch::Tensor input_ids,
-      torch::Tensor attention_mask,
+      std::optional < torch::Tensor > attention_mask,
       torch::Tensor decoder_delay_pattern_mask,
       std::optional< BaseModelOutput > encoder_outputs,
       size_t max_length,
@@ -630,11 +637,6 @@ namespace ov_musicgen
 
       std::cout << "Final input_ids shape = " << input_ids.sizes() << std::endl;
       //dump_tensor(input_ids, "ov_input_ids_final.raw");
-
-      _current_input_ids = input_ids;
-      _current_attention_mask = attention_mask;
-      _current_encoder_hidden_states = *encoder_hidden_states;
-      _current_decoder_delay_pattern_mask = decoder_delay_pattern_mask;
 
       return input_ids;
    }

@@ -303,8 +303,6 @@ namespace ov_musicgen
                    }
                 }
 
-
-
                 //todo: this is only needed for song continuation, so make it possible to construct without it, if we're not doing that.
                 {
                    std::string model_path;
@@ -516,33 +514,28 @@ namespace ov_musicgen
 
        }
 
-       virtual ov::Tensor run(torch::Tensor hidden_states, std::optional<torch::Tensor> encoder_hidden_states, torch::Tensor encoder_attention_mask) override
+       virtual ov::Tensor run(torch::Tensor hidden_states, std::optional<torch::Tensor> encoder_hidden_states, std::optional<torch::Tensor> encoder_attention_mask) override
        {
           ITT_SCOPED_TASK(MusicgenModelStatic_run)
-             ov::Tensor last_hidden_states_ret;
+          ov::Tensor last_hidden_states_ret;
           if (_past_length == 0)
           {
              ITT_SCOPED_TASK(initial_infer)
                 using namespace torch::indexing;
              _intiial_encoder_hidden_state.index_put_({ Slice(), Slice(0, encoder_hidden_states->sizes()[1]), Slice() }, *encoder_hidden_states);
+
              _infer_request_initial.infer();
           }
 
           if (hidden_states.sizes()[1] > 1)
           {
              ITT_SCOPED_TASK(large_context_path)
-                using namespace torch::indexing;
-             std::cout << "large context path!" << std::endl;
+             using namespace torch::indexing;
 
              auto input_hidden_states = wrap_ov_tensor_as_torch(_infer_request_large_context.get_tensor("input_hidden_states"));
              auto input_attention_mask = wrap_ov_tensor_as_torch(_infer_request_large_context.get_tensor("attention_mask"));
-
-
              auto input_encoder_attention_mask = wrap_ov_tensor_as_torch(_infer_request_large_context.get_tensor("encoder_attention_mask"));
 
-             //std::cout << "Sizes: " << input_hidden_states.sizes() << " " << hidden_states.sizes() << std::endl;
-             //std::cout << "Sizes: " << input_attention_mask.sizes() << " " << _attention_mask.sizes() << std::endl;
-             //std::cout << "Sizes: " << input_encoder_attention_mask.sizes() << " " << encoder_attention_mask.sizes() << std::endl;
              input_hidden_states.copy_(hidden_states);
              input_attention_mask.copy_(_attention_mask);
 
@@ -550,18 +543,19 @@ namespace ov_musicgen
              input_encoder_attention_mask.copy_(torch::full(input_encoder_attention_mask.sizes(), -INFINITY));
 
              //then slice the valid values in.
-             input_encoder_attention_mask.index_put_({ Slice(), Slice(), Slice(), Slice(0, encoder_attention_mask.sizes()[3]) }, encoder_attention_mask);
+             if (encoder_attention_mask)
+             {
+                input_encoder_attention_mask.index_put_({ Slice(), Slice(), Slice(), Slice(0, encoder_attention_mask->sizes()[3]) }, *encoder_attention_mask);
+             }
 
              {
                 ITT_SCOPED_TASK(infer)
-                   _infer_request_large_context.infer();
+                _infer_request_large_context.infer();
              }
 
              auto ov_last_hidden_state = _infer_request_large_context.get_tensor("last_hidden_state");
 
              last_hidden_states_ret = ov_last_hidden_state;
-
-             //save_tensor_to_disk(ov_last_hidden_state, "ov_last_hidden_state.raw");
 
              ITT_SCOPED_TASK(update_past_key_values);
 
@@ -601,7 +595,10 @@ namespace ov_musicgen
                 using namespace torch::indexing;
                 _hidden_states.index_put_({ Slice(), Slice(), Slice() }, hidden_states);
 
-                _encoder_attention_mask.index_put_({ Slice(), Slice(), Slice(), Slice(0, encoder_attention_mask.sizes()[3]) }, encoder_attention_mask);
+                if (encoder_attention_mask)
+                {
+                   _encoder_attention_mask.index_put_({ Slice(), Slice(), Slice(), Slice(0, encoder_attention_mask->sizes()[3]) }, *encoder_attention_mask);
+                }
              }
 
              {

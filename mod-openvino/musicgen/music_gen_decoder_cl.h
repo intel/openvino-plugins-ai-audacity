@@ -21,7 +21,7 @@ namespace ov_musicgen
 
       virtual void ShiftLeft(int64_t ntokens) override;
 
-      virtual ov::Tensor run(torch::Tensor hidden_states, std::optional<torch::Tensor> encoder_hidden_states, torch::Tensor encoder_attention_mask) override;
+      virtual ov::Tensor run(torch::Tensor hidden_states, std::optional<torch::Tensor> encoder_hidden_states, std::optional<torch::Tensor> encoder_attention_mask) override;
 
       virtual ov::Tensor get_last_hidden_state() override;
 

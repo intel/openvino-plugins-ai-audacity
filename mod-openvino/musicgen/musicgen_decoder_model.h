@@ -14,7 +14,7 @@ namespace ov_musicgen
 
       virtual ov::Tensor run(torch::Tensor hidden_states,
          std::optional<torch::Tensor> encoder_hidden_states,
-         torch::Tensor encoder_attention_mask) = 0;
+         std::optional<torch::Tensor> encoder_attention_mask) = 0;
 
       virtual ov::Tensor get_last_hidden_state() = 0;
 

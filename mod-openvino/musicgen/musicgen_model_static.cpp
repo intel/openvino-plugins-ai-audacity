@@ -154,7 +154,7 @@ namespace ov_musicgen
    {
       ITT_SCOPED_TASK(MusicgenModelStatic_forward)
 
-         int64_t past_length = _decoder_model->PastLength();
+      int64_t past_length = _decoder_model->PastLength();
 
       torch::Tensor input;
       std::vector<int64_t> input_shape;
@@ -198,7 +198,7 @@ namespace ov_musicgen
 
       auto hidden_states = *inputs_embeds + positions;
 
-      return _decoder_model->run(hidden_states, encoder_hidden_states, *encoder_attention_mask);
+      return _decoder_model->run(hidden_states, encoder_hidden_states, encoder_attention_mask);
    }
 
    torch::Tensor MusicgenModelStatic::_prepare_4d_attention_mask(torch::Tensor mask, int64_t tgt_len)
