@@ -78,8 +78,11 @@ export LD_LIBRARY_PATH=${WHISPERCPP_ROOTDIR}/lib:$LD_LIBRARY_PATH
 
 ### OpenVINO Stable-Diffusion CPP
 ```
-# clone it
+# clone it & check out v0.1 tag
 git clone https://github.com/intel/stablediffusion-pipelines-cpp.git
+cd stablediffusion-pipelines-cpp
+git checkout v0.1
+cd ..
 
 #create build folder
 mkdir stablediffusion-pipelines-cpp-build
@@ -171,10 +174,11 @@ git clone https://github.com/intel/openvino-plugins-ai-audacity.git
 # Check out the release tag that matches the Audacity version you're using
 cd openvino-plugins-ai-audacity
 git checkout v3.4.2-R1
+cd ..
 ```
 
 We need to copy the ```mod-openvino``` folder into the Audacity source tree.
-i.e. Copy ```openvino_audio_workloads\mod-openvino``` folder to ```audacity\modules```.
+i.e. Copy ```openvino-plugins-ai-audacity/mod-openvino``` folder to ```audacity/modules```.
 
 
 We now need to edit ```audacity\modules\CMakeLists.txt``` to add mod-openvino as a build target. You just need to add a ```add_subdirectory(mod-openvino)``` someplace in the file. For example:
@@ -220,9 +224,11 @@ Okay, on to the build:
 # cd back to the same Audacity folder you used to build Audacity before
 cd audacity-build
 
-# and build the new target, mod-openvino.
-# (Note: CMake will automatically re-run since you modified CMakeLists.txt)
-cmake --build . --config Release --target mod-openvino
+# and re-run cmake step (it will go faster this time)
+cmake -G "Unix Makefiles" ../audacity -DCMAKE_BUILD_TYPE=Release
+
+# and re-run make command
+make -j`nproc`
 ```
 
 If it all builds correctly, you should see mod-openvino.so sitting in Release/lib/audacity/modules/

@@ -42,6 +42,8 @@
 #include "cpp_stable_diffusion_audio_ov/riffusion_audio_to_audio_pipeline.h"
 #include "cpp_stable_diffusion_ov/model_collateral_cache.h"
 
+#include "OVStringUtils.h"
+
 const ComponentInterfaceSymbol EffectOVMusicStyleRemix::Symbol{ XO("OpenVINO Music Style Remix") };
 
 namespace { BuiltinEffectsModule::Registration< EffectOVMusicStyleRemix > reg; }
@@ -235,7 +237,10 @@ bool EffectOVMusicStyleRemix::Process(EffectInstance&, EffectSettings& settings)
       std::cout << "riffusion_model_folder = " << riffusion_model_folder << std::endl;
 
       FilePath cache_folder = FileNames::MkDir(wxFileName(FileNames::DataDir(), wxT("openvino-model-cache")).GetFullPath());
-      std::string cache_path = audacity::ToUTF8(wxFileName(cache_folder).GetFullPath());
+
+      //Note: Using a variant of wstring conversion that seems to work more reliably when there are special characters present in the path.
+      std::string cache_path = wstring_to_string(wxFileName(cache_folder).GetFullPath().ToStdWstring());
+
       std::cout << "cache path = " << cache_path << std::endl;
 
       std::cout << "Creating pipeline object with following devices" << std::endl;

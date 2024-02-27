@@ -38,6 +38,7 @@
 #include <future>
 
 #include "InterpolateAudio.h"
+#include "OVStringUtils.h"
 
 const ComponentInterfaceSymbol EffectOVMusicGeneration::Symbol{ XO("OpenVINO Music Generation") };
 
@@ -340,7 +341,10 @@ bool EffectOVMusicGeneration::Process(EffectInstance&, EffectSettings& settings)
       bool bAdvanced = (m_modeSelectionChoice == 1);
 
       FilePath cache_folder = FileNames::MkDir(wxFileName(FileNames::DataDir(), wxT("openvino-model-cache")).GetFullPath());
-      std::string cache_path = audacity::ToUTF8(wxFileName(cache_folder).GetFullPath());
+
+      //Note: Using a variant of wstring conversion that seems to work more reliably when there are special characters present in the path.
+      std::string cache_path = wstring_to_string(wxFileName(cache_folder).GetFullPath().ToStdWstring());
+
       std::cout << "cache path = " << cache_path << std::endl;
 
       wxString added_trackName;

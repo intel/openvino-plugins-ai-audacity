@@ -38,6 +38,7 @@ find_package(OpenCL REQUIRED)
 add_subdirectory(musicgen)
 include_directories(musicgen)
 
+
 set( SOURCES
       OVNoiseSuppression.cpp
       OVNoiseSuppression.h
@@ -55,6 +56,7 @@ set( SOURCES
       htdemucs.h
       ${OV_MUSICGEN_SOURCES}
       OpenVINO.cpp
+      OVStringUtils.h
 )
 
 set( LIBRARIES
