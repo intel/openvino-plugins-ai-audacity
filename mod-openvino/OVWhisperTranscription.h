@@ -10,6 +10,11 @@ class wxString;
 class wxChoice;
 class wxCheckBox;
 class LabelTrack;
+class wxTextCtrl;
+class wxSizer;
+
+#include <wx/weakref.h>
+
 
 class EffectOVWhisperTranscription final : public StatefulEffect
 {
@@ -39,6 +44,8 @@ public:
    bool UpdateProgress(double perc);
    bool _EncoderBegin();
 
+   void OnAdvancedCheckboxChanged(wxCommandEvent& evt);
+
 private:
    // EffectFindCliping implementation
 
@@ -50,8 +57,10 @@ private:
    //const EffectParameterMethods& Parameters() const override;
    bool ProcessStereoToMono(sampleCount& curTime, sampleCount totalTime, WaveTrack& track);
 
-   bool ProcessWhisper(WaveTrack* mono, LabelTrack* lt);
-   bool Whisper(std::vector<float>& mono_samples, LabelTrack* lt, double start_time);
+   bool ProcessWhisper(WaveTrack* mono, LabelTrack* lt0, LabelTrack* lt1);
+   bool Whisper(std::vector<float>& mono_samples, LabelTrack* lt0, LabelTrack* lt1, double start_time);
+
+   wxWeakRef<wxWindow> mUIParent{};
 
    enum control
    {
@@ -59,7 +68,7 @@ private:
       ID_Type_Model = 10001,
       ID_Type_Mode = 10002,
       ID_Type_Language = 10003,
-      ID_Type_PerWord = 10004,
+      ID_Type_AdvancedCheckbox = 10004,
    };
 
    wxChoice* mTypeChoiceDeviceCtrl;
@@ -94,6 +103,25 @@ private:
    std::mutex mMutex;
    bool mIsCancelled = false;
 
-  
+   void show_or_hide_advanced_options();
 
+   //advanced options
+   wxCheckBox* mShowAdvancedOptionsCheckbox;
+   bool mbAdvanced = false;
+
+   wxSizer* advancedSizer = nullptr;
+
+   int mMaxTextSegLength = 0;
+   wxTextCtrl* mMaxTextSegLengthCtrl = nullptr;
+
+   std::string mInitialPrompt = "";
+   wxTextCtrl* mInitialPromptCtrl = nullptr;
+
+   int mBeamSize = 1;
+   wxTextCtrl* mBeamSizeCtrl = nullptr;
+
+   int mBestOf = 1;
+   wxTextCtrl* mBestOfCtrl = nullptr;
+
+   DECLARE_EVENT_TABLE()
 };
