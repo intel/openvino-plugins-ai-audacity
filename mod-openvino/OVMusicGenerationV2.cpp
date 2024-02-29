@@ -517,6 +517,9 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
             }
          }
 
+         mProgressFrac = 0.0;
+         mProgMessage = "Running Music Generation";
+
          auto musicgen_pipeline_run_future = std::async(std::launch::async,
             [this, &seed, &audio_to_continue_params]
             {
@@ -538,9 +541,6 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
             }
             );
 
-         mProgressFrac = 0.0;
-         mProgMessage = "Running Music Generation";
-
          do {
             using namespace std::chrono_literals;
             status = musicgen_pipeline_run_future.wait_for(0.5s);
@@ -555,8 +555,6 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
 
          } while (status != std::future_status::ready);
 
-         std::cout << "generated!" << std::endl;
-
          auto res_wav_pair = musicgen_pipeline_run_future.get();
          auto generated_samples_L = res_wav_pair.first;
          if (!generated_samples_L)
@@ -565,7 +563,7 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
          auto generated_samples_R = res_wav_pair.second;
 
          auto duration = settings.extra.GetDuration();
-         if (_AudioContinuationAsNewTrackCheckBox->GetValue())
+         if (_AudioContinuationCheckBox->GetValue() && _AudioContinuationAsNewTrackCheckBox->GetValue())
          {
             duration += audio_to_continue_end - audio_to_continue_start;
          }
@@ -1008,13 +1006,16 @@ void EffectOVMusicGenerationV2::DoPopulateOrExchange(
                   // overlaps with existing segment.
                   if (((mT0 >= t0) && (mT0 < t1)) || ((mT1 >= t0) && (mT1 < t1)))
                   {
-                     double duration;
+                     double duration = 0;
                      GetConfig(GetDefinition(), PluginSettings::Private,
                         CurrentSettingsGroup(),
                         EffectSettingsExtra::DurationKey(), duration, 30.);
 
-                     std::cout << "Setting last used duration of " << duration << std::endl;
-                     mDurationT->SetValue(duration);
+                     if (duration > 0)
+                     {
+                        std::cout << "Setting last used duration of " << duration << std::endl;
+                        mDurationT->SetValue(duration);
+                     }
 
                      _AudioContinuationCheckBox->SetValue(true);
                      _AudioContinuationAsNewTrackCheckBox->SetValue(true);
