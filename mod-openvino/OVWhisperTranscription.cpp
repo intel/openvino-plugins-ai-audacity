@@ -18,6 +18,8 @@
 #include <wx/valgen.h>
 #include <wx/checkbox.h>
 #include <wx/log.h>
+#include <wx/textctrl.h>
+#include <wx/sizer.h>
 
 #include "effects/AnalysisTracks.h"
 #include "ShuttleGui.h"
@@ -171,6 +173,53 @@ static ModifiedAnalysisTrack MyModifyAnalysisTrack(
    return{ &effect, origTrack, name };
 }
 
+//Given a whisper basename (i.e. 'base', 'small', etc.), check to make sure that all
+// of the required model files exist in the right location, and return true / false.
+// true: All the files exist!
+// false: At least one of the required files are missing.
+static bool is_whisper_model_present(std::string whisper_basename)
+{
+   std::cout << "is_whisper_model_present(" << whisper_basename << ")" << std::endl;
+   auto model_folder = wxFileName(FileNames::BaseDir(), wxT("openvino-models")).GetFullPath();
+
+   {
+      std::string ggml_binname = std::string("ggml-") + whisper_basename + std::string(".bin");
+      auto whisper_ggml_model_path = wxFileName(model_folder, wxString(ggml_binname));
+      if (!whisper_ggml_model_path.FileExists())
+      {
+         std::cout << "is_whisper_model_present: returning false because " << ggml_binname << " doesn't exist." << std::endl;
+         return false;
+      }
+   }
+
+   auto ov_model_basename = std::string("ggml-") + whisper_basename + std::string("-encoder-openvino");
+   {
+      std::string whisper_openvino_xml_file = ov_model_basename + std::string(".xml");
+      auto whisper_openvino_model_xml_path = wxFileName(model_folder, wxString(whisper_openvino_xml_file));
+      if (!whisper_openvino_model_xml_path.FileExists())
+      {
+         std::cout << "is_whisper_model_present: returning false because " << whisper_openvino_xml_file << " doesn't exist." << std::endl;
+         return false;
+      }
+   }
+
+   {
+      std::string whisper_openvino_bin_file = ov_model_basename + std::string(".bin");
+      auto whisper_openvino_model_bin_path = wxFileName(model_folder, wxString(whisper_openvino_bin_file));
+      if (!whisper_openvino_model_bin_path.FileExists())
+      {
+         std::cout << "is_whisper_model_present: returning false because " << whisper_openvino_bin_file << " doesn't exist." << std::endl;
+         return false;
+      }
+   }
+
+   std::cout << "is_whisper_model_present: returning true" << std::endl;
+   return true;
+}
+
+BEGIN_EVENT_TABLE(EffectOVWhisperTranscription, wxEvtHandler)
+    EVT_CHECKBOX(ID_Type_AdvancedCheckbox, EffectOVWhisperTranscription::OnAdvancedCheckboxChanged)
+END_EVENT_TABLE()
 
 EffectOVWhisperTranscription::EffectOVWhisperTranscription()
 {
@@ -182,8 +231,6 @@ EffectOVWhisperTranscription::EffectOVWhisperTranscription()
       //GNA devices are not supported
       if (d.find("GNA") != std::string::npos) continue;
 
-      if (d == "VPU") continue;
-
       mSupportedDevices.push_back(d);
    }
 
@@ -192,11 +239,25 @@ EffectOVWhisperTranscription::EffectOVWhisperTranscription()
       mGuiDeviceSelections.push_back({ TranslatableString{ wxString(d), {}} });
    }
 
-   mSupportedModels = { "base" };
+   std::vector<std::string> possible_supported_models =
+   { "tiny", "tiny.en",
+      "base", "base.en",
+      "small", "small.en", "small.en-tdrz",
+      "medium", "medium.en",
+      "large-v1", "large-v2", "large-v3"
+   };
 
-   for (auto m : mSupportedModels)
+   //For each possible model, check to see if the required model files
+   // (ggml bin, openvino IR's) are present in the 'openvino-models' dir.
+   // If so, then populate our drop down list with this model so that it
+   // is selectable.
+   for (auto m : possible_supported_models)
    {
-      mGuiModelSelections.push_back({ TranslatableString{ wxString(m), {}} });
+      if (is_whisper_model_present(m))
+      {
+         mSupportedModels.push_back(m);
+         mGuiModelSelections.push_back({ TranslatableString{ wxString(m), {}} });
+      }
    }
 
    mSupportedModes = { "transcribe", "translate" };
@@ -216,6 +277,9 @@ EffectOVWhisperTranscription::EffectOVWhisperTranscription()
    {
       mGuiLanguageSelections.push_back({ TranslatableString{ wxString(l), {}} });
    }
+
+   mBeamSize = whisper_full_default_params(WHISPER_SAMPLING_BEAM_SEARCH).beam_search.beam_size;
+   mBestOf = whisper_full_default_params(WHISPER_SAMPLING_GREEDY).greedy.best_of;
 }
 
 EffectOVWhisperTranscription::~EffectOVWhisperTranscription()
@@ -248,6 +312,23 @@ bool EffectOVWhisperTranscription::Process(EffectInstance&, EffectSettings&)
    {
       mIsCancelled = false;
 
+      if (mSupportedModels.empty())
+      {
+         EffectUIServices::DoMessageBox(*this,
+            XO("Whisper Transcription failed. There doesn't seem to be any whisper models installed."),
+            wxICON_STOP,
+            XO("Error"));
+         return false;
+      }
+
+      
+      //  two label tracks, making the transition at each speaker turn.
+      auto whisper_model_variant = mSupportedModels[m_modelSelectionChoice];
+
+      // if user has installed / enabled specific tdrz model, then we will alternate between
+      // two label tracks.
+      bool btdrz = (whisper_model_variant  == "small.en-tdrz");
+
       // Do not use mWaveTracks here.  We will possibly DELETE tracks,
       // so we must use the "real" tracklist.
       EffectOutputTracks outputs{ *mTracks, GetType(), {{ mT0, mT1 }} };
@@ -256,24 +337,29 @@ bool EffectOVWhisperTranscription::Process(EffectInstance&, EffectSettings&)
       // Determine the total time (in samples) used by all of the target tracks
       sampleCount totalTime = 0;
 
-      //maybe this needs to be in the trackRange loop?
-      std::shared_ptr<AddedAnalysisTrack> addedTrack;
-      std::optional<ModifiedAnalysisTrack> modifiedTrack;
-      const wxString name{ _("Transcription") };
+      //maybe this needs to be in the trackRange loop? The behavior right now is that it will
+      // iterate through all selected tracks and dump all of the results in the same label
+      // track... which isn't great.
+      std::shared_ptr<AddedAnalysisTrack> addedTrack0;
+      std::shared_ptr<AddedAnalysisTrack> addedTrack1;
 
-      auto clt = *inputTracks()->Any< const LabelTrack >().find_if(
-         [&](const Track* track) { return track->GetName() == name; });
+      LabelTrack* lt0{};
+      std::string label_track_name = "Transcription";
+      if (btdrz)
+      {
+         label_track_name = "Transcription 0";
+      }
 
-      LabelTrack* lt{};
-      if (!clt)
+      label_track_name = label_track_name + "(" + whisper_model_variant + ")";
+      addedTrack0 = (MyAddAnalysisTrack(*this, label_track_name)), lt0 = addedTrack0->get();
+
+      LabelTrack* lt1{};
+      if (btdrz)
       {
-         addedTrack = (MyAddAnalysisTrack(*this, name)), lt = addedTrack->get();
+         label_track_name = "Transcription 1 (" + whisper_model_variant + ")";
+         addedTrack1 = (MyAddAnalysisTrack(*this, label_track_name)), lt1 = addedTrack1->get();
       }
-      else
-      {
-         modifiedTrack.emplace(MyModifyAnalysisTrack(*this, *clt, name)),
-            lt = modifiedTrack->get();
-      }
+
 
       //resample all tracks to 16khz
       for (auto pOutWaveTrack : outputs.Get().Selected<WaveTrack>())
@@ -306,13 +392,12 @@ bool EffectOVWhisperTranscription::Process(EffectInstance&, EffectSettings&)
          }
       }
 
-
       mProgress->SetMessage(XO("Running Whisper Transcription using OpenVINO"));
 
       //finally, run whisper
       for (auto pOutWaveTrack : outputs.Get().Selected<WaveTrack>())
       {
-         bGoodResult = ProcessWhisper(pOutWaveTrack, lt);
+         bGoodResult = ProcessWhisper(pOutWaveTrack, lt0, lt1);
 
          if (!bGoodResult || mIsCancelled)
             break;
@@ -325,10 +410,10 @@ bool EffectOVWhisperTranscription::Process(EffectInstance&, EffectSettings&)
       if (bGoodResult && !mIsCancelled)
       {
          // No cancellation, so commit the addition of the track.
-         if (addedTrack)
-            addedTrack->Commit();
-         if (modifiedTrack)
-            modifiedTrack->Commit();
+         if (addedTrack0)
+            addedTrack0->Commit();
+         if (addedTrack1)
+            addedTrack1->Commit();
       }
 
       return bGoodResult;
@@ -398,7 +483,7 @@ bool EffectOVWhisperTranscription::ProcessStereoToMono(sampleCount& curTime, sam
    return bResult;
 }
 
-bool EffectOVWhisperTranscription::ProcessWhisper(WaveTrack* mono, LabelTrack* lt)
+bool EffectOVWhisperTranscription::ProcessWhisper(WaveTrack* mono, LabelTrack* lt0, LabelTrack* lt1)
 {
    double trackStart = mono->GetStartTime();
    double trackEnd = mono->GetEndTime();
@@ -432,7 +517,7 @@ bool EffectOVWhisperTranscription::ProcessWhisper(WaveTrack* mono, LabelTrack* l
             std::to_string(total_samples) + " samples");
       }
 
-      ret = Whisper(mono_samples, lt, label_time_offset);
+      ret = Whisper(mono_samples, lt0, lt1, label_time_offset);
    }
    else
    {
@@ -457,24 +542,26 @@ bool EffectOVWhisperTranscription::UpdateProgress(double perc)
 }
 
 struct whisper_params {
-   int32_t n_threads = std::min(4, (int32_t)std::thread::hardware_concurrency());
+   int32_t n_threads = std::min(6, (int32_t)std::thread::hardware_concurrency());
    int32_t n_processors = 1;
    int32_t offset_t_ms = 0;
    int32_t offset_n = 0;
    int32_t duration_ms = 0;
    int32_t max_context = -1;
    int32_t max_len = 0;
-   int32_t best_of = 2;
-   int32_t beam_size = -1;
+   int32_t best_of = whisper_full_default_params(WHISPER_SAMPLING_GREEDY).greedy.best_of;
+   int32_t beam_size = whisper_full_default_params(WHISPER_SAMPLING_BEAM_SEARCH).beam_search.beam_size;
 
    float word_thold = 0.01f;
    float entropy_thold = 2.40f;
    float logprob_thold = -1.00f;
 
    bool speed_up = false;
+   bool debug_mode = false;
    bool translate = false;
    bool detect_language = false;
    bool diarize = false;
+   bool tinydiarize = false;
    bool split_on_word = false;
    bool no_fallback = false;
    bool output_txt = false;
@@ -497,13 +584,14 @@ struct whisper_params {
    std::vector<std::string> fname_inp = {};
    std::vector<std::string> fname_out = {};
 
-   LabelTrack* lt = nullptr;
+   LabelTrack* lt[2] = { nullptr, nullptr };
+   int lt_i = 0;
    int64_t nsamples = 0;
    double start_time = 0.;
 };
 
 struct whisper_print_user_data {
-   const whisper_params* params;
+   whisper_params* params;
 
    const std::vector<std::vector<float>>* pcmf32s;
 };
@@ -537,7 +625,7 @@ int timestamp_to_sample(int64_t t, int n_samples) {
 }
 
 static void whisper_print_segment_callback(struct whisper_context* ctx, struct whisper_state* /*state*/, int n_new, void* user_data) {
-   const auto& params = *((whisper_print_user_data*)user_data)->params;
+   auto& params = *((whisper_print_user_data*)user_data)->params;
    const auto& pcmf32s = *((whisper_print_user_data*)user_data)->pcmf32s;
 
    const int n_segments = whisper_full_n_segments(ctx);
@@ -608,8 +696,9 @@ static void whisper_print_segment_callback(struct whisper_context* ctx, struct w
       else {
          const char* text = whisper_full_get_segment_text(ctx, i);
 
-        // printf("%s%s", speaker.c_str(), text);
+         std::string text_string = text;
 
+        // printf("%s%s", speaker.c_str(), text);
 
          const int64_t is0 = timestamp_to_sample(t0, params.nsamples);
          const int64_t is1 = timestamp_to_sample(t1, params.nsamples);
@@ -617,10 +706,15 @@ static void whisper_print_segment_callback(struct whisper_context* ctx, struct w
          double start = is0 / 16000.0 + params.start_time;
          double end = is1 / 16000.0 + params.start_time;
 
-         auto wxText = wxString::FromUTF8(text);
-         params.lt->AddLabel(SelectedRegion(start, end),
+         auto wxText = wxString::FromUTF8(text_string);
+         params.lt[params.lt_i]->AddLabel(SelectedRegion(start, end),
             wxText);
 
+         if (params.tinydiarize) {
+            if (whisper_full_get_segment_speaker_turn_next(ctx, i)) {
+               params.lt_i = (params.lt_i + 1) % 2;
+            }
+         }
       }
 
       // with timestamps or speakers: each segment on new line
@@ -662,16 +756,23 @@ static bool whisper_encoder_callback(struct whisper_context* ctx, struct whisper
 }
 
 
-bool EffectOVWhisperTranscription::Whisper(std::vector<float>& mono_samples, LabelTrack* lt, double start_time)
+bool EffectOVWhisperTranscription::Whisper(std::vector<float>& mono_samples, LabelTrack* lt0, LabelTrack* lt1, double start_time)
 {
    whisper_params params;
-   params.lt = lt;
+   params.lt[0] = lt0;
+   params.lt[1] = lt1;
    params.nsamples = mono_samples.size();
    params.start_time = start_time;
 
+   params.max_len = mMaxTextSegLength;
+
+   mInitialPrompt = audacity::ToUTF8(mInitialPromptCtrl->GetLineText(0));
+   params.prompt = mInitialPrompt;
+
    //whisper init
    FilePath model_folder = FileNames::MkDir(wxFileName(FileNames::BaseDir(), wxT("openvino-models")).GetFullPath());
-   std::string ggml_binname = std::string("ggml-") + mSupportedModels[m_modelSelectionChoice] + std::string(".bin");
+   std::string whisper_variant = mSupportedModels[m_modelSelectionChoice];
+   std::string ggml_binname = std::string("ggml-") + whisper_variant + std::string(".bin");
    std::string whisper_model_path = audacity::ToUTF8(wxFileName(model_folder, wxString(ggml_binname))
       .GetFullPath());
 
@@ -684,6 +785,12 @@ bool EffectOVWhisperTranscription::Whisper(std::vector<float>& mono_samples, Lab
    std::cout << "Mode = " << smode << std::endl;
    params.translate = (smode == "translate");
 
+   params.tinydiarize = (whisper_variant == "small.en-tdrz");
+
+   params.beam_size = mBeamSize;
+
+   params.best_of = mBestOf;
+   
    std::string slang = mSupportedLanguages[m_languageSelectionChoice];
 
    if (slang == "auto")
@@ -787,12 +894,15 @@ bool EffectOVWhisperTranscription::Whisper(std::vector<float>& mono_samples, Lab
       params.language = "auto";
    }
 
-   fprintf(stderr, "%s: processing (%d samples, %.1f sec), %d threads, %d processors, lang = %s, task = %s, timestamps = %d ...\n",
+   fprintf(stderr, "%s: processing %d samples, %.1f sec), %d threads, %d processors, %d beams + best of %d, lang = %s, task = %s, %stimestamps = %d ...\n",
       __func__, int(mono_samples.size()), float(mono_samples.size()) / WHISPER_SAMPLE_RATE,
-      params.n_threads, params.n_processors,
+      params.n_threads, params.n_processors, params.beam_size, params.best_of,
       params.language.c_str(),
       params.translate ? "translate" : "transcribe",
+      params.tinydiarize ? "tdrz = 1, " : "",
       params.no_timestamps ? 0 : 1);
+
+   fprintf(stderr, "\n");
 
    bool ret = true;
    {
@@ -818,6 +928,9 @@ bool EffectOVWhisperTranscription::Whisper(std::vector<float>& mono_samples, Lab
       wparams.split_on_word = params.split_on_word;
 
       wparams.speed_up = params.speed_up;
+      wparams.debug_mode = params.debug_mode;
+
+      wparams.tdrz_enable = params.tinydiarize; // [TDRZ]
 
       wparams.initial_prompt = params.prompt.c_str();
 
@@ -853,14 +966,47 @@ bool EffectOVWhisperTranscription::Whisper(std::vector<float>& mono_samples, Lab
    return ret;
 }
 
+void EffectOVWhisperTranscription::show_or_hide_advanced_options()
+{
+   if (advancedSizer)
+   {
+      advancedSizer->ShowItems(mbAdvanced);
+      advancedSizer->Layout();
+   }
+}
+
+void EffectOVWhisperTranscription::OnAdvancedCheckboxChanged(wxCommandEvent& evt)
+{
+   mbAdvanced = mShowAdvancedOptionsCheckbox->GetValue();
+
+   show_or_hide_advanced_options();
+
+   if (mUIParent)
+   {
+      mUIParent->Layout();
+      mUIParent->SetMinSize(mUIParent->GetSizer()->GetMinSize());
+      mUIParent->SetSize(mUIParent->GetSizer()->GetMinSize());
+      mUIParent->Fit();
+
+      auto p = mUIParent->GetParent();
+      if (p)
+      {
+         p->Fit();
+      }
+
+   }
+}
+
 std::unique_ptr<EffectEditor> EffectOVWhisperTranscription::PopulateOrExchange(
    ShuttleGui& S, EffectInstance&, EffectSettingsAccess& access,
    const EffectOutputs*)
 {
+   mUIParent = S.GetParent();
+
    S.AddSpace(0, 5);
    S.StartVerticalLay();
    {
-      S.StartMultiColumn(4, wxCENTER);
+      S.StartMultiColumn(4, wxLEFT);
       {
          //m_deviceSelectionChoice
          mTypeChoiceDeviceCtrl = S.Id(ID_Type)
@@ -871,7 +1017,7 @@ std::unique_ptr<EffectEditor> EffectOVWhisperTranscription::PopulateOrExchange(
       }
       S.EndMultiColumn();
 
-      S.StartMultiColumn(4, wxCENTER);
+      S.StartMultiColumn(4, wxLEFT);
       {
          //m_deviceSelectionChoice
          mTypeChoiceModelCtrl = S.Id(ID_Type_Model)
@@ -881,8 +1027,8 @@ std::unique_ptr<EffectEditor> EffectOVWhisperTranscription::PopulateOrExchange(
                Msgids(mGuiModelSelections.data(), mGuiModelSelections.size()));
       }
       S.EndMultiColumn();
-
-      S.StartMultiColumn(4, wxCENTER);
+  
+      S.StartMultiColumn(4, wxLEFT);
       {
          //m_deviceSelectionChoice
          mTypeChoiceModelCtrl = S.Id(ID_Type_Mode)
@@ -899,8 +1045,48 @@ std::unique_ptr<EffectEditor> EffectOVWhisperTranscription::PopulateOrExchange(
       }
       S.EndMultiColumn();
 
+      //advanced options
+      S.StartMultiColumn(2, wxLEFT);
+      {
+         mShowAdvancedOptionsCheckbox = S.Id(ID_Type_AdvancedCheckbox).AddCheckBox(XXO("&Advanced Options"), mbAdvanced);
+      }
+      S.EndMultiColumn();
+
+      S.StartMultiColumn(2, wxLEFT);
+      {
+         mInitialPromptCtrl = S.Style(wxTE_LEFT)
+            .AddTextBox(XXO("Initial Prompt:"), wxString(mInitialPrompt), 30);
+
+         advancedSizer = mInitialPromptCtrl->GetContainingSizer();
+
+         mMaxTextSegLengthCtrl = S.Name(XO("Max Segment Length"))
+            .Validator<IntegerValidator<int>>(&mMaxTextSegLength,
+               NumValidatorStyle::DEFAULT,
+               0,
+               1000)
+            .AddTextBox(XO("Max Segment Length"), L"", 12);
+
+         mBeamSizeCtrl = S.Name(XO("Beam Size"))
+            .Validator<IntegerValidator<int>>(&mBeamSize,
+               NumValidatorStyle::DEFAULT,
+               1,
+               1000)
+            .AddTextBox(XO("Beam Size"), L"", 12);
+
+         mBestOfCtrl = S.Name(XO("Best Of"))
+            .Validator<IntegerValidator<int>>(&mBestOf,
+               NumValidatorStyle::DEFAULT,
+               1,
+               1000)
+            .AddTextBox(XO("Best Of"), L"", 12);
+
+      }
+      S.EndMultiColumn();
+
    }
    S.EndVerticalLay();
+
+   show_or_hide_advanced_options();
 
    return nullptr;
 }
