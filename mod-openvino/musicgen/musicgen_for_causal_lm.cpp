@@ -1,3 +1,5 @@
+// Copyright (C) 2024 Intel Corporation
+// SPDX-License-Identifier: GPL-3.0-only
 #include "musicgen_for_causal_lm.h"
 #include "musicgen_model_static.h"
 

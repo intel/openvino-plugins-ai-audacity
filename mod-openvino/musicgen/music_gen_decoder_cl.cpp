@@ -1,3 +1,5 @@
+// Copyright (C) 2024 Intel Corporation
+// SPDX-License-Identifier: GPL-3.0-only
 #include "music_gen_decoder_cl.h"
 #include <ittutils.h>
 #include "openvino/runtime/intel_gpu/ocl/ocl.hpp"

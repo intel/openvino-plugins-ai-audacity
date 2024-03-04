@@ -1,3 +1,5 @@
+// Copyright (C) 2024 Intel Corporation
+// SPDX-License-Identifier: GPL-3.0-only
 #include "musicgen_model_static.h"
 #include "music_gen_decoder_full_batch2.h"
 #include "music_gen_decoder_full_batch1.h"

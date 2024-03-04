@@ -1,3 +1,5 @@
+# Copyright (C) 2024 Intel Corporation
+# SPDX-License-Identifier: GPL-3.0-only
 
 set( OV_MUSICGEN_SOURCES
 musicgen/musicgen_decoder_model.h 

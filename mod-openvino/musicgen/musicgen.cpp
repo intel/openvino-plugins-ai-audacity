@@ -1,3 +1,5 @@
+// Copyright (C) 2024 Intel Corporation
+// SPDX-License-Identifier: GPL-3.0-only
 #include "musicgen.h"
 #include <ittutils.h>
 #include "musicgen_for_conditional_generation.h"
