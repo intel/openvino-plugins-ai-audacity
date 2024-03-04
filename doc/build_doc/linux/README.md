@@ -6,7 +6,7 @@ Hi! The following is the process that we use when building the Audacity modules 
 Before I get into the specifics, at a high-level we will be doing the following:
 * Cloning & building whisper.cpp with OpenVINO support (For transcription audacity module)
 * Cloning & building openvino-stable-diffusion-cpp (This is to support Music Generation & Remix features)
-* Cloning & building Audacity 3.4.2 without modifications (just to make sure 'vanilla' build works fine)
+* Cloning & building Audacity without modifications (just to make sure 'vanilla' build works fine)
 * Adding our OpenVINO module src's to the Audacity source tree, and re-building it.
 
 ## Dependencies
@@ -27,7 +27,16 @@ cd ..
 
 # setup env
 source setupvars.sh
+
+* OpenVINO Tokenizers Extension - Download package from [here](https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/2023.3.0.0/). For these instructions, we will use ```openvino_tokenizers_ubuntu22_2023.3.0.0_x86_64.tgz```.
 ```
+# extract it 
+tar xzvf openvino_tokenizers_ubuntu22_2023.3.0.0_x86_64.tgz
+
+# copy extension libraries into OpenVINO lib folder:
+cp openvino_tokenizers_ubuntu22_2023.3.0.0_x86_64/* l_openvino_toolkit_ubuntu22_2023.3.0.13775.ceeafaf64f3_x86_64/runtime/lib/intel64/
+```
+
 * OpenCV - Only a dependency for the  OpenVINO Stable-Diffusion CPP samples (to read/write images from disk, display images, etc.). You can install like this:
 ```
 sudo apt install libopencv-dev
@@ -102,30 +111,6 @@ export CPP_STABLE_DIFFUSION_OV_ROOTDIR=/path/to/stablediffusion-pipelines-cpp-bu
 export LD_LIBRARY_PATH=${CPP_STABLE_DIFFUSION_OV_ROOTDIR}/lib:$LD_LIBRARY_PATH
 
 ```
-
-
-### sentencepiece
-```
-git clone https://github.com/google/sentencepiece.git
-cd sentencepiece/
-git checkout v0.2.0
-cd ..
-
-mkdir sentencepiece-build
-cd sentencepiece-build/
-cmake ../sentencepiece
-
-# Build it
-make -j 8
-
-# Install it
-cmake --install . --config Release --prefix ./installed
-
-# Set environment variable that Audacity module will use to find this component.
-export SENTENCEPIECE_ROOTDIR=/path/to/entencepiece-build/installed
-
-```
-
 
 ## Audacity 
 
