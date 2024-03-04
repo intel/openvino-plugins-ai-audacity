@@ -11,9 +11,13 @@ namespace ov_musicgen
       std::string model_folder = config.model_folder;
       if (config.bStereo)
       {
-         model_folder = FullPath(model_folder, "Stereo");
-
+         model_folder = FullPath(model_folder, "stereo");
          _audio_channels = 2;
+      }
+      else
+      {
+         model_folder = FullPath(model_folder, "mono");
+         _audio_channels = 1;
       }
 
       auto modelpath = FullPath(model_folder, "lm_heads.xml");

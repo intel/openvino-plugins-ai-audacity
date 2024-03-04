@@ -26,7 +26,11 @@ namespace ov_musicgen
 
          if (config.bStereo)
          {
-            model_folder = FullPath(model_folder, "Stereo");
+            model_folder = FullPath(model_folder, "stereo");
+         }
+         else
+         {
+            model_folder = FullPath(model_folder, "mono");
          }
 
          using namespace std::chrono;

@@ -17,7 +17,11 @@ namespace ov_musicgen
          std::string model_folder = config.model_folder;
          if (config.bStereo)
          {
-            model_folder = FullPath(model_folder, "Stereo");
+            model_folder = FullPath(model_folder, "stereo");
+         }
+         else
+         {
+            model_folder = FullPath(model_folder, "mono");
          }
 
          auto weights_file = FullPath(model_folder,
@@ -125,7 +129,11 @@ namespace ov_musicgen
          std::string embed_tokens_model_folder = model_folder;
          if (config.bStereo)
          {
-            embed_tokens_model_folder = FullPath(embed_tokens_model_folder, "Stereo");
+            embed_tokens_model_folder = FullPath(embed_tokens_model_folder, "stereo");
+         }
+         else
+         {
+            embed_tokens_model_folder = FullPath(embed_tokens_model_folder, "mono");
          }
 
          auto modelpath = FullPath(embed_tokens_model_folder, "embed_tokens.xml");

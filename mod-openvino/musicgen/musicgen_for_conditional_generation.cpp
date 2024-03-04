@@ -64,7 +64,11 @@ namespace ov_musicgen
          std::string enc_to_dec_model_folder = model_folder;
          if (config.bStereo)
          {
-            enc_to_dec_model_folder = FullPath(enc_to_dec_model_folder, "Stereo");
+            enc_to_dec_model_folder = FullPath(enc_to_dec_model_folder, "stereo");
+         }
+         else
+         {
+            enc_to_dec_model_folder = FullPath(enc_to_dec_model_folder, "mono");
          }
 
          auto modelpath = FullPath(enc_to_dec_model_folder, "enc_to_dec_proj.xml");
