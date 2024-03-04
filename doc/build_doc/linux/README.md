@@ -27,7 +27,7 @@ cd ..
 
 # setup env
 source setupvars.sh
-
+```
 * OpenVINO Tokenizers Extension - Download package from [here](https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/2023.3.0.0/). For these instructions, we will use ```openvino_tokenizers_ubuntu22_2023.3.0.0_x86_64.tgz```.
 ```
 # extract it 
