@@ -19,9 +19,43 @@ namespace ov_musicgen
          auto model_folder = config.model_folder;
          std::vector<std::string> devices = { config.musicgen_decode_device0, config.musicgen_decode_device1 };
 
-         //auto tensortype = ov::element::f32;
+         //if device0 or device1 are set to "CPU", use CPU for the initial device.
+         // Otherwise, ideally, we use GPU for that -- so try to find a supported GPU
+         // and set it to that.
+         std::string initial_device;
+         if (config.musicgen_decode_device0 == "CPU" || config.musicgen_decode_device1 == "CPU")
+         {
+            initial_device = "CPU";
+         }
+         else
+         {
+            //iterate through supported device list, looking for a GPU device.
+            std::optional< std::string > gpu_device;
+            {
+               auto device_list = core.get_available_devices();
 
-         std::string initial_device = config.initial_decode_device;
+               for (auto d : device_list)
+               {
+                  if (d.find("GPU") != std::string::npos)
+                  {
+                     gpu_device = d;
+                     break;
+                  }
+               }
+            }
+
+            if (gpu_device)
+            {
+               initial_device = *gpu_device;
+            }
+            else
+            {
+               initial_device = "CPU";
+            }
+         }
+
+         std::cout << "Using initial device as: " << initial_device << std::endl;
+
          auto initial_tensortype = initial_device == "CPU" ? ov::element::f32 : ov::element::f16;
 
          if (config.bStereo)

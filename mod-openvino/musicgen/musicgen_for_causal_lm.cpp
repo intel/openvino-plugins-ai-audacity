@@ -29,6 +29,7 @@ namespace ov_musicgen
       //std::cout << "lm_heads:" << std::endl;
       //logBasicModelInfo(model);
 
+      //If device0 or device1 are set to a GPU device, run the lm_heads model on GPU as well.
       bool bIsDev0GPU = config.musicgen_decode_device0.find("GPU") != std::string::npos;
       bool bIsDev1GPU = config.musicgen_decode_device1.find("GPU") != std::string::npos;
 

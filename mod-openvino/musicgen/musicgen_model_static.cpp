@@ -111,7 +111,6 @@ namespace ov_musicgen
          else
          {
             std::cout << "Using Batch1 Decoder with devices=" << config.musicgen_decode_device0 << ", " << config.musicgen_decode_device1 << std::endl;
-            std::cout << "               and initial device=" << config.initial_decode_device << std::endl;
             _decoder_model = std::make_shared< MusicgenDecoderModelFullStaticBatch1 >(core, config);
          }
       }

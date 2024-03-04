@@ -276,15 +276,6 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
 
                      _musicgen_config.bStereo = bStereo;
 
-                     if (_musicgen_config.musicgen_decode_device0 == "CPU")
-                     {
-                        _musicgen_config.initial_decode_device = "CPU";
-                     }
-                     else
-                     {
-                        _musicgen_config.initial_decode_device = "GPU";
-                     }
-
                      _musicgen_config.model_selection = model_selection;
 
                      _musicgen = std::make_shared< ov_musicgen::MusicGen >(_musicgen_config);

@@ -31,9 +31,6 @@ namespace ov_musicgen
       //device used to convert id's to wav
       std::string encoded_dec_device = "CPU";
 
-      //device used for first decode, in audio-continuation cases.
-      std::string initial_decode_device = "CPU";
-
       //the two devices used to run inference to predict each next token.
       std::string musicgen_decode_device0 = "CPU";
       std::string musicgen_decode_device1 = "CPU";
