@@ -53,7 +53,7 @@ public:
 
    bool UpdateProgress(double perc);
 
-   bool MusicGenCallback (float perc_complete);
+   bool MusicGenCallback(float perc_complete);
 
 private:
 
@@ -86,7 +86,7 @@ private:
 
    void OnContextLengthChanged(wxCommandEvent& evt);
    void OnUnloadModelsButtonClicked(wxCommandEvent& evt);
-   
+
    wxChoice* mTypeChoiceDeviceCtrl_TextEncoder;
 
    wxChoice* mTypeChoiceDeviceCtrl_UNetPositive;
@@ -109,7 +109,7 @@ private:
    std::string _prompt = "80s pop track with bassy drums and synth";
 
    wxTextCtrl* mSeed;
-   std::string _seed_str="";
+   std::string _seed_str = "";
 
    wxButton* mUnloadModelsButton;
 
@@ -131,7 +131,7 @@ private:
 
    std::vector< EnumValueSymbol > mGuiContextLengthSelections;
    int m_contextLengthChoice = 0;
-   wxChoice *mTypeChoiceContextLength;
+   wxChoice* mTypeChoiceContextLength;
 
    std::vector< EnumValueSymbol > mGuiModelSelections;
    int m_modelSelectionChoice = 0;
@@ -147,7 +147,6 @@ private:
 
    void SetContinuationContextWarning();
    wxStaticText* _continuationContextWarning = nullptr;
-   
 
    DECLARE_EVENT_TABLE()
 };

@@ -1,4 +1,4 @@
-// Copyright (C) 2023 Intel Corporation
+// Copyright (C) 2024 Intel Corporation
 // SPDX-License-Identifier: GPL-3.0-only
 
 #include <openvino/openvino.hpp>
@@ -43,15 +43,15 @@ const ComponentInterfaceSymbol EffectOVMusicGenerationV2::Symbol{ XO("OpenVINO M
 namespace { BuiltinEffectsModule::Registration< EffectOVMusicGenerationV2 > reg; }
 
 BEGIN_EVENT_TABLE(EffectOVMusicGenerationV2, wxEvtHandler)
-   EVT_BUTTON(ID_Type_UnloadModelsButton, EffectOVMusicGenerationV2::OnUnloadModelsButtonClicked)
-   EVT_CHOICE(ID_Type_ContextLength, EffectOVMusicGenerationV2::OnContextLengthChanged)
-   EVT_CHECKBOX(ID_Type_AudioContinuationCheckBox, EffectOVMusicGenerationV2::OnContextLengthChanged)
-   EVT_CHECKBOX(ID_Type_AudioContinuationAsNewTrackCheckBox, EffectOVMusicGenerationV2::OnContextLengthChanged)
+EVT_BUTTON(ID_Type_UnloadModelsButton, EffectOVMusicGenerationV2::OnUnloadModelsButtonClicked)
+EVT_CHOICE(ID_Type_ContextLength, EffectOVMusicGenerationV2::OnContextLengthChanged)
+EVT_CHECKBOX(ID_Type_AudioContinuationCheckBox, EffectOVMusicGenerationV2::OnContextLengthChanged)
+EVT_CHECKBOX(ID_Type_AudioContinuationAsNewTrackCheckBox, EffectOVMusicGenerationV2::OnContextLengthChanged)
 END_EVENT_TABLE()
 
 EffectOVMusicGenerationV2::EffectOVMusicGenerationV2()
 {
-   
+
    Parameters().Reset(*this);
 
    ov::Core core;
@@ -90,13 +90,10 @@ EffectOVMusicGenerationV2::EffectOVMusicGenerationV2()
 
 EffectOVMusicGenerationV2::~EffectOVMusicGenerationV2()
 {
-   //cpp_stable_diffusion_ov::ModelCollateralCache::instance()->Reset();
    _musicgen = {};
 }
 
-
 // ComponentInterface implementation
-
 ComponentInterfaceSymbol EffectOVMusicGenerationV2::GetSymbol() const
 {
    return Symbol;
@@ -113,7 +110,6 @@ VendorSymbol EffectOVMusicGenerationV2::GetVendor() const
 }
 
 // EffectDefinitionInterface implementation
-
 EffectType EffectOVMusicGenerationV2::GetType() const
 {
    return EffectTypeGenerate;
@@ -188,9 +184,9 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
       FilePath model_folder = FileNames::MkDir(wxFileName(FileNames::BaseDir(), wxT("openvino-models")).GetFullPath());
       std::string musicgen_model_folder = audacity::ToUTF8(wxFileName(model_folder, wxString("musicgen"))
          .GetFullPath());
-  
+
       auto text_encoder_device = audacity::ToUTF8(mTypeChoiceDeviceCtrl_TextEncoder->GetString(m_deviceSelectionChoice_TextEncoder));
-      
+
       auto musicgen_dec0_device = audacity::ToUTF8(mTypeChoiceDeviceCtrl_UNetPositive->GetString(m_deviceSelectionChoice_MusicGenDecode0));
       auto musicgen_dec1_device = audacity::ToUTF8(mTypeChoiceDeviceCtrl_UNetNegative->GetString(m_deviceSelectionChoice_MusicGenDecode1));
 
@@ -222,20 +218,18 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
       std::cout << "MusicGen Decode Device 0 = " << musicgen_dec0_device << std::endl;
       std::cout << "MusicGen Decode Device 1 = " << musicgen_dec1_device << std::endl;
 
-
       FilePath cache_folder = FileNames::MkDir(wxFileName(FileNames::DataDir(), wxT("openvino-model-cache")).GetFullPath());
       std::string cache_path = audacity::ToUTF8(wxFileName(cache_folder).GetFullPath());
       std::cout << "cache path = " << cache_path << std::endl;
 
       wxString added_trackName;
-
       try
       {
          mProgress->SetMessage(TranslatableString{ wxString("Creating MusicGen Pipeline"), {} });
 
          auto musicgen_pipeline_creation_future = std::async(std::launch::async,
             [this, &musicgen_model_folder, &cache_path, &text_encoder_device, &musicgen_dec0_device, &musicgen_dec1_device,
-             &continuation_context, &model_selection, &bStereo]
+            &continuation_context, &model_selection, &bStereo]
             {
 
                try
@@ -290,8 +284,6 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
                      XO("Error"));
                   _musicgen = {};
                }
-
-
             });
 
          float total_time = 0.f;
@@ -389,12 +381,12 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
                double max_context_length = 0.f;
                switch (_musicgen_config.m_continuation_context)
                {
-                  case ov_musicgen::MusicGenConfig::ContinuationContext::FIVE_SECONDS:
-                     max_context_length = 5.;
+               case ov_musicgen::MusicGenConfig::ContinuationContext::FIVE_SECONDS:
+                  max_context_length = 5.;
                   break;
 
-                  case ov_musicgen::MusicGenConfig::ContinuationContext::TEN_SECONDS:
-                     max_context_length = 10.;
+               case ov_musicgen::MusicGenConfig::ContinuationContext::TEN_SECONDS:
+                  max_context_length = 10.;
                   break;
                }
 
@@ -469,7 +461,7 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
                         std::to_string(audio_to_continue_samples) + "samples");
                   }
 
-                  
+
                   wav_pair.first = resampled_samples_left;
 
                   if (_musicgen_config.bStereo)
@@ -498,7 +490,7 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
                         wav_pair.second = resampled_samples_left;
                      }
                   }
-                  
+
                   std::cout << "okay, set audio to continue to " << audio_to_continue_samples << " samples..." << std::endl;
                }
 
@@ -591,8 +583,8 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
          {
             bool editClipCanMove = GetEditClipsCanMove();
 
-//Don't normalize until we figure out how we want this to work
-// (as you need to keep in mind audio continuation, etc.).
+            //Don't normalize until we figure out how we want this to work
+            // (as you need to keep in mind audio continuation, etc.).
 #if 0
             if (!bNormalized)
             {
@@ -801,8 +793,8 @@ void EffectOVMusicGenerationV2::DoPopulateOrExchange(
 
    //EnablePreview(false); //Port this
 
-   
-   
+
+
    S.StartVerticalLay(wxLEFT);
    {
       S.StartMultiColumn(3, wxLEFT);
@@ -816,7 +808,7 @@ void EffectOVMusicGenerationV2::DoPopulateOrExchange(
       }
       S.EndMultiColumn();
 
-// Disable Normalization option until we figure out how we want this to work..
+      // Disable Normalization option until we figure out how we want this to work..
 #if 0
       S.StartMultiColumn(4, wxLEFT);
       {
@@ -840,7 +832,7 @@ void EffectOVMusicGenerationV2::DoPopulateOrExchange(
       S.StartMultiColumn(2, wxLEFT);
       {
          S.AddPrompt(XXO("&Duration:"));
-         
+
          auto& extra = access.Get().extra;
          std::cout << "Creating prompt with duration = " << extra.GetDuration() << std::endl;
 
@@ -867,44 +859,44 @@ void EffectOVMusicGenerationV2::DoPopulateOrExchange(
             .AddChoice(XXO("Model Selection:"),
                Msgids(mGuiModelSelections.data(), mGuiModelSelections.size()));
 
-        
+
       }
       S.EndMultiColumn();
 
       S.StartMultiColumn(4, wxLEFT);
       {
-            S.StartMultiColumn(2, wxCENTER);
-            {
-               mTextPrompt = S.Id(ID_Type_Prompt)
-                  .Style(wxTE_LEFT)
-                  .AddTextBox(XXO("Prompt:"), wxString(_prompt), 60);
-            }
-            S.EndMultiColumn();
+         S.StartMultiColumn(2, wxCENTER);
+         {
+            mTextPrompt = S.Id(ID_Type_Prompt)
+               .Style(wxTE_LEFT)
+               .AddTextBox(XXO("Prompt:"), wxString(_prompt), 60);
+         }
+         S.EndMultiColumn();
 
-            S.StartMultiColumn(2, wxCENTER);
-            {
+         S.StartMultiColumn(2, wxCENTER);
+         {
 
-               mTypeChoiceDeviceCtrl_TextEncoder = S.Id(ID_Type_TxtEncoder)
-                  .MinSize({ -1, -1 })
-                  .Validator<wxGenericValidator>(&m_deviceSelectionChoice_TextEncoder)
-                  .AddChoice(XXO("Text Encoder Device:"),
-                     Msgids(mGuiDeviceNonVPUSupportedSelections.data(), mGuiDeviceNonVPUSupportedSelections.size()));
+            mTypeChoiceDeviceCtrl_TextEncoder = S.Id(ID_Type_TxtEncoder)
+               .MinSize({ -1, -1 })
+               .Validator<wxGenericValidator>(&m_deviceSelectionChoice_TextEncoder)
+               .AddChoice(XXO("Text Encoder Device:"),
+                  Msgids(mGuiDeviceNonVPUSupportedSelections.data(), mGuiDeviceNonVPUSupportedSelections.size()));
 
-               mTypeChoiceDeviceCtrl_UNetPositive = S.Id(ID_Type_MusicGenDecodeDevice0)
-                  .MinSize({ -1, -1 })
-                  .Validator<wxGenericValidator>(&m_deviceSelectionChoice_MusicGenDecode0)
-                  .AddChoice(XXO("MusicGen Decode Device:"),
-                     Msgids(mGuiDeviceVPUSupportedSelections.data(), mGuiDeviceVPUSupportedSelections.size()));
+            mTypeChoiceDeviceCtrl_UNetPositive = S.Id(ID_Type_MusicGenDecodeDevice0)
+               .MinSize({ -1, -1 })
+               .Validator<wxGenericValidator>(&m_deviceSelectionChoice_MusicGenDecode0)
+               .AddChoice(XXO("MusicGen Decode Device:"),
+                  Msgids(mGuiDeviceVPUSupportedSelections.data(), mGuiDeviceVPUSupportedSelections.size()));
 
-               mTypeChoiceDeviceCtrl_UNetNegative = S.Id(ID_Type_MusicGenDecodeDevice1)
-                  .MinSize({ -1, -1 })
-                  .Validator<wxGenericValidator>(&m_deviceSelectionChoice_MusicGenDecode1)
-                  .AddChoice(XXO("MusicGen Decode Device:"),
-                     Msgids(mGuiDeviceVPUSupportedSelections.data(), mGuiDeviceVPUSupportedSelections.size()));
+            mTypeChoiceDeviceCtrl_UNetNegative = S.Id(ID_Type_MusicGenDecodeDevice1)
+               .MinSize({ -1, -1 })
+               .Validator<wxGenericValidator>(&m_deviceSelectionChoice_MusicGenDecode1)
+               .AddChoice(XXO("MusicGen Decode Device:"),
+                  Msgids(mGuiDeviceVPUSupportedSelections.data(), mGuiDeviceVPUSupportedSelections.size()));
 
-               //mTypeChoiceScheduler->Hide();
-            }
-            S.EndMultiColumn();
+            //mTypeChoiceScheduler->Hide();
+         }
+         S.EndMultiColumn();
       }
       S.EndMultiColumn();
 
@@ -1017,7 +1009,7 @@ void EffectOVMusicGenerationV2::DoPopulateOrExchange(
       }
       S.EndMultiColumn();
 
-      
+
 
       S.StartMultiColumn(2, wxLEFT);
       {
@@ -1027,16 +1019,15 @@ void EffectOVMusicGenerationV2::DoPopulateOrExchange(
          _continuationContextWarning->SetFont(_continuationContextWarning->GetFont().Scale(1.5));
 
          SetContinuationContextWarning();
-         
+
       }
       S.EndMultiColumn();
 
-   }
+      }
 
-   
    S.EndVerticalLay();
 
-}
+   }
 
 void EffectOVMusicGenerationV2::SetContinuationContextWarning()
 {
@@ -1096,7 +1087,6 @@ void EffectOVMusicGenerationV2::SetContinuationContextWarning()
 
    _continuationContextWarning->Hide();
    _continuationContextWarning->Show();
-
 }
 
 void EffectOVMusicGenerationV2::OnContextLengthChanged(wxCommandEvent& evt)
@@ -1107,19 +1097,15 @@ void EffectOVMusicGenerationV2::OnContextLengthChanged(wxCommandEvent& evt)
 
 void EffectOVMusicGenerationV2::OnUnloadModelsButtonClicked(wxCommandEvent& evt)
 {
-
    _musicgen = {};
 
    if (mUnloadModelsButton)
    {
       mUnloadModelsButton->Enable(false);
    }
-
 }
 
-
-
-bool EffectOVMusicGenerationV2::TransferDataToWindow(const EffectSettings &settings)
+bool EffectOVMusicGenerationV2::TransferDataToWindow(const EffectSettings& settings)
 {
    std::cout << "TransferDataToWindow. settings.extra.GetDuration() = " << settings.extra.GetDuration() << std::endl;
 
@@ -1137,10 +1123,9 @@ bool EffectOVMusicGenerationV2::TransferDataToWindow(const EffectSettings &setti
    }
 
    return true;
-
 }
 
-bool EffectOVMusicGenerationV2::TransferDataFromWindow(EffectSettings & settings)
+bool EffectOVMusicGenerationV2::TransferDataFromWindow(EffectSettings& settings)
 {
    std::cout << "TransferDataFromWindow. settings.extra.GetDuration() = " << settings.extra.GetDuration() << std::endl;
    if (!mUIParent->Validate() || !mUIParent->TransferDataFromWindow())
@@ -1153,8 +1138,6 @@ bool EffectOVMusicGenerationV2::TransferDataFromWindow(EffectSettings & settings
       std::cout << "EffectOVMusicGenerationV2::TransferDataFromWindow: Setting settings.extra.SetDuration to " << mDurationT->GetValue() << std::endl;
       settings.extra.SetDuration(mDurationT->GetValue());
    }
-   
-   
-   //EnablePreview(false);  //Port this
+
    return true;
 }

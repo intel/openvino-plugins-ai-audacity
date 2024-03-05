@@ -38,9 +38,6 @@ namespace ov_musicgen
          model_folder = FullPath(model_folder, "mono");
       }
 
-      //std::string device = "GPU";
-      //auto tensortype = ov::element::f16;
-      // 
       //prep decoder model
       {
          std::string decoder_model_path, binfile;
@@ -65,10 +62,6 @@ namespace ov_musicgen
 
          std::shared_ptr<ov::Model> model = core.read_model(decoder_model_path, binfile);
 
-         //auto gpu_context = core.get_default_context("GPU").as<ov::intel_gpu::ocl::ClContext>();
-         //cl_context context_handle = gpu_context.get();
-
-         //std::cout << "context_handle = " << (void*)context_handle << std::endl;
          {
             size_t max_tokens = 1004;
             std::map<ov::Output<ov::Node>, ov::PartialShape> port_to_shape;
@@ -118,11 +111,6 @@ namespace ov_musicgen
 
          logBasicModelInfo(model);
 
-         //std::string xml = "some_model_saved.xml";
-         //std::string bin = "some_model_saved.bin";
-         //ov::serialize(model, xml, bin);
-
-
          using namespace std::chrono;
          using Clock = std::chrono::high_resolution_clock;
 
@@ -143,25 +131,12 @@ namespace ov_musicgen
          std::cout << "static decoder model properties:" << std::endl;
          print_compiled_model_properties(compiledModel);
 
-         //std::cout << "exiting!" << std::endl;
-         //std::exit(0);
-
          _infer_request = compiledModel.create_infer_request();
-
 
          _cl_stuff->context = gpu_context.get();
          cl::Device cl_device = cl::Device(_cl_stuff->context.getInfo<CL_CONTEXT_DEVICES>()[0].get(), true);
          cl_command_queue_properties props = CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE;
          _cl_stuff->queue = cl::CommandQueue(_cl_stuff->context, cl_device, props);
-
-         auto params = gpu_context.get_params();
-
-         for (auto p : params)
-         {
-            std::cout << p.first << std::endl;
-         }
-         // Extract ocl context handle from RemoteContext
-
 
          //allocate an OpenCL buffer for each of the input past_key_value tensors
          _cl_stuff->_past_key_values_cl.resize(N_LAYERS);
@@ -203,8 +178,6 @@ namespace ov_musicgen
          //first inference is usually a bit longer due to some lazy initialization, so trigger a warm up inference.
          _infer_request.infer();
 
-         std::cout << "infer done.." << std::endl;
-
          _hidden_states = wrap_ov_tensor_as_torch(_infer_request.get_tensor("input_hidden_states"));
          _encoder_attention_mask_ov = _infer_request.get_tensor("encoder_attention_mask");
          _encoder_attention_mask = wrap_ov_tensor_as_torch(_encoder_attention_mask_ov);
@@ -227,9 +200,7 @@ namespace ov_musicgen
          //get last hidden state tensor
          _last_hidden_state_ov = _infer_request.get_tensor("last_hidden_state");
 
-         // std::cout << "_last_hidden_state_ov strides = " << _last_hidden_state_ov.get_strides() << std::endl;
-
-             //wrap it as a torch::Tensor
+         //wrap it as a torch::Tensor
          _last_hidden_state = wrap_ov_tensor_as_torch(_last_hidden_state_ov);
 
          _new_key_values_ov.resize(N_LAYERS);
@@ -251,8 +222,6 @@ namespace ov_musicgen
          std::cout << "Batch2 Decoder" << std::endl;
          std::cout << "    tensortype = " << tensortype << std::endl;
          std::cout << "    max token length = " << MaxNewTokens() << std::endl;
-
-
       }
 
       //prep initial model
@@ -379,8 +348,6 @@ namespace ov_musicgen
       }
 
       Reset();
-
-      std::cout << "construct complete" << std::endl;
    }
 
    int64_t MusicgenDecoderModelCL::MaxNewTokens()
@@ -390,7 +357,6 @@ namespace ov_musicgen
 
    void MusicgenDecoderModelCL::Reset()
    {
-      std::cout << "Reset" << std::endl;
       _past_length = 0;
 
       for (size_t layeri = 0; layeri < N_LAYERS; layeri++)
@@ -447,17 +413,12 @@ namespace ov_musicgen
       {
          ITT_SCOPED_TASK(large_context_path)
             using namespace torch::indexing;
-         std::cout << hidden_states.sizes()[1] << ": large context path!" << std::endl;
+
 
          auto input_hidden_states = wrap_ov_tensor_as_torch(_infer_request_large_context.get_tensor("input_hidden_states"));
          auto input_attention_mask = wrap_ov_tensor_as_torch(_infer_request_large_context.get_tensor("attention_mask"));
-
-
          auto input_encoder_attention_mask = wrap_ov_tensor_as_torch(_infer_request_large_context.get_tensor("encoder_attention_mask"));
 
-         //std::cout << "Sizes: " << input_hidden_states.sizes() << " " << hidden_states.sizes() << std::endl;
-         //std::cout << "Sizes: " << input_attention_mask.sizes() << " " << _attention_mask.sizes() << std::endl;
-         //std::cout << "Sizes: " << input_encoder_attention_mask.sizes() << " " << encoder_attention_mask.sizes() << std::endl;
          input_hidden_states.copy_(hidden_states);
          input_attention_mask.copy_(_attention_mask);
 
@@ -478,8 +439,6 @@ namespace ov_musicgen
          auto ov_last_hidden_state = _infer_request_large_context.get_tensor("last_hidden_state");
 
          last_hidden_states_ret = ov_last_hidden_state;
-
-         //save_tensor_to_disk(ov_last_hidden_state, "ov_last_hidden_state.raw");
 
          ITT_SCOPED_TASK(update_past_key_values);
 
@@ -519,7 +478,6 @@ namespace ov_musicgen
       }
       else
       {
-         //std::cout << "small context path" << std::endl;
          //set attention mask
          float* pAttnMask = _custom_attention_mask.data<float>();
          if (_past_length > 0)

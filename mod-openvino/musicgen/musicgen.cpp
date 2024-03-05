@@ -13,7 +13,7 @@ namespace ov_musicgen
          _gen = std::make_shared< MusicgenForConditionalGeneration >(config);
 
          ov::Core core;
-        //TODO: This library name will need to get changed from 'user_ov_extensions' to 'openvino_tokenizers' for future OpenVINO / openvino-tokenizers releases.
+         //TODO: This library name will need to get changed from 'user_ov_extensions' to 'openvino_tokenizers' for future OpenVINO / openvino-tokenizers releases.
 #ifdef WIN32
          core.add_extension("user_ov_extensions.dll");
 #else
@@ -114,13 +114,11 @@ namespace ov_musicgen
       }
       else
       {
-         std::cout << "prompt is empty.." << std::endl;
          attention_mask = torch::zeros({ 2, 1 });
       }
 
       //generare will +4 to the tokens, so we need to subtract it here (yuck)
-      const int64_t max_new_tokens_per_generate = std::max((int64_t)1000, _impl->_gen->MaxNewTokens() - 4);
-      //const int64_t max_new_tokens_per_generate = 1000;
+      const int64_t max_new_tokens_per_generate = _impl->_gen->MaxNewTokens() - 4;
 
       // 50 samples / sec
       int64_t total_tokens_left_to_generate = (int64_t)(std::ceil(total_desired_length_seconds * 50));
@@ -146,7 +144,6 @@ namespace ov_musicgen
 
       std::optional< torch::Tensor > audio_to_continue_tensor;
       size_t audio_to_continue_samples = 0;
-      //todo: handle stereo case
       if (audio_to_continue_params)
       {
          auto audio_to_continue = audio_to_continue_params->audio_to_continue;
@@ -295,7 +292,6 @@ namespace ov_musicgen
 
          iterationi++;
       }
-
 
       return { output_wav0, output_wav1 };
    }

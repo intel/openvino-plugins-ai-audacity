@@ -28,9 +28,6 @@ namespace ov_musicgen
 
       model->reshape({ {2, ov::Dimension(), 1024} });
 
-      //std::cout << "lm_heads:" << std::endl;
-      //logBasicModelInfo(model);
-
       //If device0 or device1 are set to a GPU device, run the lm_heads model on GPU as well.
       bool bIsDev0GPU = config.musicgen_decode_device0.find("GPU") != std::string::npos;
       bool bIsDev1GPU = config.musicgen_decode_device1.find("GPU") != std::string::npos;
@@ -62,7 +59,6 @@ namespace ov_musicgen
       _decoder->ShiftLeft(ntokens);
    }
 
-
    int64_t MusicgenForCausalLM::NumCodebooks()
    {
       return _decoder->NumCodebooks();
@@ -84,13 +80,13 @@ namespace ov_musicgen
    {
       ITT_SCOPED_TASK(MusicgenForCausalLM_forward)
 
-      auto hidden_states_ov = _decoder->forward(input_ids,
-         attention_mask,
-         encoder_hidden_states,
-         encoder_attention_mask,
-         head_mask,
-         cross_attn_head_mask,
-         inputs_embeds);
+         auto hidden_states_ov = _decoder->forward(input_ids,
+            attention_mask,
+            encoder_hidden_states,
+            encoder_attention_mask,
+            head_mask,
+            cross_attn_head_mask,
+            inputs_embeds);
 
       _lm_heads_infer_request.set_input_tensor(hidden_states_ov);
 
@@ -119,7 +115,6 @@ namespace ov_musicgen
       auto bsz = input_ids.sizes()[0];
       auto num_codebooks = input_ids.sizes()[1];
       auto seq_len = input_ids.sizes()[2];
-
 
       auto input_ids_shifted = (
          torch::ones({ bsz, num_codebooks, max_length }, torch::TensorOptions().dtype(torch::kInt64)) * -1

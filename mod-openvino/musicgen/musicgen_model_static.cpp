@@ -117,16 +117,12 @@ namespace ov_musicgen
          }
       }
 
-
-      //_decoder_model = std::make_shared< MusicgenDecoderModelFullStaticBatch1 >(core, model_folder, cache_dir);
-
       //creating MusicgenSinusoidalPositionalEmbedding instance with config.max_position_embeddings = 2048 config.hidden_size = 1024
       int64_t max_position_embeddings = 2048;
       int64_t hidden_size = 1024;
       _embed_positions = std::make_shared< MusicgenSinusoidalPositionalEmbedding >(max_position_embeddings, hidden_size, config);
 
       {
-
          std::string embed_tokens_model_folder = model_folder;
          if (config.bStereo)
          {
@@ -149,8 +145,6 @@ namespace ov_musicgen
 
          _embed_tokens_infer_request = emded_tokens_compiled_model.create_infer_request();
       }
-
-      std::cout << "construction complete!" << std::endl;
    }
 
    ov::Tensor MusicgenModelStatic::forward(std::optional<torch::Tensor> input_ids,
@@ -163,7 +157,7 @@ namespace ov_musicgen
    {
       ITT_SCOPED_TASK(MusicgenModelStatic_forward)
 
-      int64_t past_length = _decoder_model->PastLength();
+         int64_t past_length = _decoder_model->PastLength();
 
       torch::Tensor input;
       std::vector<int64_t> input_shape;
@@ -185,7 +179,6 @@ namespace ov_musicgen
          throw std::invalid_argument("You have to specify either input_ids or decoder_inputs_embeds");
       }
 
-      //std::cout << "input_shape = " << input_shape << std::endl;
       if (!inputs_embeds)
       {
          inputs_embeds = _embed_tokens(input);
@@ -196,7 +189,6 @@ namespace ov_musicgen
       //    attention_mask, input_shape, inputs_embeds, past_key_values_length
       //)
 
-      //std::cout << "encoder_attention_mask shape into prepare = " << encoder_attention_mask->sizes() << std::endl;
       if (encoder_hidden_states && encoder_attention_mask)
       {
          encoder_attention_mask = _prepare_4d_attention_mask(*encoder_attention_mask, input_shape.back());
@@ -229,28 +221,21 @@ namespace ov_musicgen
       //on GPU, the following triggers an issue where all batch 1 results will be -nan
       //return inverted_mask.masked_fill(inverted_mask.toType(torch::kBool), -FLT_MAX);
 
-      // this seem to fix it, but need to look into it. Not sure why -FLT_MAX is being 
-      // set to an attention mask. Setting fill val as 0 produces same output, so... ??
+      //TODO:  this seem to fix it, but need to look into it. 
       return inverted_mask.masked_fill(inverted_mask.toType(torch::kBool), 0);
    }
 
    torch::Tensor MusicgenModelStatic::_embed_tokens(torch::Tensor input)
    {
-      ITT_SCOPED_TASK(_embed_tokens)
-#if 0
-         auto input_tensor_wrapped = wrap_ov_tensor_as_torch(_embed_tokens_infer_request.get_input_tensor());
-      input_tensor_wrapped.copy_(input); //copy the contents of input into input_tensor_wrapped
-#else
-         auto ov_input = wrap_torch_tensor_as_ov(input);
+      ITT_SCOPED_TASK(_embed_tokens);
 
-      //note, the following 'dummy' nonsense is to work around some issue when we set 'ov_input'
-      // directly as input_tensor. 
-      ov::Tensor dummy_in = ov::Tensor(ov_input.get_element_type(), ov_input.get_shape());
-      auto dummy = wrap_ov_tensor_as_torch(dummy_in);
-      dummy.copy_(input);
+      auto ov_input = wrap_torch_tensor_as_ov(input);
 
-      _embed_tokens_infer_request.set_input_tensor(dummy_in);
-#endif
+      ov::Tensor new_ov_in = ov::Tensor(ov_input.get_element_type(), ov_input.get_shape());
+      auto new_ov_in_wrapped = wrap_ov_tensor_as_torch(new_ov_in);
+      new_ov_in_wrapped.copy_(input);
+
+      _embed_tokens_infer_request.set_input_tensor(new_ov_in);
       _embed_tokens_infer_request.infer();
 
       auto out = wrap_ov_tensor_as_torch(_embed_tokens_infer_request.get_output_tensor());

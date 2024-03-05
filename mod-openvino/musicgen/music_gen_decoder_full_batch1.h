@@ -73,8 +73,6 @@ namespace ov_musicgen
          using Clock = std::chrono::high_resolution_clock;
 
          //prep decoder model
-
-         //prep decoder model
          {
             //for each batch stuff
             for (int dbi = 0; dbi < 2; dbi++)
@@ -123,11 +121,9 @@ namespace ov_musicgen
 
                model = ppp.build();
 
-
-               //logBasicModelInfo(model);
+               logBasicModelInfo(model);
 
                ov::CompiledModel compiledModel;
-
                uint64_t  t0 = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
                if (dbi == 0)
                {
@@ -150,11 +146,6 @@ namespace ov_musicgen
                //first inference is usually a bit longer due to some lazy initialization, so trigger a warm up inference.
                _decoder_batch[dbi]._infer_request = compiledModel.create_infer_request();
                _decoder_batch[dbi]._infer_request.infer();
-
-               //std::cout << "hidden states strides = " << _decoder_batch[dbi]._infer_request.get_tensor("input_hidden_states").get_strides() << std::endl;
-               //std::cout << "encoder_attention_mask strides = " << _decoder_batch[dbi]._infer_request.get_tensor("encoder_attention_mask").get_strides() << std::endl;
-               //std::cout << "custom_attention_mask strides = " << _decoder_batch[dbi]._infer_request.get_tensor("custom_attention_mask").get_strides() << std::endl;
-
 
                _decoder_batch[dbi]._hidden_states = wrap_ov_tensor_as_torch(_decoder_batch[dbi]._infer_request.get_tensor("input_hidden_states"));
                _decoder_batch[dbi]._encoder_attention_mask_ov = _decoder_batch[dbi]._infer_request.get_tensor("encoder_attention_mask");
@@ -182,8 +173,6 @@ namespace ov_musicgen
 
                //get last hidden state tensor
                _decoder_batch[dbi]._last_hidden_state_ov = _decoder_batch[dbi]._infer_request.get_tensor("last_hidden_state");
-
-               //std::cout << "_last_hidden_state_ov strides = " << _decoder_batch[dbi]._last_hidden_state_ov.get_strides() << std::endl;
 
                //wrap it as a torch::Tensor
                _decoder_batch[dbi]._last_hidden_state = wrap_ov_tensor_as_torch(_decoder_batch[dbi]._last_hidden_state_ov);
@@ -217,8 +206,6 @@ namespace ov_musicgen
             last_hidden_shape[0] = 2;
             _last_hidden_state_ov = ov::Tensor(_decoder_batch[0]._last_hidden_state_ov.get_element_type(), last_hidden_shape);
             _last_hidden_state = wrap_ov_tensor_as_torch(_last_hidden_state_ov);
-
-
          }
 
          //prep initial model
@@ -261,7 +248,6 @@ namespace ov_musicgen
             }
          }
 
-         //todo: this is only needed for song continuation, so make it possible to construct without it, if we're not doing that.
          {
 
             std::string model_path;
@@ -309,7 +295,7 @@ namespace ov_musicgen
 
             model = ppp.build();
 
-            std::cout << "large context model" << std::endl;
+            std::cout << "large context model:" << std::endl;
             logBasicModelInfo(model);
 
             ov::CompiledModel compiledModel = core.compile_model(model, initial_device);
@@ -331,11 +317,7 @@ namespace ov_musicgen
             }
          }
 
-
-         //std::cout << "Resetting!" << std::endl;
          Reset();
-
-         std::cout << "construction complete!" << std::endl;
       }
 
       virtual void Reset() override
@@ -353,11 +335,12 @@ namespace ov_musicgen
                }
             }
 
-            float* pAttnMask = _decoder_batch[dbi]._custom_attention_mask.data<float>();
-            //std::cout << "_custom_attention_mask.get_size() = " << _custom_attention_mask.get_size() << std::endl;
-            for (int i = 0; i < _decoder_batch[dbi]._custom_attention_mask.get_size(); i++)
             {
-               pAttnMask[i] = -INFINITY;
+               float* pAttnMask = _decoder_batch[dbi]._custom_attention_mask.data<float>();
+               for (int i = 0; i < _decoder_batch[dbi]._custom_attention_mask.get_size(); i++)
+               {
+                  pAttnMask[i] = -INFINITY;
+               }
             }
 
             {
@@ -395,7 +378,6 @@ namespace ov_musicgen
             _infer_request_initial.infer();
 
             //copy the result of this inference to our 2 batch-1 infer_requests.
-            //TODO: Handle potential precision difference.
             for (size_t layeri = 0; layeri < N_LAYERS; layeri++)
             {
                for (int i = 0; i < 2; i++)
@@ -424,13 +406,8 @@ namespace ov_musicgen
 
             auto input_hidden_states = wrap_ov_tensor_as_torch(_infer_request_large_context.get_tensor("input_hidden_states"));
             auto input_attention_mask = wrap_ov_tensor_as_torch(_infer_request_large_context.get_tensor("attention_mask"));
-
-
             auto input_encoder_attention_mask = wrap_ov_tensor_as_torch(_infer_request_large_context.get_tensor("encoder_attention_mask"));
 
-            //std::cout << "Sizes: " << input_hidden_states.sizes() << " " << hidden_states.sizes() << std::endl;
-            //std::cout << "Sizes: " << input_attention_mask.sizes() << " " << _attention_mask.sizes() << std::endl;
-            //std::cout << "Sizes: " << input_encoder_attention_mask.sizes() << " " << encoder_attention_mask.sizes() << std::endl;
             input_hidden_states.copy_(hidden_states);
             input_attention_mask.copy_(_attention_mask);
 
@@ -451,8 +428,6 @@ namespace ov_musicgen
             auto ov_last_hidden_state = _infer_request_large_context.get_tensor("last_hidden_state");
 
             last_hidden_states_ret = ov_last_hidden_state;
-
-            //save_tensor_to_disk(ov_last_hidden_state, "ov_last_hidden_state.raw");
 
             ITT_SCOPED_TASK(update_past_key_values);
 
@@ -501,10 +476,6 @@ namespace ov_musicgen
                bDebug = true;
 
             //set input tensors
-            //set input tensors
-            //dump_tensor(encoder_attention_mask, "encoder_attention_mask.raw");
-
-
             for (int dbi = 0; dbi < 2; dbi++)
             {
                using namespace torch::indexing;
@@ -516,10 +487,7 @@ namespace ov_musicgen
                }
             }
 
-            // dump_tensor(_decoder_batch[0]._encoder_attention_mask, "encoder_attention_mask0.raw");
-             //dump_tensor(_decoder_batch[1]._encoder_attention_mask, "encoder_attention_mask1.raw");
 
-            if (0)
             {
                ITT_SCOPED_TASK(infers_async)
                   _decoder_batch[0]._infer_request.start_async();
@@ -527,26 +495,6 @@ namespace ov_musicgen
 
                _decoder_batch[0]._infer_request.wait();
                _decoder_batch[1]._infer_request.wait();
-            }
-            else if (0)
-            {
-               _decoder_batch[0]._infer_request.infer();
-               _decoder_batch[1]._infer_request.infer();
-            }
-            else
-            {
-               auto run_first_batch_fut = std::async(std::launch::async, [this]() {
-                  ITT_SCOPED_TASK(infer0)
-                     _decoder_batch[0]._infer_request.infer();
-                  });
-
-               auto run_second_batch_fut = std::async(std::launch::async, [this]() {
-                  ITT_SCOPED_TASK(infer1)
-                     _decoder_batch[1]._infer_request.infer();
-                  });
-
-               run_first_batch_fut.wait();
-               run_second_batch_fut.wait();
             }
 
             //fill last hidden state tensor

@@ -100,7 +100,6 @@ namespace ov_musicgen
          _decoder->ShiftLeft(ntokens);
       }
 
-
       torch::Tensor _enc_to_dec_proj(torch::Tensor encoder_hidden_states);
 
       //transformers\generation\logits_process.py, ClassifierFreeGuidanceLogitsProcessor.

@@ -12,21 +12,15 @@ namespace ov_musicgen
    class MusicgenDecoderModelCL : public MusicgenDecoderModel
    {
    public:
-
       const size_t N_LAYERS = 24;
 
       MusicgenDecoderModelCL(ov::Core& core, MusicGenConfig& config);
 
       virtual int64_t MaxNewTokens() override;
-
       virtual void Reset() override;
-
       virtual void ShiftLeft(int64_t ntokens) override;
-
       virtual ov::Tensor run(torch::Tensor hidden_states, std::optional<torch::Tensor> encoder_hidden_states, std::optional<torch::Tensor> encoder_attention_mask) override;
-
       virtual ov::Tensor get_last_hidden_state() override;
-
       virtual int64_t PastLength() override;
 
    private:
@@ -53,10 +47,8 @@ namespace ov_musicgen
       torch::Tensor _intiial_encoder_hidden_state;
       std::vector< std::vector< torch::Tensor > > _initial_past_key_values;
 
-
       //todo, this should go away:
       torch::Tensor _attention_mask;
-
 
       //large context stuff
       ov::InferRequest _infer_request_large_context;

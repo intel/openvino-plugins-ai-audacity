@@ -4,15 +4,12 @@
 
 #include <iostream>
 #include <openvino/openvino.hpp>
-
 #include <chrono>
 #include <optional>
 #include <torch/torch.h>
 #include <fstream>
-
 #include <ittutils.h>
 #include "musicgen_utils.h"
-
 #include "musicgen_config.h"
 
 namespace ov_musicgen
@@ -46,9 +43,7 @@ namespace ov_musicgen
 
    private:
       std::shared_ptr< MusicgenModelStatic > _decoder;
-
       ov::InferRequest _lm_heads_infer_request;
-
       int _nforward_calls = 1;
       int64_t _audio_channels = 1;
    };
