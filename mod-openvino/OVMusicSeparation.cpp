@@ -16,6 +16,8 @@
 
 #include <wx/intl.h>
 #include <wx/valgen.h>
+#include <wx/checkbox.h>
+#include <wx/sizer.h>
 
 #include "ShuttleGui.h"
 #include <wx/choice.h>
@@ -23,11 +25,17 @@
 #include "CodeConversions.h"
 #include <future>
 
+#include "widgets/valnum.h"
+
 #include "OVStringUtils.h"
 
 const ComponentInterfaceSymbol EffectOVMusicSeparation::Symbol{ XO("OpenVINO Music Separation") };
 
 namespace { BuiltinEffectsModule::Registration< EffectOVMusicSeparation > reg; }
+
+BEGIN_EVENT_TABLE(EffectOVMusicSeparation, wxEvtHandler)
+EVT_CHECKBOX(ID_Type_AdvancedCheckbox, EffectOVMusicSeparation::OnAdvancedCheckboxChanged)
+END_EVENT_TABLE()
 
 EffectOVMusicSeparation::EffectOVMusicSeparation()
 {
@@ -95,7 +103,7 @@ std::unique_ptr<EffectEditor> EffectOVMusicSeparation::PopulateOrExchange(
    S.AddSpace(0, 5);
    S.StartVerticalLay();
    {
-      S.StartMultiColumn(2, wxCENTER);
+      S.StartMultiColumn(2, wxLEFT);
       {
          //m_deviceSelectionChoice
          mTypeChoiceSeparationModeCtrl = S.Id(ID_Type)
@@ -110,12 +118,68 @@ std::unique_ptr<EffectEditor> EffectOVMusicSeparation::PopulateOrExchange(
             .Validator<wxGenericValidator>(&m_deviceSelectionChoice)
             .AddChoice(XXO("OpenVINO Inference Device:"),
                Msgids(mGuiDeviceSelections.data(), mGuiDeviceSelections.size()));
+
+         
       }
       S.EndMultiColumn();
+
+      //advanced options
+      S.StartMultiColumn(2, wxLEFT);
+      {
+         mShowAdvancedOptionsCheckbox = S.Id(ID_Type_AdvancedCheckbox).AddCheckBox(XXO("&Advanced Options"), false);
+      }
+      S.EndMultiColumn();
+
+      S.StartMultiColumn(2, wxLEFT);
+      {
+         mNumberOfShiftsCtrl = S.Name(XO("Shifts"))
+            .Validator<IntegerValidator<int>>(&mNumberOfShifts,
+               NumValidatorStyle::DEFAULT,
+               1,
+               8)
+            .AddTextBox(XO("Shifts"), L"", 12);
+
+         advancedSizer = mNumberOfShiftsCtrl->GetContainingSizer();
+      }
+      S.EndMultiColumn();
+
    }
    S.EndVerticalLay();
 
+   show_or_hide_advanced_options();
+
    return nullptr;
+}
+
+void EffectOVMusicSeparation::show_or_hide_advanced_options()
+{
+   if (advancedSizer)
+   {
+      advancedSizer->ShowItems(mbAdvanced);
+      advancedSizer->Layout();
+   }
+}
+
+void EffectOVMusicSeparation::OnAdvancedCheckboxChanged(wxCommandEvent& evt)
+{
+   mbAdvanced = mShowAdvancedOptionsCheckbox->GetValue();
+
+   show_or_hide_advanced_options();
+
+   if (mUIParent)
+   {
+      mUIParent->Layout();
+      mUIParent->SetMinSize(mUIParent->GetSizer()->GetMinSize());
+      mUIParent->SetSize(mUIParent->GetSizer()->GetMinSize());
+      mUIParent->Fit();
+
+      auto p = mUIParent->GetParent();
+      if (p)
+      {
+         p->Fit();
+      }
+
+   }
 }
 
 static std::vector<WaveTrack::Holder> CreateSourceTracks
@@ -165,7 +229,7 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
       // This might be okay, but some users may not have permissions to place models there. So, also look in
       // DataDir(), which is the path to C:\Users\<user>\AppData\Roaming\audacity.
       FilePath model_folder = FileNames::MkDir(wxFileName(FileNames::BaseDir(), wxT("openvino-models")).GetFullPath());
-      std::string demucs_v4_path = audacity::ToUTF8(wxFileName(model_folder, wxT("htdemucs_v4.onnx"))
+      std::string demucs_v4_path = audacity::ToUTF8(wxFileName(model_folder, wxT("htdemucs_v4.xml"))
          .GetFullPath());
 
       FilePath cache_folder = FileNames::MkDir(wxFileName(FileNames::DataDir(), wxT("openvino-model-cache")).GetFullPath());
@@ -175,6 +239,7 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
 
       std::cout << "demucs_v4_path = " << demucs_v4_path << std::endl;
       std::cout << "cache_path = " << cache_path << std::endl;
+      std::cout << "number of shifts = " << mNumberOfShifts << std::endl;
 
       if (m_deviceSelectionChoice >= mSupportedDevices.size())
       {
@@ -354,6 +419,7 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
                pOut[1],
                pOut[2],
                pOut[3],
+               mNumberOfShifts,
                HTDemucsProgressUpdate, this);
 
             if (!demucs_success)
