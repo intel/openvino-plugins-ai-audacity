@@ -272,6 +272,20 @@ unzip whisper.cpp-openvino-models/ggml-small.en-tdrz-models.zip -d openvino-mode
 # Now that the required models are extracted, feel free to delete the cloned 'whisper.cpp-openvino-models' directory.
 rm -rf whisper.cpp-openvino-models
 
+#********************
+#* Music Separation *
+#********************
+
+# clone the HF repo
+git clone https://huggingface.co/Intel/demucs-openvino
+
+# Copy the demucs OpenVINO IR files
+cp demucs-openvino/htdemucs_v4.bin openvino-models
+cp demucs-openvino/htdemucs_v4.xml openvino-models
+
+# Now that the required models are extracted, feel free to delete the cloned 'demucs-openvino' directory.
+rm -rf demucs-openvino
+
 # TODO: Add remaining models!
 ```
 After the above sequence of commands you should have a single ```openvino-models``` folder, which you can copy to /usr/local/lib like this:
