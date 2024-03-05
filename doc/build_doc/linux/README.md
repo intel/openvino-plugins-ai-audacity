@@ -6,7 +6,7 @@ Hi! The following is the process that we use when building the Audacity modules 
 Before I get into the specifics, at a high-level we will be doing the following:
 * Cloning & building whisper.cpp with OpenVINO support (For transcription audacity module)
 * Cloning & building openvino-stable-diffusion-cpp (This is to support Music Generation & Remix features)
-* Cloning & building Audacity 3.4.2 without modifications (just to make sure 'vanilla' build works fine)
+* Cloning & building Audacity without modifications (just to make sure 'vanilla' build works fine)
 * Adding our OpenVINO module src's to the Audacity source tree, and re-building it.
 
 ## Dependencies
@@ -15,19 +15,28 @@ Here are some of the dependencies that you need to grab. If applicable, I'll als
 ```
 sudo apt install build-essential
 ```
-* OpenVINO - You can use public version from [here](https://storage.openvinotoolkit.org/repositories/openvino/packages/2023.2/linux/l_openvino_toolkit_ubuntu22_2023.2.0.13089.cfd42bd2cb0_x86_64.tgz)
+* OpenVINO - Download appropriate version from [here](https://storage.openvinotoolkit.org/repositories/openvino/packages/2023.3/linux/). For these instructions, we will use ```l_openvino_toolkit_ubuntu22_*x86_64tgz```.
 ```
 # Extract it
-tar xvf l_openvino_toolkit_ubuntu22_2023.2.0.13089.cfd42bd2cb0_x86_64.tgz 
+tar xvf l_openvino_toolkit_ubuntu22_*x86_64.tgz 
 
 #install dependencies
-cd l_openvino_toolkit_ubuntu22_2023.2.0.13089.cfd42bd2cb0_x86_64/install_dependencies/
+cd l_openvino_toolkit_ubuntu22_*_x86_64/install_dependencies/
 sudo -E ./install_openvino_dependencies.sh
 cd ..
 
 # setup env
 source setupvars.sh
 ```
+* OpenVINO Tokenizers Extension - Download package from [here](https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/2023.3.0.0/). For these instructions, we will use ```openvino_tokenizers_ubuntu22_2023.3.0.0_x86_64.tgz```.
+```
+# extract it 
+tar xzvf openvino_tokenizers_ubuntu22_2023.3.0.0_x86_64.tgz
+
+# copy extension libraries into OpenVINO lib folder:
+cp openvino_tokenizers_ubuntu22_2023.3.0.0_x86_64/* l_openvino_toolkit_ubuntu22_2023.3.0.13775.ceeafaf64f3_x86_64/runtime/lib/intel64/
+```
+
 * OpenCV - Only a dependency for the  OpenVINO Stable-Diffusion CPP samples (to read/write images from disk, display images, etc.). You can install like this:
 ```
 sudo apt install libopencv-dev
@@ -39,10 +48,10 @@ export LIBTORCH_ROOTDIR=/path/to/libtorch
 ```
 
 ## Sub-Component builds
-We're now going to build whisper.cpp and stablediffusion-pipelines-cpp.  
+We're now going to build whisper.cpp, stablediffusion-pipelines-cpp, and sentencepiece.  
 ```
 # OpenVINO
-source /path/to/l_openvino_toolkit_ubuntu22_2023.2.0.13089.cfd42bd2cb0_x86_64/setupvars.sh
+source /path/to/l_openvino_toolkit_ubuntu22_*_x86_64/setupvars.sh
 
 # Libtorch
 export LIBTORCH_ROOTDIR=/path/to/libtorch
@@ -50,10 +59,10 @@ export LIBTORCH_ROOTDIR=/path/to/libtorch
 
 ### Whisper.cpp 
 ```
-# Clone it & check out specific commit
+# Clone it & check out specific tag
 git clone https://github.com/ggerganov/whisper.cpp
 cd whisper.cpp
-git checkout ec7a6f04f9c32adec2e6b0995b8c728c5bf56f35
+git checkout v1.5.4
 cd ..
 
 # Create build folder
@@ -181,7 +190,7 @@ Okay, now we're going to (finally) build the module. Here's a recap of the envir
 
 ```
 # OpenVINO
-source /path/to/l_openvino_toolkit_ubuntu22_2023.2.0.13089.cfd42bd2cb0_x86_64/setupvars.sh
+source /path/to/l_openvino_toolkit_ubuntu22_*_x86_64/setupvars.sh
 
 # Libtorch
 export LIBTORCH_ROOTDIR=/path/to/libtorch
@@ -218,15 +227,55 @@ Once Audacity is open, you need to go to Edit->Preferences. And on the left side
 Once you change to 'Enabled', close Audacity and re-open it. When it comes back up, you should now see the OpenVINO modules listed.
 
 ## OpenVINO Models Installation  
-And we're done, at least with the module build. To actually use these modules, we need to generate / populate ```/usr/local/lib/``` with the models for noise-separation, music separation (htdemucs), whisper, and riffusion. Start by downloading the model package zip file from here:  
-[openvino-models.zip](https://github.com/intel/openvino-plugins-ai-audacity/releases/download/v3.4.2-R1/openvino-models.zip)
+And we're done, at least with the module build. To actually use these modules, we need to generate / populate ```/usr/local/lib/``` with the OpenVINO models that the plugins will look for. At runtime, the plugins will look for these models in a openvino-models directory.
+Here are the commands that you can use to create this directory, and populate it with the required models.
 
-And extract / install them into /usr/local/lib like this:
 ```
-# unzip the packages. 
-unzip openvino-models.zip
+# Create an empty 'openvino-models' directory to start with
+mkdir openvino-models
 
-# After above command you should have a single ```openvino-models``` folder, which you can copy to /usr/local/lib:
+# Since many of these models will come from huggingdface repos, let's make sure git lfs is installed
+sudo apt install git-lfs
+
+#************
+#* MusicGen *
+#************
+mkdir openvino-models/musicgen
+
+# clone the HF repo
+git clone https://huggingface.co/Intel/musicgen-static-openvino
+
+# unzip the 'base' set of models (like the EnCodec, tokenizer, etc.) into musicgen folder
+unzip musicgen-static-openvino/musicgen_small_enc_dec_tok_openvino_models.zip -d openvino-models/musicgen
+
+# unzip the mono-specific set of models
+unzip musicgen-static-openvino/musicgen_small_mono_openvino_models.zip -d openvino-models/musicgen
+
+# unzip the stereo-specific set of models
+unzip musicgen-static-openvino/musicgen_small_stereo_openvino_models.zip -d openvino-models/musicgen
+
+# Now that the required models are extracted, feel free to delete the cloned 'musicgen-static-openvino' directory.
+rm -rf musicgen-static-openvino
+
+#*************************
+#* Whisper Transcription *
+#*************************
+
+# clone the HF repo
+git clone https://huggingface.co/Intel/whisper.cpp-openvino-models
+
+# Extract the individual model packages into openvino-models directory
+unzip whisper.cpp-openvino-models/ggml-base-models.zip -d openvino-models
+unzip whisper.cpp-openvino-models/ggml-small-models.zip -d openvino-models
+unzip whisper.cpp-openvino-models/ggml-small.en-tdrz-models.zip -d openvino-models
+
+# Now that the required models are extracted, feel free to delete the cloned 'whisper.cpp-openvino-models' directory.
+rm -rf whisper.cpp-openvino-models
+
+# TODO: Add remaining models!
+```
+After the above sequence of commands you should have a single ```openvino-models``` folder, which you can copy to /usr/local/lib like this:
+```
 sudo cp -R openvino-models /usr/local/lib/
 ```
 

@@ -14,10 +14,14 @@ Here are some of the dependencies that you need to grab. If applicable, I'll als
 * CMake (https://cmake.org/download/)
 * Visual Studio (MS VS 2019 / 2022 Community Edition is fine)
 * python3 / pip - Audacity requires conan 2.0+ to be installed, and the recommended way to do that is through pip.  
-* OpenVINO - You can use public version from [here](https://github.com/openvinotoolkit/openvino/releases/tag/2023.1.0). Setup your cmd.exe shell environment by running setupvars.bat:  
+* OpenVINO - You can use public version from [here](https://github.com/openvinotoolkit/openvino/releases/tag/2023.3.0). Setup your cmd.exe shell environment by running setupvars.bat:  
     ```
     call "C:\path\to\w_openvino_toolkit_windows_xxxx\setupvars.bat"
     ```
+* OpenVINO Tokenizers Extension - Download package from [here](https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/). 
+   Make sure that you download the version that matches the version of OpenVINO that you are using. For example, we are using [openvino_tokenizers_windows_2023.3.0.0_x86_64.zip](https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/2023.3.0.0/openvino_tokenizers_windows_2023.3.0.0_x86_64.zip)
+   Download the zip package, and copy the DLLs into your ```w_openvino_toolkit_windows_xxxx\runtime\bin\intel64\Release``` folder.  
+   
 * OpenCV - Only a dependency for the openvino-stable-diffusion-cpp samples (to read/write images from disk, display images, etc.). You can find pre-packages Windows releases [here](https://github.com/opencv/opencv/releases). We currently use 4.8.1 with no issues, it's recommended that you use that.
    ```
    set OpenCV_DIR=C:\path\opencv\build
@@ -45,10 +49,10 @@ We're now going to build whisper.cpp and openvino-stable-diffusion-cpp. You shou
 
 ### Whisper.cpp 
 ```
-:: Clone it  & check out specific commit
+:: Clone it  & check out specific v1.5.4 release tag.
 git clone https://github.com/ggerganov/whisper.cpp
 cd whisper.cpp
-git checkout ec7a6f04f9c32adec2e6b0995b8c728c5bf56f35
+git checkout v1.5.4
 cd ..
 
 :: Create build folder
@@ -214,11 +218,53 @@ Once Audacity is open, you need to go to ```Edit -> Preferences```. And on the l
 Once you change to ```Enabled```, close Audacity and re-open it. When it comes back up, you should now see the OpenVINO modules listed.
 
 ## Installing the OpenVINO models
-In order for the OpenVINO effects to work, you need to install the OpenVINO models. 
+In order for the OpenVINO effects to work, you need to install the OpenVINO models. At runtime, the plugins will look for these models in a ```openvino-models``` directory.  
+Here are the commands that you can use (from cmd.exe) to create this directory, and populate it with the required models.
+```
+:: Create an empty 'openvino-models' directory to start with
+mkdir openvino-models
 
-1. Download [openvino-models.zip](https://github.com/intel/openvino-plugins-ai-audacity/releases/download/v3.4.2-R1/openvino-models.zip).
-2. Copy ```openvino-models``` folder from the zip file, such that it is placed in the same folder as ```Audacity.exe``` (e.g. ```audacity-build\bin\Release\```).
+:: Since many of these models will come from huggingdface repo's, let's make sure git lfs is installed
+git lfs install
 
+::************
+::* MusicGen *
+::************
+mkdir openvino-models\musicgen
+
+:: clone the HF repo
+git clone https://huggingface.co/Intel/musicgen-static-openvino
+
+:: unzip the 'base' set of models (like the EnCodec, tokenizer, etc.) into musicgen folder
+tar -xf musicgen-static-openvino\musicgen_small_enc_dec_tok_openvino_models.zip -C openvino-models\musicgen
+
+:: unzip the mono-specific set of models
+tar -xf musicgen-static-openvino\musicgen_small_mono_openvino_models.zip -C openvino-models\musicgen
+
+:: unzip the stereo-specific set of models
+tar -xf musicgen-static-openvino\musicgen_small_stereo_openvino_models.zip -C openvino-models\musicgen
+
+:: Now that the required models are extracted, feel free to delete the cloned 'musicgen-static-openvino' directory.
+rmdir musicgen-static-openvino /s /q
+
+::*************************
+::* Whisper Transcription *
+::*************************
+
+:: clone the HF repo
+git clone https://huggingface.co/Intel/whisper.cpp-openvino-models
+
+:: Extract the individual model packages into openvino-models directory
+tar -xf whisper.cpp-openvino-models\ggml-base-models.zip -C openvino-models
+tar -xf whisper.cpp-openvino-models\ggml-small-models.zip -C openvino-models
+tar -xf whisper.cpp-openvino-models\ggml-small.en-tdrz-models.zip -C openvino-models
+
+:: Now that the required models are extracted, feel free to delete the cloned 'whisper.cpp-openvino-models' directory.
+rmdir whisper.cpp-openvino-models /s /q
+
+:: TODO: Add remaining models!
+```
+Now that you have generated the ```openvino-models``` directory, copy it to the same folder as ```Audacity.exe``` (e.g. ```audacity-build\bin\Release\```).
 
 # Need Help? :raising_hand_man:
 For any questions about this build procedure, feel free to submit an issue [here](https://github.com/intel/openvino-plugins-ai-audacity/issues)

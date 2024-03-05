@@ -410,8 +410,7 @@ bool EffectOVWhisperTranscription::Process(EffectInstance&, EffectSettings&)
       if (bGoodResult && !mIsCancelled)
       {
          // No cancellation, so commit the addition of the track.
-         if (addedTrack0)
-            addedTrack0->Commit();
+         addedTrack0->Commit();
          if (addedTrack1)
             addedTrack1->Commit();
       }
@@ -870,8 +869,6 @@ bool EffectOVWhisperTranscription::Whisper(std::vector<float>& mono_samples, Lab
    if (!ctx)
    {
       throw std::runtime_error("whisper.cpp context creation / initialization failed");
-      std::cout << "error in whisper context initialization!" << std::endl;
-      return false;
    }
 
    mIsCancelled = TotalProgress(0.01, TranslatableString{ wxString("Running Whisper Transcription using OpenVINO"), {} });
