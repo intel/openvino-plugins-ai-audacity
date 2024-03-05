@@ -89,8 +89,8 @@ private:
 
    wxChoice* mTypeChoiceDeviceCtrl_EnCodec;
 
-   wxChoice* mTypeChoiceDeviceCtrl_UNetPositive;
-   wxChoice* mTypeChoiceDeviceCtrl_UNetNegative;
+   wxChoice* mTypeChoiceDeviceCtrl_Decode0;
+   wxChoice* mTypeChoiceDeviceCtrl_Decode1;
 
 
    int m_deviceSelectionChoice_EnCodec = 0;

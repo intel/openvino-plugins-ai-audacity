@@ -187,8 +187,8 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
 
       auto encodec_device = audacity::ToUTF8(mTypeChoiceDeviceCtrl_EnCodec->GetString(m_deviceSelectionChoice_EnCodec));
 
-      auto musicgen_dec0_device = audacity::ToUTF8(mTypeChoiceDeviceCtrl_UNetPositive->GetString(m_deviceSelectionChoice_MusicGenDecode0));
-      auto musicgen_dec1_device = audacity::ToUTF8(mTypeChoiceDeviceCtrl_UNetNegative->GetString(m_deviceSelectionChoice_MusicGenDecode1));
+      auto musicgen_dec0_device = audacity::ToUTF8(mTypeChoiceDeviceCtrl_Decode0->GetString(m_deviceSelectionChoice_MusicGenDecode0));
+      auto musicgen_dec1_device = audacity::ToUTF8(mTypeChoiceDeviceCtrl_Decode1->GetString(m_deviceSelectionChoice_MusicGenDecode1));
 
       ov_musicgen::MusicGenConfig::ContinuationContext continuation_context;
       if (m_contextLengthChoice == 0)
@@ -892,13 +892,13 @@ void EffectOVMusicGenerationV2::DoPopulateOrExchange(
                .AddChoice(XXO("EnCodec Device:"),
                   Msgids(mGuiDeviceNonVPUSupportedSelections.data(), mGuiDeviceNonVPUSupportedSelections.size()));
 
-            mTypeChoiceDeviceCtrl_UNetPositive = S.Id(ID_Type_MusicGenDecodeDevice0)
+            mTypeChoiceDeviceCtrl_Decode0 = S.Id(ID_Type_MusicGenDecodeDevice0)
                .MinSize({ -1, -1 })
                .Validator<wxGenericValidator>(&m_deviceSelectionChoice_MusicGenDecode0)
                .AddChoice(XXO("MusicGen Decode Device:"),
                   Msgids(mGuiDeviceVPUSupportedSelections.data(), mGuiDeviceVPUSupportedSelections.size()));
 
-            mTypeChoiceDeviceCtrl_UNetNegative = S.Id(ID_Type_MusicGenDecodeDevice1)
+            mTypeChoiceDeviceCtrl_Decode1 = S.Id(ID_Type_MusicGenDecodeDevice1)
                .MinSize({ -1, -1 })
                .Validator<wxGenericValidator>(&m_deviceSelectionChoice_MusicGenDecode1)
                .AddChoice(XXO("MusicGen Decode Device:"),
