@@ -262,6 +262,20 @@ tar -xf whisper.cpp-openvino-models\ggml-small.en-tdrz-models.zip -C openvino-mo
 :: Now that the required models are extracted, feel free to delete the cloned 'whisper.cpp-openvino-models' directory.
 rmdir whisper.cpp-openvino-models /s /q
 
+::********************
+::* Music Separation *
+::********************
+
+:: clone the HF repo
+git clone https://huggingface.co/Intel/demucs-openvino
+
+:: Copy the demucs OpenVINO IR files
+copy /y demucs-openvino\htdemucs_v4.bin openvino-models
+copy /y demucs-openvino\htdemucs_v4.xml openvino-models
+
+:: Now that the required models are extracted, feel free to delete the cloned 'demucs-openvino' directory.
+rmdir demucs-openvino /s /q
+
 :: TODO: Add remaining models!
 ```
 Now that you have generated the ```openvino-models``` directory, copy it to the same folder as ```Audacity.exe``` (e.g. ```audacity-build\bin\Release\```).
