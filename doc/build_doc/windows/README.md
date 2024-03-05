@@ -218,11 +218,53 @@ Once Audacity is open, you need to go to ```Edit -> Preferences```. And on the l
 Once you change to ```Enabled```, close Audacity and re-open it. When it comes back up, you should now see the OpenVINO modules listed.
 
 ## Installing the OpenVINO models
-In order for the OpenVINO effects to work, you need to install the OpenVINO models. 
+In order for the OpenVINO effects to work, you need to install the OpenVINO models. At runtime, the plugins will look for these models in a ```openvino-models``` directory.  
+Here are the commands that you can use (from cmd.exe) to create this directory, and populate it with the required models.
+```
+:: Create an empty 'openvino-models' directory to start with
+mkdir openvino-models
 
-1. Download [openvino-models.zip](https://github.com/intel/openvino-plugins-ai-audacity/releases/download/v3.4.2-R1/openvino-models.zip).
-2. Copy ```openvino-models``` folder from the zip file, such that it is placed in the same folder as ```Audacity.exe``` (e.g. ```audacity-build\bin\Release\```).
+:: Since many of these models will come from huggingdface repo's, let's make sure git lfs is installed
+git lfs install
 
+::************
+::* MusicGen *
+::************
+mkdir openvino-models\musicgen
+
+:: clone the HF repo
+git clone https://huggingface.co/Intel/musicgen-static-openvino
+
+:: unzip the 'base' set of models (like the EnCodec, tokenizer, etc.) into musicgen folder
+tar -xf musicgen-static-openvino\musicgen_small_enc_dec_tok_openvino_models.zip -C openvino-models\musicgen
+
+:: unzip the mono-specific set of models
+tar -xf musicgen-static-openvino\musicgen_small_mono_openvino_models.zip -C openvino-models\musicgen
+
+:: unzip the stereo-specific set of models
+tar -xf musicgen-static-openvino\musicgen_small_stereo_openvino_models.zip -C openvino-models\musicgen
+
+:: Now that the required models are extracted, feel free to delete the cloned 'musicgen-static-openvino' directory.
+rmdir musicgen-static-openvino /s /q
+
+::*************************
+::* Whisper Transcription *
+::*************************
+
+:: clone the HF repo
+git clone https://huggingface.co/Intel/whisper.cpp-openvino-models
+
+:: Extract the individual model packages into openvino-models directory
+tar -xf whisper.cpp-openvino-models\ggml-base-models.zip -C openvino-models
+tar -xf whisper.cpp-openvino-models\ggml-small-models.zip -C openvino-models
+tar -xf whisper.cpp-openvino-models\ggml-small.en-tdrz-models.zip -C openvino-models
+
+:: Now that the required models are extracted, feel free to delete the cloned 'whisper.cpp-openvino-models' directory.
+rmdir whisper.cpp-openvino-models /s /q
+
+:: TODO: Add remaining models!
+```
+Now that you have generated the ```openvino-models``` directory, copy it to the same folder as ```Audacity.exe``` (e.g. ```audacity-build\bin\Release\```).
 
 # Need Help? :raising_hand_man:
 For any questions about this build procedure, feel free to submit an issue [here](https://github.com/intel/openvino-plugins-ai-audacity/issues)
