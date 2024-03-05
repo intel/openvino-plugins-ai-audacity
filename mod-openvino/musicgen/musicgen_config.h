@@ -31,7 +31,7 @@ namespace ov_musicgen
       std::string encodec_enc_device = "CPU";
 
       //device used to convert id's to wav
-      std::string encoded_dec_device = "CPU";
+      std::string encodec_dec_device = "CPU";
 
       //the two devices used to run inference to predict each next token.
       std::string musicgen_decode_device0 = "CPU";

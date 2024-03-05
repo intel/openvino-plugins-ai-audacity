@@ -89,7 +89,7 @@ namespace ov_musicgen
 
          model->reshape({ 1, 1, 4, num_encodec_secs * 50 });
 
-         auto compiled_model = core.compile_model(model, config.encoded_dec_device);
+         auto compiled_model = core.compile_model(model, config.encodec_dec_device);
 
          _encodec_infer_request = compiled_model.create_infer_request();
       }

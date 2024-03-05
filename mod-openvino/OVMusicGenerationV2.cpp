@@ -185,7 +185,7 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
       std::string musicgen_model_folder = audacity::ToUTF8(wxFileName(model_folder, wxString("musicgen"))
          .GetFullPath());
 
-      auto text_encoder_device = audacity::ToUTF8(mTypeChoiceDeviceCtrl_TextEncoder->GetString(m_deviceSelectionChoice_TextEncoder));
+      auto encodec_device = audacity::ToUTF8(mTypeChoiceDeviceCtrl_EnCodec->GetString(m_deviceSelectionChoice_EnCodec));
 
       auto musicgen_dec0_device = audacity::ToUTF8(mTypeChoiceDeviceCtrl_UNetPositive->GetString(m_deviceSelectionChoice_MusicGenDecode0));
       auto musicgen_dec1_device = audacity::ToUTF8(mTypeChoiceDeviceCtrl_UNetNegative->GetString(m_deviceSelectionChoice_MusicGenDecode1));
@@ -214,7 +214,7 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
 
       bool bStereo = (m_modelSelectionChoice < 2);
 
-      std::cout << "text_encoder_device = " << text_encoder_device << std::endl;
+      std::cout << "encodec_device = " << encodec_device << std::endl;
       std::cout << "MusicGen Decode Device 0 = " << musicgen_dec0_device << std::endl;
       std::cout << "MusicGen Decode Device 1 = " << musicgen_dec1_device << std::endl;
 
@@ -228,7 +228,7 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
          mProgress->SetMessage(TranslatableString{ wxString("Creating MusicGen Pipeline"), {} });
 
          auto musicgen_pipeline_creation_future = std::async(std::launch::async,
-            [this, &musicgen_model_folder, &cache_path, &text_encoder_device, &musicgen_dec0_device, &musicgen_dec1_device,
+            [this, &musicgen_model_folder, &cache_path, &encodec_device, &musicgen_dec0_device, &musicgen_dec1_device,
             &continuation_context, &model_selection, &bStereo]
             {
 
@@ -253,6 +253,13 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
                      _musicgen = {};
                   }
 
+                  if ((encodec_device != _musicgen_config.encodec_enc_device) ||
+                     (encodec_device != _musicgen_config.encodec_dec_device))
+                  {
+                     //force destroy music gen if config has changed.
+                     _musicgen = {};
+                  }
+
                   if (bStereo != _musicgen_config.bStereo)
                   {
                      _musicgen = {};
@@ -262,6 +269,9 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
                   {
                      _musicgen_config.musicgen_decode_device0 = musicgen_dec0_device;
                      _musicgen_config.musicgen_decode_device1 = musicgen_dec1_device;
+
+                     _musicgen_config.encodec_enc_device = encodec_device;
+                     _musicgen_config.encodec_dec_device = encodec_device;
 
                      _musicgen_config.cache_folder = cache_path;
                      _musicgen_config.model_folder = musicgen_model_folder;
@@ -876,10 +886,10 @@ void EffectOVMusicGenerationV2::DoPopulateOrExchange(
          S.StartMultiColumn(2, wxCENTER);
          {
 
-            mTypeChoiceDeviceCtrl_TextEncoder = S.Id(ID_Type_TxtEncoder)
+            mTypeChoiceDeviceCtrl_EnCodec = S.Id(ID_Type_EnCodec)
                .MinSize({ -1, -1 })
-               .Validator<wxGenericValidator>(&m_deviceSelectionChoice_TextEncoder)
-               .AddChoice(XXO("Text Encoder Device:"),
+               .Validator<wxGenericValidator>(&m_deviceSelectionChoice_EnCodec)
+               .AddChoice(XXO("EnCodec Device:"),
                   Msgids(mGuiDeviceNonVPUSupportedSelections.data(), mGuiDeviceNonVPUSupportedSelections.size()));
 
             mTypeChoiceDeviceCtrl_UNetPositive = S.Id(ID_Type_MusicGenDecodeDevice0)

@@ -61,7 +61,7 @@ private:
 
    enum control
    {
-      ID_Type_TxtEncoder = 10000,
+      ID_Type_EnCodec = 10000,
 
       ID_Type_MusicGenDecodeDevice0,
       ID_Type_MusicGenDecodeDevice1,
@@ -87,13 +87,13 @@ private:
    void OnContextLengthChanged(wxCommandEvent& evt);
    void OnUnloadModelsButtonClicked(wxCommandEvent& evt);
 
-   wxChoice* mTypeChoiceDeviceCtrl_TextEncoder;
+   wxChoice* mTypeChoiceDeviceCtrl_EnCodec;
 
    wxChoice* mTypeChoiceDeviceCtrl_UNetPositive;
    wxChoice* mTypeChoiceDeviceCtrl_UNetNegative;
 
 
-   int m_deviceSelectionChoice_TextEncoder = 0;
+   int m_deviceSelectionChoice_EnCodec = 0;
 
    int m_deviceSelectionChoice_MusicGenDecode0 = 0;
    int m_deviceSelectionChoice_MusicGenDecode1 = 0;
