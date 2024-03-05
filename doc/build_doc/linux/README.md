@@ -227,15 +227,55 @@ Once Audacity is open, you need to go to Edit->Preferences. And on the left side
 Once you change to 'Enabled', close Audacity and re-open it. When it comes back up, you should now see the OpenVINO modules listed.
 
 ## OpenVINO Models Installation  
-And we're done, at least with the module build. To actually use these modules, we need to generate / populate ```/usr/local/lib/``` with the models for noise-separation, music separation (htdemucs), whisper, and riffusion. Start by downloading the model package zip file from here:  
-[openvino-models.zip](https://github.com/intel/openvino-plugins-ai-audacity/releases/download/v3.4.2-R1/openvino-models.zip)
+And we're done, at least with the module build. To actually use these modules, we need to generate / populate ```/usr/local/lib/``` with the OpenVINO models that the plugins will look for. At runtime, the plugins will look for these models in a openvino-models directory.
+Here are the commands that you can use to create this directory, and populate it with the required models.
 
-And extract / install them into /usr/local/lib like this:
 ```
-# unzip the packages. 
-unzip openvino-models.zip
+# Create an empty 'openvino-models' directory to start with
+mkdir openvino-models
 
-# After above command you should have a single ```openvino-models``` folder, which you can copy to /usr/local/lib:
+# Since many of these models will come from huggingdface repos, let's make sure git lfs is installed
+sudo apt install git-lfs
+
+#************
+#* MusicGen *
+#************
+mkdir openvino-models/musicgen
+
+# clone the HF repo
+git clone https://huggingface.co/Intel/musicgen-static-openvino
+
+# unzip the 'base' set of models (like the EnCodec, tokenizer, etc.) into musicgen folder
+unzip musicgen-static-openvino/musicgen_small_enc_dec_tok_openvino_models.zip -d openvino-models/musicgen
+
+# unzip the mono-specific set of models
+unzip musicgen-static-openvino/musicgen_small_mono_openvino_models.zip -d openvino-models/musicgen
+
+# unzip the stereo-specific set of models
+unzip musicgen-static-openvino/musicgen_small_stereo_openvino_models.zip -d openvino-models/musicgen
+
+# Now that the required models are extracted, feel free to delete the cloned 'musicgen-static-openvino' directory.
+rm -rf musicgen-static-openvino
+
+#*************************
+#* Whisper Transcription *
+#*************************
+
+# clone the HF repo
+git clone https://huggingface.co/Intel/whisper.cpp-openvino-models
+
+# Extract the individual model packages into openvino-models directory
+unzip whisper.cpp-openvino-models/ggml-base-models.zip -d openvino-models
+unzip whisper.cpp-openvino-models/ggml-small-models.zip -d openvino-models
+unzip whisper.cpp-openvino-models/ggml-small.en-tdrz-models.zip -d openvino-models
+
+# Now that the required models are extracted, feel free to delete the cloned 'whisper.cpp-openvino-models' directory.
+rm -rf whisper.cpp-openvino-models
+
+# TODO: Add remaining models!
+```
+After the above sequence of commands you should have a single ```openvino-models``` folder, which you can copy to /usr/local/lib like this:
+```
 sudo cp -R openvino-models /usr/local/lib/
 ```
 
