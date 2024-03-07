@@ -242,7 +242,7 @@ namespace ov_deepfilternet
 
       if (atten_lim_db && (std::abs(*atten_lim_db) > 0))
       {
-         float lim = std::powf(10, (-std::abs(*atten_lim_db) / normalize_atten_lim));
+         float lim = std::pow(10, (-std::abs(*atten_lim_db) / normalize_atten_lim));
          enhanced = torch::lerp(enhanced, spec, lim);
       }
 
