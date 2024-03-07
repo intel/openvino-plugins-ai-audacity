@@ -55,6 +55,7 @@ private:
    {
       ID_Type = 10000,
       ID_Type_Model = 10001,
+      ID_Attn_Limit = 10002,
    };
 
    std::vector< std::string > mSupportedDevices;
@@ -63,9 +64,8 @@ private:
    std::vector< std::string > mSupportedModels;
    std::vector< EnumValueSymbol > mGuiModelSelections;
 
-   void CompileNoiseSuppression(ov::CompiledModel& compiledModel);
-
-   bool ApplyNoiseSuppression(std::shared_ptr<WaveChannel> pChannel, ov::CompiledModel& compiledModel, sampleCount start, size_t total_samples);
-   bool ApplyNoiseSuppression(std::shared_ptr<WaveChannel> pChannel, sampleCount start, size_t total_samples);
-
+   // For little noise reduction, set to 6-12.
+   // For medium, 18-24.
+   // 100 means no attenuation limit
+   float mAttenuationLimit = 100.0f;
 };

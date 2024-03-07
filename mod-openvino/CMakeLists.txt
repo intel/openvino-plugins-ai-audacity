@@ -38,9 +38,27 @@ find_package(OpenCL REQUIRED)
 add_subdirectory(musicgen)
 include_directories(musicgen)
 
-set( SOURCES
+set( NOISE_SUPPRESSION_SOURCES
       OVNoiseSuppression.cpp
       OVNoiseSuppression.h
+      noise_suppression/noise_suppression_model.h
+      noise_suppression/noise_suppression_omz_model.h
+      noise_suppression/noise_suppression_omz_model.cpp
+      noise_suppression/noise_suppression_df_model.h
+      noise_suppression/noise_suppression_df_model.cpp
+      noise_suppression/deepfilternet/deepfilter.cpp
+      noise_suppression/deepfilternet/deepfilter.h
+      noise_suppression/deepfilternet/multiframe.h
+      noise_suppression/deepfilternet/multiframe.cpp
+      noise_suppression/deepfilternet/dfnet_model.h
+      noise_suppression/deepfilternet/dfnet_model.cpp
+)
+
+include_directories(noise_suppression)
+include_directories(noise_suppression/deepfilternet)
+
+set( SOURCES
+      ${NOISE_SUPPRESSION_SOURCES}
       OVMusicSeparation.cpp
       OVMusicSeparation.h
       OVMusicGeneration.cpp
