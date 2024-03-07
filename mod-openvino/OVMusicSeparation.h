@@ -8,6 +8,9 @@
 
 class WaveTrack;
 class wxChoice;
+class wxCheckBox;
+class wxTextCtrl;
+class wxSizer;
 
 class EffectOVMusicSeparation final : public StatefulEffect
 {
@@ -39,6 +42,8 @@ class EffectOVMusicSeparation final : public StatefulEffect
          EffectSettingsAccess& access, const EffectOutputs* pOutputs) override;
       bool TransferDataToWindow(const EffectSettings& settings) override;
 
+      void OnAdvancedCheckboxChanged(wxCommandEvent& evt);
+
    protected:
 
       wxChoice* mTypeChoiceDeviceCtrl;
@@ -49,6 +54,7 @@ class EffectOVMusicSeparation final : public StatefulEffect
        enum control
        {
           ID_Type = 10000,
+          ID_Type_AdvancedCheckbox
        };
 
        std::vector< std::string > mSupportedDevices;
@@ -60,5 +66,15 @@ class EffectOVMusicSeparation final : public StatefulEffect
 
        wxWeakRef<wxWindow> mUIParent{};
 
+       wxCheckBox* mShowAdvancedOptionsCheckbox;
+
+       int mNumberOfShifts = 1;
+       wxTextCtrl* mNumberOfShiftsCtrl = nullptr;
+
+       void show_or_hide_advanced_options();
+       wxSizer* advancedSizer = nullptr;
+       bool mbAdvanced = false;
+
+       DECLARE_EVENT_TABLE()
 };
 

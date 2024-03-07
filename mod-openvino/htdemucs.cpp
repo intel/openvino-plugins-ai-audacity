@@ -276,9 +276,7 @@ namespace ovdemucs
             std::memcpy(pXTTensor, xt.data_ptr(), xt.numel() * xt.element_size());
 
             static int inferencei = 0;
-            std::cout << "running openvino inference " << inferencei++ << std::endl;
             inferRequest.infer();
-            std::cout << "running openvino inference done.." << std::endl;
 
             const ov::Tensor& x_out_tensor = inferRequest.get_tensor(outputsNames[0]);
             const ov::Tensor& xt_out_tensor = inferRequest.get_tensor(outputsNames[1]);
@@ -901,6 +899,7 @@ namespace ovdemucs
                          float* &pOut1,
                          float* &pOut2,
                          float* &pOut3,
+                         int64_t num_shifts,
                          ProgressUpdate fn,
                          void* progress_update_user)
     {
@@ -916,7 +915,7 @@ namespace ovdemucs
          //dump_tensor(mix_infer, "my_cmix_after_mean_std.raw");
          //std::cout << "mix_infer.sizes() = " << mix_infer.sizes() << std::endl;
 
-         if (!_apply_model_0(mix_infer, _priv->_sources, 2, true, 0.25, 1.0, 2))
+         if (!_apply_model_0(mix_infer, _priv->_sources, num_shifts, true, 0.25, 1.0, 2))
          {
             return false;
          }

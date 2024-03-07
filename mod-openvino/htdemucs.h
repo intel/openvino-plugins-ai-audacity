@@ -26,10 +26,11 @@ namespace ovdemucs
         //will return true if processing completed, false if processing was cancelled, and
         // will throw an exception upon error.
         bool Apply(float* pIn, int64_t nsamples,
-           float* &pOut0,
-           float* &pOut1,
-           float* &pOut2,
-           float* &pOut3,
+           float*& pOut0,
+           float*& pOut1,
+           float*& pOut2,
+           float*& pOut3,
+           int64_t num_shifts = 2,
            ProgressUpdate fn = nullptr,
            void* progress_update_user = nullptr);
 
