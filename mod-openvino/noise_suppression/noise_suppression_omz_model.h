@@ -25,7 +25,7 @@ private:
    void _compile_noise_suppression_model(std::string model_path, std::string device, std::string cache_dir);
 
    ov::CompiledModel _compiledModel;
-   ov::InferRequest _infer_request;
+   std::shared_ptr< ov::Core > _core;
 
    int _freq_model;
 };
