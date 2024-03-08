@@ -106,15 +106,25 @@ bool EffectOVNoiseSuppression::IsInteractive() const
 
 void EffectOVNoiseSuppression::show_or_hide_advanced_options()
 {
+   mbAdvanced = mShowAdvancedOptionsCheckbox->GetValue();
+
    if (attentuationLimitSizer)
    {
       int current_selection = mTypeChoiceModelCtrl->GetCurrentSelection();
       auto model_selection_string = audacity::ToUTF8(mTypeChoiceModelCtrl->GetString(current_selection));
-
       bool bDeepFilterModel = (model_selection_string == "deepfilternet2") || (model_selection_string == "deepfilternet3");
 
       attentuationLimitSizer->ShowItems(mbAdvanced && bDeepFilterModel);
       attentuationLimitSizer->Layout();
+   }
+
+   if (df3postfiltersizer)
+   {
+      int current_selection = mTypeChoiceModelCtrl->GetCurrentSelection();
+      auto model_selection_string = audacity::ToUTF8(mTypeChoiceModelCtrl->GetString(current_selection));
+
+      df3postfiltersizer->ShowItems(mbAdvanced && (model_selection_string == "deepfilternet3"));
+      df3postfiltersizer->Layout();
    }
 
    if (noAdvancedSettingsLabel)
@@ -123,19 +133,16 @@ void EffectOVNoiseSuppression::show_or_hide_advanced_options()
 
       if (mbAdvanced)
       {
-         if (attentuationLimitSizer)
-            bShow |= !attentuationLimitSizer->AreAnyItemsShown();
-
+         bShow = !(attentuationLimitSizer->AreAnyItemsShown() || df3postfiltersizer->AreAnyItemsShown());
       }
 
       noAdvancedSettingsLabel->ShowItems(bShow);
+      noAdvancedSettingsLabel->Layout();
    }
 }
 
 void EffectOVNoiseSuppression::OnAdvancedCheckboxChanged(wxCommandEvent& evt)
 {
-   mbAdvanced = mShowAdvancedOptionsCheckbox->GetValue();
-
    show_or_hide_advanced_options();
 
    if (mUIParent)
@@ -181,13 +188,15 @@ std::unique_ptr<EffectEditor> EffectOVNoiseSuppression::PopulateOrExchange(
             .Validator<wxGenericValidator>(&m_modelSelectionChoice)
             .AddChoice(XXO("Noise Suppression Model:"),
                Msgids(mGuiModelSelections.data(), mGuiModelSelections.size()));
+
+         mTypeChoiceModelCtrl->SetSelection(m_modelSelectionChoice);
       }
       S.EndMultiColumn();
 
       //advanced options
       S.StartMultiColumn(2, wxLEFT);
       {
-         mShowAdvancedOptionsCheckbox = S.Id(ID_Type_AdvancedCheckbox).AddCheckBox(XXO("&Advanced Options"), false);
+         mShowAdvancedOptionsCheckbox = S.Id(ID_Type_AdvancedCheckbox).AddCheckBox(XXO("&Advanced Options"), mbAdvanced);
       }
       S.EndMultiColumn();
 
@@ -209,6 +218,13 @@ std::unique_ptr<EffectEditor> EffectOVNoiseSuppression::PopulateOrExchange(
       {
          auto text = S.AddVariableText(XO("No Advanced Options Available for this Model"));
          noAdvancedSettingsLabel = text->GetContainingSizer();
+      }
+      S.EndMultiColumn();
+
+      S.StartMultiColumn(2, wxLEFT);
+      {
+         mDF3RunPostFilter = S.Id(ID_Type_AdvancedCheckbox).AddCheckBox(XXO("&Enable Post-filter that slightly over-attenuates very noisy sections."), mbRunDF3PostFilter);
+         df3postfiltersizer = mDF3RunPostFilter->GetContainingSizer();
       }
       S.EndMultiColumn();
    }
@@ -263,6 +279,11 @@ bool EffectOVNoiseSuppression::Process(EffectInstance&, EffectSettings&)
 
                std::cout << "setting attn limit of " << mAttenuationLimit << std::endl;
                ns_df->SetAttenLimit(mAttenuationLimit);
+
+               mbRunDF3PostFilter = mDF3RunPostFilter->GetValue();
+               std::cout << "setting df3 post filter to " << mbRunDF3PostFilter << std::endl;
+
+               ns_df->SetDF3PostFilter(mbRunDF3PostFilter);
 
                ret = ns_df;
             }
@@ -367,7 +388,6 @@ bool EffectOVNoiseSuppression::Process(EffectInstance&, EffectSettings&)
                {
                   return false;
                }
-
             }
 
             //resample back to original rate.

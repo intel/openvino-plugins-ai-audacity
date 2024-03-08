@@ -215,12 +215,12 @@ namespace ov_deepfilternet
       }
    }
 
-   torch::Tensor DFNetModel::forward(torch::Tensor spec, torch::Tensor feat_erb, torch::Tensor feat_spec)
+   torch::Tensor DFNetModel::forward(torch::Tensor spec, torch::Tensor feat_erb, torch::Tensor feat_spec, bool post_filter)
    {
 
       if (_bDF3)
       {
-         return forward_df3(spec, feat_erb, feat_spec);
+         return forward_df3(spec, feat_erb, feat_spec, post_filter);
       }
       else
       {
@@ -228,7 +228,25 @@ namespace ov_deepfilternet
       }
    }
 
-   torch::Tensor DFNetModel::forward_df3(torch::Tensor spec, torch::Tensor feat_erb, torch::Tensor feat_spec)
+   static inline torch::Tensor as_complex(torch::Tensor x)
+   {
+      if (torch::is_complex(x))
+         return x;
+
+      if (x.size(-1) != 2)
+      {
+         throw std::runtime_error("Last dimension need to be of length 2 (re + im)");
+      }
+
+      if (x.stride(-1) != 1)
+      {
+         x = x.contiguous();
+      }
+
+      return torch::view_as_complex(x);
+   }
+
+   torch::Tensor DFNetModel::forward_df3(torch::Tensor spec, torch::Tensor feat_erb, torch::Tensor feat_spec, bool post_filter)
    {
 
       feat_spec = feat_spec.squeeze(1).permute({ 0, 3, 1, 2 });
@@ -304,17 +322,25 @@ namespace ov_deepfilternet
          throw std::runtime_error("not implemented run_df=false");
       }
 
-
       using namespace torch::indexing;
       auto spec_e = _df.forward(spec.clone(), df_coefs);
       spec_e.index_put_({ "...", Slice(_nb_df, None),  Slice(None) }, spec_m.index({ "...", Slice(_nb_df, None),  Slice(None) }));
+
+      if (post_filter)
+      {
+         float beta = 0.02f;
+         float eps = 1e-12f;
+         auto mask = (as_complex(spec_e).abs() / as_complex(spec).abs().add(eps)).clamp(eps, 1);
+         auto mask_sin = mask * torch::sin(M_PI * mask / 2).clamp_min(eps);
+         auto pf = (1 + beta) / (1 + beta * mask.div(mask_sin).pow(2));
+         spec_e = spec_e * pf.unsqueeze(-1);
+      }
 
       return spec_e;
    }
 
    torch::Tensor DFNetModel::forward_df2(torch::Tensor spec, torch::Tensor feat_erb, torch::Tensor feat_spec)
    {
-
       feat_spec = feat_spec.squeeze(1).permute({ 0, 3, 1, 2 });
       feat_erb = (*_pad_feat)(feat_erb);
       feat_spec = (*_pad_feat)(feat_spec);

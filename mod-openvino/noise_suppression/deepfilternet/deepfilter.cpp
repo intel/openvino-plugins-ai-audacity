@@ -75,7 +75,7 @@ namespace ov_deepfilternet
       _reg_erb_norm_state = torch::linspace(_mean_norm_init[0], _mean_norm_init[1], _n_erb_features);
    }
 
-   std::shared_ptr<std::vector<float>> DeepFilter::filter(torch::Tensor noisy_audio, std::optional<float> atten_lim_db, float normalize_atten_lim, ProgressCallbackFunc callback, void* callback_user)
+   std::shared_ptr<std::vector<float>> DeepFilter::filter(torch::Tensor noisy_audio, std::optional<float> atten_lim_db, float normalize_atten_lim, float df3_post_filter, ProgressCallbackFunc callback, void* callback_user)
    {
 
       //TODO: Make this less confusing. The hardcoded 2 here is lookahead.
@@ -150,7 +150,7 @@ namespace ov_deepfilternet
             chunk_tensor = noisy_audio.index({ Slice(src_offset, src_offset + src_size) });
          }
 
-         auto wav = forward(chunk_tensor, pad, atten_lim_db, normalize_atten_lim);
+         auto wav = forward(chunk_tensor, pad, atten_lim_db, normalize_atten_lim, df3_post_filter);
 
          if (segmenti == 0)
          {
@@ -215,7 +215,7 @@ namespace ov_deepfilternet
       return torch::view_as_complex(x);
    }
 
-   std::shared_ptr<std::vector<float>> DeepFilter::forward(torch::Tensor noisy_audio, bool pad, std::optional<float> atten_lim_db, float normalize_atten_lim)
+   std::shared_ptr<std::vector<float>> DeepFilter::forward(torch::Tensor noisy_audio, bool pad, std::optional<float> atten_lim_db, float normalize_atten_lim, float df3_post_filter)
    {
       _reset_reg();
 
@@ -238,7 +238,7 @@ namespace ov_deepfilternet
       erb_feat = erb_feat.contiguous();
       spec_feat = spec_feat.contiguous();
 
-      auto enhanced = _dfnet->forward(spec, erb_feat, spec_feat);
+      auto enhanced = _dfnet->forward(spec, erb_feat, spec_feat, df3_post_filter);
 
       if (atten_lim_db && (std::abs(*atten_lim_db) > 0))
       {

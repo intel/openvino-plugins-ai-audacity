@@ -30,12 +30,12 @@ namespace ov_deepfilternet
          void* user);
 
       std::shared_ptr<std::vector<float>> filter(torch::Tensor noisy_audio, std::optional<float> atten_lim_db = {},
-         float normalize_atten_lim = 20,
+         float normalize_atten_lim = 20, float df3_post_filter = false,
          ProgressCallbackFunc callback = nullptr, void* callback_user = nullptr);
 
    private:
 
-      std::shared_ptr<std::vector<float>> forward(torch::Tensor noisy_audio, bool pad = true, std::optional<float> atten_lim_db = {}, float normalize_atten_lim = 20);
+      std::shared_ptr<std::vector<float>> forward(torch::Tensor noisy_audio, bool pad = true, std::optional<float> atten_lim_db = {}, float normalize_atten_lim = 20, float df3_post_filter=false);
       std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> _df_features(torch::Tensor audio);
       torch::Tensor _analysis_time(torch::Tensor input_data);
       torch::Tensor _frame_analysis(torch::Tensor input_frame);

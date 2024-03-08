@@ -29,7 +29,7 @@ bool NoiseSuppressionDFModel::run(std::shared_ptr<WaveChannel> pChannel, sampleC
       atten_lim = _atten_limit;
    }
 
-   auto wav = _df->filter(input_wav_tensor, atten_lim, 20, callback, callback_user);
+   auto wav = _df->filter(input_wav_tensor, atten_lim, 20, _bDF3_post_filter, callback, callback_user);
 
    if (!wav)
    {

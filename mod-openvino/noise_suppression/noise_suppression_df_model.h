@@ -22,6 +22,11 @@ public:
       _atten_limit = atten_limit;
    }
 
+   void SetDF3PostFilter(float post_filter)
+   {
+      _bDF3_post_filter = post_filter;
+   }
+
    virtual bool run(std::shared_ptr<WaveChannel> pChannel, sampleCount start, size_t total_samples,
       ProgressCallbackFunc callback = nullptr, void* callback_user = nullptr) override;
 
@@ -29,5 +34,7 @@ private:
 
    std::shared_ptr<ov_deepfilternet::DeepFilter> _df;
    float _atten_limit = 100.f;
+
+   bool _bDF3_post_filter = false;
 
 };

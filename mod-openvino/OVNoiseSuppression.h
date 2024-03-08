@@ -79,8 +79,12 @@ private:
    // 100 means no attenuation limit
    float mAttenuationLimit = 100.0f;
 
+   wxCheckBox* mDF3RunPostFilter;
+   bool mbRunDF3PostFilter = false;
+
    wxSizer* attentuationLimitSizer = nullptr;
    wxSizer* noAdvancedSettingsLabel = nullptr;
+   wxSizer* df3postfiltersizer = nullptr;
 
    wxWeakRef<wxWindow> mUIParent{};
 

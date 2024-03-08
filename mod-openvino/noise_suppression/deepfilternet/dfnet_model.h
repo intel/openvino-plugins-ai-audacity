@@ -27,7 +27,7 @@ namespace ov_deepfilternet
          int64_t lookahead = 2, int64_t nb_df = 96);
 
       torch::Tensor
-         forward(torch::Tensor spec, torch::Tensor feat_erb, torch::Tensor feat_spec);
+         forward(torch::Tensor spec, torch::Tensor feat_erb, torch::Tensor feat_spec, bool post_filter=false);
 
       int64_t num_static_hops()
       {
@@ -37,7 +37,7 @@ namespace ov_deepfilternet
    private:
 
       torch::Tensor
-         forward_df3(torch::Tensor spec, torch::Tensor feat_erb, torch::Tensor feat_spec);
+         forward_df3(torch::Tensor spec, torch::Tensor feat_erb, torch::Tensor feat_spec, bool post_filter);
 
       torch::Tensor
          forward_df2(torch::Tensor spec, torch::Tensor feat_erb, torch::Tensor feat_spec);
