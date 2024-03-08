@@ -19,6 +19,10 @@
 #include "ShuttleGui.h"
 
 #include <wx/choice.h>
+#include <wx/sizer.h>
+#include <wx/checkbox.h>
+#include <wx/stattext.h>
+
 #include "FileNames.h"
 #include "CodeConversions.h"
 
@@ -38,6 +42,10 @@ const ComponentInterfaceSymbol EffectOVNoiseSuppression::Symbol{ XO("OpenVINO No
 
 namespace { BuiltinEffectsModule::Registration< EffectOVNoiseSuppression > reg; }
 
+BEGIN_EVENT_TABLE(EffectOVNoiseSuppression, wxEvtHandler)
+EVT_CHECKBOX(ID_Type_AdvancedCheckbox, EffectOVNoiseSuppression::OnAdvancedCheckboxChanged)
+EVT_CHOICE(ID_Type_Model, EffectOVNoiseSuppression::OnAdvancedCheckboxChanged)
+END_EVENT_TABLE()
 
 EffectOVNoiseSuppression::EffectOVNoiseSuppression()
 {
@@ -96,14 +104,65 @@ bool EffectOVNoiseSuppression::IsInteractive() const
    return true;
 }
 
+void EffectOVNoiseSuppression::show_or_hide_advanced_options()
+{
+   if (attentuationLimitSizer)
+   {
+      int current_selection = mTypeChoiceModelCtrl->GetCurrentSelection();
+      auto model_selection_string = audacity::ToUTF8(mTypeChoiceModelCtrl->GetString(current_selection));
+
+      bool bDeepFilterModel = (model_selection_string == "deepfilternet2") || (model_selection_string == "deepfilternet3");
+
+      attentuationLimitSizer->ShowItems(mbAdvanced && bDeepFilterModel);
+      attentuationLimitSizer->Layout();
+   }
+
+   if (noAdvancedSettingsLabel)
+   {
+      bool bShow = false;
+
+      if (mbAdvanced)
+      {
+         if (attentuationLimitSizer)
+            bShow |= !attentuationLimitSizer->AreAnyItemsShown();
+
+      }
+
+      noAdvancedSettingsLabel->ShowItems(bShow);
+   }
+}
+
+void EffectOVNoiseSuppression::OnAdvancedCheckboxChanged(wxCommandEvent& evt)
+{
+   mbAdvanced = mShowAdvancedOptionsCheckbox->GetValue();
+
+   show_or_hide_advanced_options();
+
+   if (mUIParent)
+   {
+      mUIParent->Layout();
+      mUIParent->SetMinSize(mUIParent->GetSizer()->GetMinSize());
+      mUIParent->SetSize(mUIParent->GetSizer()->GetMinSize());
+      mUIParent->Fit();
+
+      auto p = mUIParent->GetParent();
+      if (p)
+      {
+         p->Fit();
+      }
+   }
+}
+
 std::unique_ptr<EffectEditor> EffectOVNoiseSuppression::PopulateOrExchange(
    ShuttleGui& S, EffectInstance&, EffectSettingsAccess&,
    const EffectOutputs*)
 {
+   mUIParent = S.GetParent();
+
    S.AddSpace(0, 5);
    S.StartVerticalLay();
    {
-      S.StartMultiColumn(4, wxCENTER);
+      S.StartMultiColumn(4, wxLEFT);
       {
          //m_deviceSelectionChoice
          mTypeChoiceDeviceCtrl = S.Id(ID_Type)
@@ -111,6 +170,24 @@ std::unique_ptr<EffectEditor> EffectOVNoiseSuppression::PopulateOrExchange(
             .Validator<wxGenericValidator>(&m_deviceSelectionChoice)
             .AddChoice(XXO("OpenVINO Inference Device:"),
                Msgids(mGuiDeviceSelections.data(), mGuiDeviceSelections.size()));
+      }
+      S.EndMultiColumn();
+
+      S.StartMultiColumn(4, wxLEFT);
+      {
+         //m_deviceSelectionChoice
+         mTypeChoiceModelCtrl = S.Id(ID_Type_Model)
+            .MinSize({ -1, -1 })
+            .Validator<wxGenericValidator>(&m_modelSelectionChoice)
+            .AddChoice(XXO("Noise Suppression Model:"),
+               Msgids(mGuiModelSelections.data(), mGuiModelSelections.size()));
+      }
+      S.EndMultiColumn();
+
+      //advanced options
+      S.StartMultiColumn(2, wxLEFT);
+      {
+         mShowAdvancedOptionsCheckbox = S.Id(ID_Type_AdvancedCheckbox).AddCheckBox(XXO("&Advanced Options"), false);
       }
       S.EndMultiColumn();
 
@@ -123,20 +200,21 @@ std::unique_ptr<EffectEditor> EffectOVNoiseSuppression::PopulateOrExchange(
                0.0f,
                100.0f)
             .AddTextBox(XO("Attenuation Limit (dB)"), L"", 12);
-      }
 
-      S.StartMultiColumn(4, wxCENTER);
+         attentuationLimitSizer = attn->GetContainingSizer();
+      }
+      S.EndMultiColumn();
+
+      S.StartMultiColumn(1, wxLEFT);
       {
-         //m_deviceSelectionChoice
-         mTypeChoiceModelCtrl = S.Id(ID_Type_Model)
-            .MinSize({ -1, -1 })
-            .Validator<wxGenericValidator>(&m_modelSelectionChoice)
-            .AddChoice(XXO("Noise Suppression Model:"),
-               Msgids(mGuiModelSelections.data(), mGuiModelSelections.size()));
+         auto text = S.AddVariableText(XO("No Advanced Options Available for this Model"));
+         noAdvancedSettingsLabel = text->GetContainingSizer();
       }
       S.EndMultiColumn();
    }
    S.EndVerticalLay();
+
+   show_or_hide_advanced_options();
 
    return nullptr;
 }

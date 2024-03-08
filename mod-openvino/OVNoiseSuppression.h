@@ -4,10 +4,13 @@
 #pragma once
 
 #include "effects/StatefulEffect.h"
+#include <wx/weakref.h>
 
 class WaveTrack;
 class wxChoice;
 class WaveChannel;
+class wxCheckBox;
+class wxSizer;
 
 namespace ov
 {
@@ -41,6 +44,8 @@ public:
       ShuttleGui& S, EffectInstance& instance,
       EffectSettingsAccess& access, const EffectOutputs* pOutputs) override;
 
+   void OnAdvancedCheckboxChanged(wxCommandEvent& evt);
+
 protected:
 
    wxChoice* mTypeChoiceDeviceCtrl;
@@ -54,8 +59,9 @@ private:
    enum control
    {
       ID_Type = 10000,
-      ID_Type_Model = 10001,
-      ID_Attn_Limit = 10002,
+      ID_Type_Model,
+      ID_Attn_Limit,
+      ID_Type_AdvancedCheckbox
    };
 
    std::vector< std::string > mSupportedDevices;
@@ -64,8 +70,19 @@ private:
    std::vector< std::string > mSupportedModels;
    std::vector< EnumValueSymbol > mGuiModelSelections;
 
+   wxCheckBox* mShowAdvancedOptionsCheckbox;
+   void show_or_hide_advanced_options();
+   bool mbAdvanced = false;
+
    // For little noise reduction, set to 6-12.
    // For medium, 18-24.
    // 100 means no attenuation limit
    float mAttenuationLimit = 100.0f;
+
+   wxSizer* attentuationLimitSizer = nullptr;
+   wxSizer* noAdvancedSettingsLabel = nullptr;
+
+   wxWeakRef<wxWindow> mUIParent{};
+
+   DECLARE_EVENT_TABLE()
 };
