@@ -276,6 +276,19 @@ copy /y demucs-openvino\htdemucs_v4.xml openvino-models
 :: Now that the required models are extracted, feel free to delete the cloned 'demucs-openvino' directory.
 rmdir demucs-openvino /s /q
 
+::*********************
+::* Noise Suppression *
+::*********************
+
+:: Clone the deepfilternet HF repo
+git clone https://huggingface.co/Intel/deepfilternet-openvino
+
+:: extract deepfilter2 models
+tar -xf deepfilternet-openvino\deepfilternet2.zip -C openvino-models
+
+:: extract deepfilter3 models
+tar -xf deepfilternet-openvino\deepfilternet3.zip -C openvino-models
+
 :: TODO: Add remaining models!
 ```
 Now that you have generated the ```openvino-models``` directory, copy it to the same folder as ```Audacity.exe``` (e.g. ```audacity-build\bin\Release\```).
