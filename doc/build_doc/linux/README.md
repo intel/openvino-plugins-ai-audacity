@@ -286,12 +286,6 @@ cp demucs-openvino/htdemucs_v4.xml openvino-models
 # Now that the required models are extracted, feel free to delete the cloned 'demucs-openvino' directory.
 rm -rf demucs-openvino
 
-# TODO: Add remaining models!
-```
-After the above sequence of commands you should have a single ```openvino-models``` folder, which you can copy to /usr/local/lib like this:
-```
-sudo cp -R openvino-models /usr/local/lib/
-
 #*********************
 #* Noise Suppression *
 #*********************
@@ -310,6 +304,10 @@ cd openvino-models
 wget https://storage.openvinotoolkit.org/repositories/open_model_zoo/2023.0/models_bin/1/noise-suppression-denseunet-ll-0001/FP16/noise-suppression-denseunet-ll-0001.xml
 wget https://storage.openvinotoolkit.org/repositories/open_model_zoo/2023.0/models_bin/1/noise-suppression-denseunet-ll-0001/FP16/noise-suppression-denseunet-ll-0001.bin
 cd ..
+```
+After the above sequence of commands you should have a single ```openvino-models``` folder, which you can copy to /usr/local/lib like this:
+```
+sudo cp -R openvino-models /usr/local/lib/
 ```
 
 # Need Help? :raising_hand_man:
