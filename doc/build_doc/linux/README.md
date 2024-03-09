@@ -291,6 +291,25 @@ rm -rf demucs-openvino
 After the above sequence of commands you should have a single ```openvino-models``` folder, which you can copy to /usr/local/lib like this:
 ```
 sudo cp -R openvino-models /usr/local/lib/
+
+#*********************
+#* Noise Suppression *
+#*********************
+
+# Clone the deepfilternet HF repo
+git clone https://huggingface.co/Intel/deepfilternet-openvino
+
+# extract deepfilter2 models
+unzip deepfilternet-openvino/deepfilternet2.zip -d openvino-models
+
+# extract deepfilter3 models
+unzip deepfilternet-openvino/deepfilternet3.zip -d openvino-models
+
+# For noise-suppression-denseunet-ll-0001, we can wget IR from openvino repo
+cd openvino-models
+wget https://storage.openvinotoolkit.org/repositories/open_model_zoo/2023.0/models_bin/1/noise-suppression-denseunet-ll-0001/FP16/noise-suppression-denseunet-ll-0001.xml
+wget https://storage.openvinotoolkit.org/repositories/open_model_zoo/2023.0/models_bin/1/noise-suppression-denseunet-ll-0001/FP16/noise-suppression-denseunet-ll-0001.bin
+cd ..
 ```
 
 # Need Help? :raising_hand_man:
