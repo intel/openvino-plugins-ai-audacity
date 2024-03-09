@@ -332,12 +332,22 @@ bool EffectOVNoiseSuppression::Process(EffectInstance&, EffectSettings&)
 
       if (!ns_model)
       {
-         std::cout << "CompileNoiseSuppression routine failed." << std::endl;
+         //It'd be kind of odd for control to reach here, as any compilation failure should
+         // have thrown an exception which would put us in the below 'catch'.
+         wxLogError("Noise Suppression Compilation appears to have failed.");
+         EffectUIServices::DoMessageBox(*this,
+            XO("Noise Suppression failed. See details in Help->Diagnostics->Show Log..."),
+            wxICON_STOP,
+            XO("Error"));
          return false;
       }
    }
    catch (const std::exception& error) {
-      std::cout << "CompileNoiseSuppression routine failed: " << error.what() << std::endl;
+      wxLogError("In Noise Suppression Compilation, exception: %s", error.what());
+      EffectUIServices::DoMessageBox(*this,
+         XO("Noise Suppression failed. See details in Help->Diagnostics->Show Log..."),
+         wxICON_STOP,
+         XO("Error"));
       return false;
    }
 
