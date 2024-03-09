@@ -124,7 +124,7 @@ namespace ov_deepfilternet
 
       _num_hops = 3002;
 
-#define DFNET_USE_ONNX 1 //set to 1 to use .onnx models, set to 0 to use OpenVINO IR (.xml)
+#define DFNET_USE_ONNX 0 //set to 1 to use .onnx models, set to 0 to use OpenVINO IR (.xml)
 
       //enc
       {
@@ -142,6 +142,10 @@ namespace ov_deepfilternet
 
          std::cout << "enc: " << std::endl;
          logBasicModelInfo(model);
+#if 0
+         //dump IR
+         ov::serialize(model, "enc.xml", "enc.bin");
+#endif
          auto compiledModel = _core->compile_model(model, device);
          _infer_request_enc = compiledModel.create_infer_request();
       }
@@ -170,7 +174,10 @@ namespace ov_deepfilternet
          port_to_shape[model->input("e1")] = { 1, 64, _num_hops, 16 };
          port_to_shape[model->input("e0")] = { 1, 64, _num_hops, 32 };
          model->reshape(port_to_shape);
-
+#if 0
+         //dump IR
+         ov::serialize(model, "erb_dec.xml", "erb_dec.bin");
+#endif
          std::cout << "erb_dec: " << std::endl;
          logBasicModelInfo(model);
          auto compiledModel = _core->compile_model(model, device);
@@ -204,7 +211,10 @@ namespace ov_deepfilternet
          }
          port_to_shape[model->input("c0")] = { 1, 64, _num_hops, 96 };
          model->reshape(port_to_shape);
-
+#if 0
+         //dump IR
+         ov::serialize(model, "df_dec.xml", "df_dec.bin");
+#endif
          std::cout << "df_dec: " << std::endl;
          logBasicModelInfo(model);
          auto compiledModel = _core->compile_model(model, device);
