@@ -101,11 +101,11 @@ namespace ov_deepfilternet
 
       if (_bDF3)
       {
-         model_folder = FullPath(model_folder, "DeepFilterNet3_ONNX");
+         model_folder = FullPath(model_folder, "deepfilternet3");
       }
       else
       {
-         model_folder = FullPath(model_folder, "DeepFilterNet2_ONNX");
+         model_folder = FullPath(model_folder, "deepfilternet2");
       }
 
       if (lookahead > 0)
