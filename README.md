@@ -27,13 +27,34 @@ A set of AI-enabled effects, generators, and analyzers for [Audacity®](https://
 ## Contribution :handshake:
   Your contributions are welcome and valued, no matter how big or small. Feel free to submit a pull-request!
 
-## Acknowledgements :pray:
+## Acknowledgements & Citations :pray:
 * Audacity® development team & Muse Group-- Thank you for your support!  
 * Audacity® GitHub -- https://github.com/audacity/audacity  
 * Whisper transcription & translation analyzer uses whisper.cpp (with OpenVINO™ backend): https://github.com/ggerganov/whisper.cpp  
 * Music Generation & Music Style Remix use Riffusion's UNet model, Riffusion pipelines that were ported to C++ from this project: https://github.com/riffusion/riffusion    
 * Music Separation effect uses Meta's Demucs v4 model (https://github.com/facebookresearch/demucs), which has been ported to work with OpenVINO™  
-* Noise Suppression uses noise-suppression-denseunet-ll model from OpenVINO™'s Open Model Zoo: https://github.com/openvinotoolkit/open_model_zoo  
+* Noise Suppression:
+  * noise-suppression-denseunet-ll:  from OpenVINO™'s Open Model Zoo: https://github.com/openvinotoolkit/open_model_zoo   
+  * DeepFilterNet2 & DeepFilterNet3:
+    * Ported the models & pipeline from here: https://github.com/Rikorose/DeepFilterNet  
+    * We also made use of @grazder's fork / branch (https://github.com/grazder/DeepFilterNet/tree/torchDF-changes) to better understand the Rust implementation, and so we also based some of our C++ implementation on ```torch_df_offline.py``` found here.  
+    * Citations:
+      ```bibtex
+      @inproceedings{schroeter2022deepfilternet2,
+      title = {{DeepFilterNet2}: Towards Real-Time Speech Enhancement on Embedded Devices for Full-Band Audio},
+      author = {Schröter, Hendrik and Escalante-B., Alberto N. and Rosenkranz, Tobias and Maier, Andreas},
+      booktitle={17th International Workshop on Acoustic Signal Enhancement (IWAENC 2022)},
+      year = {2022},
+      }
+        
+      @inproceedings{schroeter2023deepfilternet3,
+      title = {{DeepFilterNet}: Perceptually Motivated Real-Time Speech Enhancement},
+      author = {Schröter, Hendrik and Rosenkranz, Tobias and Escalante-B., Alberto N. and Maier, Andreas},
+      booktitle={INTERSPEECH},
+      year = {2023},
+      }
+      ``` 
+  
 
 ## Disclaimer :warning:
 Stable Diffusion & Riffusion's data model is governed by the Creative ML Open Rail M license, which is not an open source license.
