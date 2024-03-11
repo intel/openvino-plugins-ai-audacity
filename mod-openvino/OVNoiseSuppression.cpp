@@ -200,19 +200,19 @@ std::unique_ptr<EffectEditor> EffectOVNoiseSuppression::PopulateOrExchange(
       }
       S.EndMultiColumn();
 
-      S.StartMultiColumn(2, wxLEFT);
+      S.StartStatic(XO("Attenuation Limit(dB)"));
       {
-         auto attn = S.Name(XO("Attenuation Limit (dB)"))
-            .Validator<FloatingPointValidator<float>>(
+         S.AddVariableText(XO("100 means no attenuation limit (full noise suppression)\nFor little noise reduction, set to 6 - 12.\nFor medium, 18 - 24."));
+         auto attn = S.Validator<FloatingPointValidator<float>>(
                6, &mAttenuationLimit,
                NumValidatorStyle::NO_TRAILING_ZEROES,
                0.0f,
                100.0f)
-            .AddTextBox(XO("Attenuation Limit (dB)"), L"", 12);
+            .AddTextBox(XO(""), L"", 12);
 
          attentuationLimitSizer = attn->GetContainingSizer();
       }
-      S.EndMultiColumn();
+      S.EndStatic();
 
       S.StartMultiColumn(1, wxLEFT);
       {
