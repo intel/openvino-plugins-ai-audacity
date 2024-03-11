@@ -54,6 +54,9 @@ protected:
    wxChoice* mTypeChoiceModelCtrl;
    int m_modelSelectionChoice = 0;
 
+   bool TransferDataToWindow(const EffectSettings& settings) override;
+   bool TransferDataFromWindow(EffectSettings& settings) override;
+
 private:
 
    enum control

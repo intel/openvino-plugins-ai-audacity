@@ -160,6 +160,25 @@ void EffectOVNoiseSuppression::OnAdvancedCheckboxChanged(wxCommandEvent& evt)
    }
 }
 
+bool EffectOVNoiseSuppression::TransferDataToWindow(const EffectSettings&)
+{
+   mDF3RunPostFilter->SetValue(mbRunDF3PostFilter);
+
+   return true;
+}
+
+bool EffectOVNoiseSuppression::TransferDataFromWindow(EffectSettings&)
+{
+   if (!mUIParent->Validate() || !mUIParent->TransferDataFromWindow())
+   {
+      return false;
+   }
+
+   mbRunDF3PostFilter = mDF3RunPostFilter->GetValue();
+
+   return true;
+}
+
 std::unique_ptr<EffectEditor> EffectOVNoiseSuppression::PopulateOrExchange(
    ShuttleGui& S, EffectInstance&, EffectSettingsAccess&,
    const EffectOutputs*)
@@ -258,14 +277,14 @@ bool EffectOVNoiseSuppression::Process(EffectInstance&, EffectSettings&)
    {
       auto compile_compiledModel_fut = std::async(std::launch::async, [this, &compiledModel]() {
          std::shared_ptr< NoiseSuppressionModel > ret;
-         try {
-
+         try
+         {
             //CompileNoiseSuppression(compiledModel);
             FilePath model_folder = FileNames::MkDir(wxFileName(FileNames::BaseDir(), wxT("openvino-models")).GetFullPath());
             FilePath cache_folder = FileNames::MkDir(wxFileName(FileNames::DataDir(), wxT("openvino-model-cache")).GetFullPath());
             std::string cache_path = wstring_to_string(wxFileName(cache_folder).GetFullPath().ToStdWstring());
 
-            auto model_selection_string = audacity::ToUTF8(mTypeChoiceModelCtrl->GetString(m_modelSelectionChoice));
+            auto model_selection_string = mSupportedModels[m_modelSelectionChoice];
             if ((model_selection_string == "deepfilternet2") || (model_selection_string == "deepfilternet3"))
             {
                ov_deepfilternet::ModelSelection dfnet_selection = ov_deepfilternet::ModelSelection::DEEPFILTERNET2;
@@ -280,9 +299,7 @@ bool EffectOVNoiseSuppression::Process(EffectInstance&, EffectSettings&)
                std::cout << "setting attn limit of " << mAttenuationLimit << std::endl;
                ns_df->SetAttenLimit(mAttenuationLimit);
 
-               mbRunDF3PostFilter = mDF3RunPostFilter->GetValue();
                std::cout << "setting df3 post filter to " << mbRunDF3PostFilter << std::endl;
-
                ns_df->SetDF3PostFilter(mbRunDF3PostFilter);
 
                ret = ns_df;
@@ -308,7 +325,7 @@ bool EffectOVNoiseSuppression::Process(EffectInstance&, EffectSettings&)
                XO("Error"));
             return ret;
          }
-         });
+      });
 
       std::future_status status;
       float total_time = 0.f;
