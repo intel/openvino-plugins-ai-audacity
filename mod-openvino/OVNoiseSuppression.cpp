@@ -47,6 +47,56 @@ EVT_CHECKBOX(ID_Type_AdvancedCheckbox, EffectOVNoiseSuppression::OnAdvancedCheck
 EVT_CHOICE(ID_Type_Model, EffectOVNoiseSuppression::OnAdvancedCheckboxChanged)
 END_EVENT_TABLE()
 
+static bool is_deepfilter_model_present(std::string deepfilter_basename)
+{
+   auto model_folder = wxFileName(FileNames::BaseDir(), wxT("openvino-models")).GetFullPath();
+   model_folder = wxFileName(model_folder, wxString(deepfilter_basename)).GetFullPath();
+
+   std::vector< std::string > model_basenames = { "enc", "erb_dec", "df_dec" };
+   for( auto mb : model_basenames)
+   {
+      auto binmodelpath = wxFileName(model_folder, wxString(mb + ".bin"));
+      auto xmlmodelpath = wxFileName(model_folder, wxString(mb + ".xml"));
+
+      if (!binmodelpath.FileExists())
+      {
+         std::cout << "is_deepfilter_model_present: returning false because " << mb + ".bin" << " doesn't exist." << std::endl;
+         return false;
+      }
+
+      if (!xmlmodelpath.FileExists())
+      {
+         std::cout << "is_deepfilter_model_present: returning false because " << mb + ".xml" << " doesn't exist." << std::endl;
+         return false;
+      }
+   }
+
+   return true;
+}
+
+static bool is_omz_model_present(std::string omz_model_basename)
+{
+   auto model_folder = wxFileName(FileNames::BaseDir(), wxT("openvino-models")).GetFullPath();
+
+   auto binmodelpath = wxFileName(model_folder, wxString(omz_model_basename + ".bin"));
+   auto xmlmodelpath = wxFileName(model_folder, wxString(omz_model_basename + ".xml"));
+
+   if (!binmodelpath.FileExists())
+   {
+      std::cout << "is_omz_model_present: returning false because " << omz_model_basename + ".bin" << " doesn't exist." << std::endl;
+      return false;
+   }
+
+   if (!xmlmodelpath.FileExists())
+   {
+      std::cout << "is_omz_model_present: returning false because " << omz_model_basename + ".xml" << " doesn't exist." << std::endl;
+      return false;
+   }
+
+   return true;
+}
+
+
 EffectOVNoiseSuppression::EffectOVNoiseSuppression()
 {
    ov::Core core;
@@ -59,16 +109,30 @@ EffectOVNoiseSuppression::EffectOVNoiseSuppression()
 
       mSupportedDevices.push_back(d);
       mGuiDeviceSelections.push_back({ TranslatableString{ wxString(d), {}} });
-
    }
-   
-   mSupportedModels = { "deepfilternet2", "deepfilternet3", "noise-suppression-denseunet-ll-0001" };
+
+   std::vector< std::string > deepfiltermodels = { "deepfilternet2", "deepfilternet3" };
+   for (auto dfm : deepfiltermodels)
+   {
+      if (is_deepfilter_model_present(dfm))
+      {
+         mSupportedModels.push_back(dfm);
+      }
+   }
+
+   std::vector< std::string > omzmodels = { "noise-suppression-denseunet-ll-0001" };
+   for (auto omzm : omzmodels)
+   {
+      if (is_omz_model_present(omzm))
+      {
+         mSupportedModels.push_back(omzm);
+      }
+   }
 
    for (auto m : mSupportedModels)
    {
       mGuiModelSelections.push_back({ TranslatableString{ wxString(m), {}} });
    }
-
 }
 
 EffectOVNoiseSuppression::~EffectOVNoiseSuppression()
@@ -162,6 +226,19 @@ void EffectOVNoiseSuppression::OnAdvancedCheckboxChanged(wxCommandEvent& evt)
 
 bool EffectOVNoiseSuppression::TransferDataToWindow(const EffectSettings&)
 {
+   if (!mUIParent || !mUIParent->TransferDataToWindow())
+   {
+      return false;
+   }
+
+   EffectEditor::EnablePreview(mUIParent, false);
+
+   if (mSupportedModels.empty())
+   {
+      wxLogInfo("OpenVINO Noise Suppression has no models installed.");
+      EffectEditor::EnableApply(mUIParent, false);
+   }
+
    mDF3RunPostFilter->SetValue(mbRunDF3PostFilter);
 
    return true;
