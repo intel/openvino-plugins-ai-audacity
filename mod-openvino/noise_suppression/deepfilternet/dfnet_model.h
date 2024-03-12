@@ -58,6 +58,5 @@ namespace ov_deepfilternet
 
       bool _bDF3;
    };
-
-
 }
+

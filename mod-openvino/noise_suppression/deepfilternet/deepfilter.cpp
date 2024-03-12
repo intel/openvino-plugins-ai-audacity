@@ -122,13 +122,6 @@ namespace ov_deepfilternet
          }
       }
 
-#if 0
-      for (auto s : segments)
-      {
-         std::cout << "{ " << s.first << ", " << s.second << "}" << std::endl;
-      }
-#endif
-
       std::shared_ptr< std::vector<float> > output_wav = std::make_shared < std::vector<float> >(total_nsamples);
 
       for (size_t segmenti = 0; segmenti < segments.size(); segmenti++)
