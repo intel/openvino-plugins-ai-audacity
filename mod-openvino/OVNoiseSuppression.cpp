@@ -462,23 +462,29 @@ bool EffectOVNoiseSuppression::Process(EffectInstance&, EffectSettings&)
 
          // Process only if the right marker is to the right of the left marker
          if (curT1 > curT0) {
-            double origRate = pOutWaveTrack->GetRate();
 
+            //first, copy the region of interest to a new track. We do this so that if we need
+            // to downsample to meet model requirements, we don't affect the area outside of the
+            // selection.
+            auto copiedTrackList = pOutWaveTrack->Copy(curT0, curT1);
+            auto pCopiedTrack = *copiedTrackList->Any<WaveTrack>().begin();
+
+            double origRate = pCopiedTrack->GetRate();
             int model_sample_rate = ns_model->sample_rate();
-
             if (origRate != model_sample_rate)
             {
                std::cout << "resampling from " << origRate << " to " << model_sample_rate << std::endl;
-               pOutWaveTrack->Resample(model_sample_rate);
+               pCopiedTrack->Resample(model_sample_rate);
             }
             
             //Transform the marker timepoints to samples
-            auto start = pOutWaveTrack->TimeToLongSamples(curT0);
-            auto end = pOutWaveTrack->TimeToLongSamples(curT1);
+            // Note, because of the above copy, we use start time of 0 here.
+            auto start = pCopiedTrack->TimeToLongSamples(0);
+            auto end = pCopiedTrack->TimeToLongSamples(curT1 - curT0);
 
             size_t total_samples = (end - start).as_size_t();
 
-            for (size_t channeli = 0; channeli < pOutWaveTrack->Channels().size(); channeli++)
+            for (size_t channeli = 0; channeli < pCopiedTrack->Channels().size(); channeli++)
             {
                std::string message = "Running Noise Suppression on Track " + std::to_string(wavetracki) + ", channel " + std::to_string(channeli);
                if (TotalProgress(0.01, TranslatableString{ wxString(message), {} }))
@@ -486,7 +492,7 @@ bool EffectOVNoiseSuppression::Process(EffectInstance&, EffectSettings&)
                   return false;
                }
 
-               auto pChannel = pOutWaveTrack->GetChannel(channeli);
+               auto pChannel = pCopiedTrack->GetChannel(channeli);
 
                if (!ns_model->run(pChannel, start, total_samples, NSProgressCallback, this) )
                {
@@ -497,8 +503,11 @@ bool EffectOVNoiseSuppression::Process(EffectInstance&, EffectSettings&)
             //resample back to original rate.
             if (origRate != model_sample_rate)
             {
-               pOutWaveTrack->Resample(origRate);
+               pCopiedTrack->Resample(origRate);
             }
+
+            //now, paste 'filtered' samples stored in pCopiedTrack to output WaveTrack
+            pOutWaveTrack->ClearAndPaste(curT0, curT1, *copiedTrackList);
          }
 
          wavetracki++;
