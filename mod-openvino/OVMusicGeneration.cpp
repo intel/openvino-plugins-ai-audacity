@@ -40,7 +40,7 @@
 #include "InterpolateAudio.h"
 #include "OVStringUtils.h"
 
-const ComponentInterfaceSymbol EffectOVMusicGeneration::Symbol{ XO("OpenVINO Music Generation") };
+const ComponentInterfaceSymbol EffectOVMusicGeneration::Symbol{ XO("OpenVINO Music Generation (Stable Diffusion)") };
 
 namespace { BuiltinEffectsModule::Registration< EffectOVMusicGeneration > reg; }
 
@@ -453,6 +453,13 @@ bool EffectOVMusicGeneration::Process(EffectInstance&, EffectSettings& settings)
             std::cout << "mNumOutputSegments unexpectedly is <= 0" << std::endl;
             return false;
          }
+
+         if (num_interpolation_steps < mNumOutputSegments)
+         {
+            std::cout << "Adjusting num_interpolation_steps to " << mNumOutputSegments << std::endl;
+            num_interpolation_steps = mNumOutputSegments;
+         }
+
          _pos_prompt_start = pos_prompt_start;
          _pos_prompt_end = pos_prompt_end;
 
