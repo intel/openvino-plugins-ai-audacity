@@ -14,12 +14,12 @@ Here are some of the dependencies that you need to grab. If applicable, I'll als
 * CMake (https://cmake.org/download/)
 * Visual Studio (MS VS 2019 / 2022 Community Edition is fine)
 * python3 / pip - Audacity requires conan 2.0+ to be installed, and the recommended way to do that is through pip.  
-* OpenVINO - You can use public version from [here](https://github.com/openvinotoolkit/openvino/releases/tag/2023.3.0). Setup your cmd.exe shell environment by running setupvars.bat:  
+* OpenVINO - You can use public version from [here](https://github.com/openvinotoolkit/openvino/releases/tag/2024.0.0). Setup your cmd.exe shell environment by running setupvars.bat:  
     ```
     call "C:\path\to\w_openvino_toolkit_windows_xxxx\setupvars.bat"
     ```
 * OpenVINO Tokenizers Extension - Download package from [here](https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/). 
-   Make sure that you download the version that matches the version of OpenVINO that you are using. For example, we are using [openvino_tokenizers_windows_2023.3.0.0_x86_64.zip](https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/2023.3.0.0/openvino_tokenizers_windows_2023.3.0.0_x86_64.zip)
+   Make sure that you download the version that matches the version of OpenVINO that you are using. For example, we are using [openvino_tokenizers_windows_2024.0.0.0_x86_64.zip](https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/2024.0.0.0/openvino_tokenizers_windows_2024.0.0.0_x86_64.zip)
    Download the zip package, and copy the DLLs into your ```w_openvino_toolkit_windows_xxxx\runtime\bin\intel64\Release``` folder.  
    
 * OpenCV - Only a dependency for the openvino-stable-diffusion-cpp samples (to read/write images from disk, display images, etc.). You can find pre-packages Windows releases [here](https://github.com/opencv/opencv/releases). We currently use 4.8.1 with no issues, it's recommended that you use that.
