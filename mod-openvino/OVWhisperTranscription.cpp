@@ -994,6 +994,23 @@ void EffectOVWhisperTranscription::OnAdvancedCheckboxChanged(wxCommandEvent& evt
    }
 }
 
+bool EffectOVWhisperTranscription::TransferDataToWindow(const EffectSettings&)
+{
+   if (!mUIParent || !mUIParent->TransferDataToWindow())
+   {
+      return false;
+   }
+
+
+   if (mSupportedModels.empty())
+   {
+      wxLogInfo("OpenVINO Whisper Transcription has no models installed.");
+      EffectEditor::EnableApply(mUIParent, false);
+   }
+
+   return true;
+}
+
 std::unique_ptr<EffectEditor> EffectOVWhisperTranscription::PopulateOrExchange(
    ShuttleGui& S, EffectInstance&, EffectSettingsAccess& access,
    const EffectOutputs*)

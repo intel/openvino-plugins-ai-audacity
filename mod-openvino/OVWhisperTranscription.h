@@ -46,6 +46,10 @@ public:
 
    void OnAdvancedCheckboxChanged(wxCommandEvent& evt);
 
+protected:
+
+   bool TransferDataToWindow(const EffectSettings& settings) override;
+
 private:
    // EffectFindCliping implementation
 
