@@ -4,10 +4,13 @@
 #pragma once
 
 #include "effects/StatefulEffect.h"
+#include <wx/weakref.h>
 
 class WaveTrack;
 class wxChoice;
 class WaveChannel;
+class wxCheckBox;
+class wxSizer;
 
 namespace ov
 {
@@ -41,6 +44,8 @@ public:
       ShuttleGui& S, EffectInstance& instance,
       EffectSettingsAccess& access, const EffectOutputs* pOutputs) override;
 
+   void OnAdvancedCheckboxChanged(wxCommandEvent& evt);
+
 protected:
 
    wxChoice* mTypeChoiceDeviceCtrl;
@@ -49,12 +54,17 @@ protected:
    wxChoice* mTypeChoiceModelCtrl;
    int m_modelSelectionChoice = 0;
 
+   bool TransferDataToWindow(const EffectSettings& settings) override;
+   bool TransferDataFromWindow(EffectSettings& settings) override;
+
 private:
 
    enum control
    {
       ID_Type = 10000,
-      ID_Type_Model = 10001,
+      ID_Type_Model,
+      ID_Attn_Limit,
+      ID_Type_AdvancedCheckbox
    };
 
    std::vector< std::string > mSupportedDevices;
@@ -63,9 +73,23 @@ private:
    std::vector< std::string > mSupportedModels;
    std::vector< EnumValueSymbol > mGuiModelSelections;
 
-   void CompileNoiseSuppression(ov::CompiledModel& compiledModel);
+   wxCheckBox* mShowAdvancedOptionsCheckbox;
+   void show_or_hide_advanced_options();
+   bool mbAdvanced = false;
 
-   bool ApplyNoiseSuppression(std::shared_ptr<WaveChannel> pChannel, ov::CompiledModel& compiledModel, sampleCount start, size_t total_samples);
-   bool ApplyNoiseSuppression(std::shared_ptr<WaveChannel> pChannel, sampleCount start, size_t total_samples);
+   // For little noise reduction, set to 6-12.
+   // For medium, 18-24.
+   // 100 means no attenuation limit
+   float mAttenuationLimit = 100.0f;
 
+   wxCheckBox* mDF3RunPostFilter;
+   bool mbRunDF3PostFilter = false;
+
+   wxSizer* attentuationLimitSizer = nullptr;
+   wxSizer* noAdvancedSettingsLabel = nullptr;
+   wxSizer* df3postfiltersizer = nullptr;
+
+   wxWeakRef<wxWindow> mUIParent{};
+
+   DECLARE_EVENT_TABLE()
 };

@@ -19,6 +19,10 @@
 #include "ShuttleGui.h"
 
 #include <wx/choice.h>
+#include <wx/sizer.h>
+#include <wx/checkbox.h>
+#include <wx/stattext.h>
+
 #include "FileNames.h"
 #include "CodeConversions.h"
 
@@ -29,9 +33,68 @@
 
 #include <openvino/openvino.hpp>
 
+#include "widgets/valnum.h"
+
+#include "noise_suppression_omz_model.h"
+#include "noise_suppression_df_model.h"
+
 const ComponentInterfaceSymbol EffectOVNoiseSuppression::Symbol{ XO("OpenVINO Noise Suppression") };
 
 namespace { BuiltinEffectsModule::Registration< EffectOVNoiseSuppression > reg; }
+
+BEGIN_EVENT_TABLE(EffectOVNoiseSuppression, wxEvtHandler)
+EVT_CHECKBOX(ID_Type_AdvancedCheckbox, EffectOVNoiseSuppression::OnAdvancedCheckboxChanged)
+EVT_CHOICE(ID_Type_Model, EffectOVNoiseSuppression::OnAdvancedCheckboxChanged)
+END_EVENT_TABLE()
+
+static bool is_deepfilter_model_present(std::string deepfilter_basename)
+{
+   auto model_folder = wxFileName(FileNames::BaseDir(), wxT("openvino-models")).GetFullPath();
+   model_folder = wxFileName(model_folder, wxString(deepfilter_basename)).GetFullPath();
+
+   std::vector< std::string > model_basenames = { "enc", "erb_dec", "df_dec" };
+   for( auto mb : model_basenames)
+   {
+      auto binmodelpath = wxFileName(model_folder, wxString(mb + ".bin"));
+      auto xmlmodelpath = wxFileName(model_folder, wxString(mb + ".xml"));
+
+      if (!binmodelpath.FileExists())
+      {
+         std::cout << "is_deepfilter_model_present: returning false because " << mb + ".bin" << " doesn't exist." << std::endl;
+         return false;
+      }
+
+      if (!xmlmodelpath.FileExists())
+      {
+         std::cout << "is_deepfilter_model_present: returning false because " << mb + ".xml" << " doesn't exist." << std::endl;
+         return false;
+      }
+   }
+
+   return true;
+}
+
+static bool is_omz_model_present(std::string omz_model_basename)
+{
+   auto model_folder = wxFileName(FileNames::BaseDir(), wxT("openvino-models")).GetFullPath();
+
+   auto binmodelpath = wxFileName(model_folder, wxString(omz_model_basename + ".bin"));
+   auto xmlmodelpath = wxFileName(model_folder, wxString(omz_model_basename + ".xml"));
+
+   if (!binmodelpath.FileExists())
+   {
+      std::cout << "is_omz_model_present: returning false because " << omz_model_basename + ".bin" << " doesn't exist." << std::endl;
+      return false;
+   }
+
+   if (!xmlmodelpath.FileExists())
+   {
+      std::cout << "is_omz_model_present: returning false because " << omz_model_basename + ".xml" << " doesn't exist." << std::endl;
+      return false;
+   }
+
+   return true;
+}
 
 
 EffectOVNoiseSuppression::EffectOVNoiseSuppression()
@@ -46,16 +109,30 @@ EffectOVNoiseSuppression::EffectOVNoiseSuppression()
 
       mSupportedDevices.push_back(d);
       mGuiDeviceSelections.push_back({ TranslatableString{ wxString(d), {}} });
-
    }
-   
-   mSupportedModels = { "noise-suppression-denseunet-ll-0001" };
+
+   std::vector< std::string > deepfiltermodels = { "deepfilternet2", "deepfilternet3" };
+   for (auto dfm : deepfiltermodels)
+   {
+      if (is_deepfilter_model_present(dfm))
+      {
+         mSupportedModels.push_back(dfm);
+      }
+   }
+
+   std::vector< std::string > omzmodels = { "noise-suppression-denseunet-ll-0001" };
+   for (auto omzm : omzmodels)
+   {
+      if (is_omz_model_present(omzm))
+      {
+         mSupportedModels.push_back(omzm);
+      }
+   }
 
    for (auto m : mSupportedModels)
    {
       mGuiModelSelections.push_back({ TranslatableString{ wxString(m), {}} });
    }
-
 }
 
 EffectOVNoiseSuppression::~EffectOVNoiseSuppression()
@@ -91,14 +168,104 @@ bool EffectOVNoiseSuppression::IsInteractive() const
    return true;
 }
 
+void EffectOVNoiseSuppression::show_or_hide_advanced_options()
+{
+   mbAdvanced = mShowAdvancedOptionsCheckbox->GetValue();
+
+   if (attentuationLimitSizer)
+   {
+      int current_selection = mTypeChoiceModelCtrl->GetCurrentSelection();
+      auto model_selection_string = audacity::ToUTF8(mTypeChoiceModelCtrl->GetString(current_selection));
+      bool bDeepFilterModel = (model_selection_string == "deepfilternet2") || (model_selection_string == "deepfilternet3");
+
+      attentuationLimitSizer->ShowItems(mbAdvanced && bDeepFilterModel);
+      attentuationLimitSizer->Layout();
+   }
+
+   if (df3postfiltersizer)
+   {
+      int current_selection = mTypeChoiceModelCtrl->GetCurrentSelection();
+      auto model_selection_string = audacity::ToUTF8(mTypeChoiceModelCtrl->GetString(current_selection));
+
+      df3postfiltersizer->ShowItems(mbAdvanced && (model_selection_string == "deepfilternet3"));
+      df3postfiltersizer->Layout();
+   }
+
+   if (noAdvancedSettingsLabel)
+   {
+      bool bShow = false;
+
+      if (mbAdvanced)
+      {
+         bShow = !(attentuationLimitSizer->AreAnyItemsShown() || df3postfiltersizer->AreAnyItemsShown());
+      }
+
+      noAdvancedSettingsLabel->ShowItems(bShow);
+      noAdvancedSettingsLabel->Layout();
+   }
+}
+
+void EffectOVNoiseSuppression::OnAdvancedCheckboxChanged(wxCommandEvent& evt)
+{
+   show_or_hide_advanced_options();
+
+   if (mUIParent)
+   {
+      mUIParent->Layout();
+      mUIParent->SetMinSize(mUIParent->GetSizer()->GetMinSize());
+      mUIParent->SetSize(mUIParent->GetSizer()->GetMinSize());
+      mUIParent->Fit();
+
+      auto p = mUIParent->GetParent();
+      if (p)
+      {
+         p->Fit();
+      }
+   }
+}
+
+bool EffectOVNoiseSuppression::TransferDataToWindow(const EffectSettings&)
+{
+   if (!mUIParent || !mUIParent->TransferDataToWindow())
+   {
+      return false;
+   }
+
+   EffectEditor::EnablePreview(mUIParent, false);
+
+   if (mSupportedModels.empty())
+   {
+      wxLogInfo("OpenVINO Noise Suppression has no models installed.");
+      EffectEditor::EnableApply(mUIParent, false);
+   }
+
+   mDF3RunPostFilter->SetValue(mbRunDF3PostFilter);
+
+   return true;
+}
+
+bool EffectOVNoiseSuppression::TransferDataFromWindow(EffectSettings&)
+{
+   if (!mUIParent->Validate() || !mUIParent->TransferDataFromWindow())
+   {
+      return false;
+   }
+
+   mbRunDF3PostFilter = mDF3RunPostFilter->GetValue();
+
+   return true;
+}
+
 std::unique_ptr<EffectEditor> EffectOVNoiseSuppression::PopulateOrExchange(
    ShuttleGui& S, EffectInstance&, EffectSettingsAccess&,
    const EffectOutputs*)
 {
+   mUIParent = S.GetParent();
+
    S.AddSpace(0, 5);
    S.StartVerticalLay();
    {
-      S.StartMultiColumn(4, wxCENTER);
+      S.StartMultiColumn(4, wxLEFT);
       {
          //m_deviceSelectionChoice
          mTypeChoiceDeviceCtrl = S.Id(ID_Type)
@@ -109,7 +276,7 @@ std::unique_ptr<EffectEditor> EffectOVNoiseSuppression::PopulateOrExchange(
       }
       S.EndMultiColumn();
 
-      S.StartMultiColumn(4, wxCENTER);
+      S.StartMultiColumn(4, wxLEFT);
       {
          //m_deviceSelectionChoice
          mTypeChoiceModelCtrl = S.Id(ID_Type_Model)
@@ -117,204 +284,63 @@ std::unique_ptr<EffectEditor> EffectOVNoiseSuppression::PopulateOrExchange(
             .Validator<wxGenericValidator>(&m_modelSelectionChoice)
             .AddChoice(XXO("Noise Suppression Model:"),
                Msgids(mGuiModelSelections.data(), mGuiModelSelections.size()));
+
+         mTypeChoiceModelCtrl->SetSelection(m_modelSelectionChoice);
+      }
+      S.EndMultiColumn();
+
+      //advanced options
+      S.StartMultiColumn(2, wxLEFT);
+      {
+         mShowAdvancedOptionsCheckbox = S.Id(ID_Type_AdvancedCheckbox).AddCheckBox(XXO("&Advanced Options"), mbAdvanced);
+      }
+      S.EndMultiColumn();
+
+      S.StartStatic(XO("Attenuation Limit(dB)"));
+      {
+         S.AddVariableText(XO("100 means no attenuation limit (full noise suppression)\nFor little noise reduction, set to 6 - 12.\nFor medium, 18 - 24."));
+         auto attn = S.Validator<FloatingPointValidator<float>>(
+               6, &mAttenuationLimit,
+               NumValidatorStyle::NO_TRAILING_ZEROES,
+               0.0f,
+               100.0f)
+            .AddTextBox(XO(""), L"", 12);
+
+         attentuationLimitSizer = attn->GetContainingSizer();
+      }
+      S.EndStatic();
+
+      S.StartMultiColumn(1, wxLEFT);
+      {
+         auto text = S.AddVariableText(XO("No Advanced Options Available for this Model"));
+         noAdvancedSettingsLabel = text->GetContainingSizer();
+      }
+      S.EndMultiColumn();
+
+      S.StartMultiColumn(2, wxLEFT);
+      {
+         mDF3RunPostFilter = S.Id(ID_Type_AdvancedCheckbox).AddCheckBox(XXO("&Enable Post-filter that slightly over-attenuates very noisy sections."), mbRunDF3PostFilter);
+         df3postfiltersizer = mDF3RunPostFilter->GetContainingSizer();
       }
       S.EndMultiColumn();
    }
    S.EndVerticalLay();
 
+   show_or_hide_advanced_options();
+
    return nullptr;
 }
 
-void EffectOVNoiseSuppression::CompileNoiseSuppression(ov::CompiledModel& compiledModel)
+bool EffectOVNoiseSuppression::UpdateProgress(double perc)
 {
-   FilePath model_folder = FileNames::MkDir(wxFileName(FileNames::BaseDir(), wxT("openvino-models")).GetFullPath());
-
-   auto model_file = audacity::ToUTF8(mTypeChoiceModelCtrl->GetString(m_modelSelectionChoice)) + ".xml";
-
-   std::string  model_path = audacity::ToUTF8(wxFileName(model_folder, wxString(model_file))
-         .GetFullPath());
-
-   std::cout << "Using model path = " << model_path << std::endl;
-
-   FilePath cache_folder = FileNames::MkDir(wxFileName(FileNames::DataDir(), wxT("openvino-model-cache")).GetFullPath());
-   std::string cache_path = wstring_to_string(wxFileName(cache_folder).GetFullPath().ToStdWstring());
-
-   ov::Core core;
-
-   core.set_property(ov::cache_dir(cache_path));
-
-   std::shared_ptr<ov::Model> model = core.read_model(model_path);
-
-   ov::OutputVector inputs = model->inputs();
-   ov::OutputVector outputs = model->outputs();
-
-   // get state names pairs (inp,out) and compute overall states size
-   size_t state_size = 0;
-   std::vector<std::pair<std::string, std::string>> state_names;
-   for (size_t i = 0; i < inputs.size(); i++) {
-      std::string inp_state_name = inputs[i].get_any_name();
-      if (inp_state_name.find("inp_state_") == std::string::npos)
-         continue;
-
-      std::string out_state_name(inp_state_name);
-      out_state_name.replace(0, 3, "out");
-
-      // find corresponding output state
-      if (outputs.end() == std::find_if(outputs.begin(), outputs.end(), [&out_state_name](const ov::Output<ov::Node>& output) {
-         return output.get_any_name() == out_state_name;
-         }))
-         throw std::runtime_error("model output state name does not correspond input state name");
-
-         state_names.emplace_back(inp_state_name, out_state_name);
-
-         ov::Shape shape = inputs[i].get_shape();
-         size_t tensor_size = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
-
-         state_size += tensor_size;
-   }
-
-   if (state_size == 0)
-      throw std::runtime_error("no expected model state inputs found");
-
-   compiledModel = core.compile_model(model, mSupportedDevices[m_deviceSelectionChoice], {});
-   
+   return !TotalProgress(perc);
 }
 
-bool EffectOVNoiseSuppression::ApplyNoiseSuppression(std::shared_ptr<WaveChannel> pChannel, ov::CompiledModel& compiledModel, sampleCount start, size_t total_samples)
+static bool NSProgressCallback(float perc_complete, void* user)
 {
-   bool ret = true;
-   try
-   {
-      auto inputs = compiledModel.inputs();
-      auto outputs = compiledModel.outputs();
+   EffectOVNoiseSuppression* pThis = (EffectOVNoiseSuppression*)user;
 
-      // get state names pairs (inp,out) and compute overall states size
-      size_t state_size = 0;
-      std::vector<std::pair<std::string, std::string>> state_names;
-      for (size_t i = 0; i < inputs.size(); i++) {
-         std::string inp_state_name = inputs[i].get_any_name();
-         if (inp_state_name.find("inp_state_") == std::string::npos)
-            continue;
-
-         std::string out_state_name(inp_state_name);
-         out_state_name.replace(0, 3, "out");
-
-         // find corresponding output state
-         if (outputs.end() == std::find_if(outputs.begin(), outputs.end(), [&out_state_name](const ov::Output<const ov::Node>& output) {
-            return output.get_any_name() == out_state_name;
-            }))
-            throw std::runtime_error("model output state name does not correspond input state name");
-
-            state_names.emplace_back(inp_state_name, out_state_name);
-
-            ov::Shape shape = inputs[i].get_shape();
-            size_t tensor_size = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
-
-            state_size += tensor_size;
-      }
-
-      if (state_size == 0)
-         throw std::runtime_error("no expected model state inputs found");
-
-      ov::InferRequest infer_request = compiledModel.create_infer_request();
-
-      // Prepare input
-      // get size of network input (patch_size)
-      std::string input_name("input");
-      ov::Shape inp_shape = compiledModel.input(input_name).get_shape();
-      size_t patch_size = inp_shape[1];
-
-      // try to get delay output and freq output for model
-      int delay = 0;
-      int freq_model = 16000; // default sampling rate for model
-      infer_request.infer();
-      for (size_t i = 0; i < outputs.size(); i++) {
-         std::string out_name = outputs[i].get_any_name();
-         if (out_name == "delay") {
-            delay = infer_request.get_tensor("delay").data<int>()[0];
-         }
-         if (out_name == "freq") {
-            freq_model = infer_request.get_tensor("freq").data<int>()[0];
-         }
-      }
-
-      std::cout << "delay = " << delay << std::endl;
-      size_t iter = 1 + ((total_samples + delay) / patch_size);
-      size_t inp_size = patch_size * iter;
-
-      Floats entire_input{ inp_size };
-      bool bOkay = pChannel->GetFloats(entire_input.get(), start, total_samples);
-      if (!bOkay)
-      {
-         throw std::runtime_error("Unable to get " + std::to_string(total_samples) + " samples.");
-      }
-
-      //zero out the stuff we buffered
-      for (int i = total_samples; i < inp_size; i++)
-      {
-         entire_input[i] = 0.f;
-      }
-
-      Floats entire_output{ inp_size };
-
-      float* pInput = entire_input.get();
-      float* pOutput = entire_output.get();
-
-      for (size_t i = 0; i < iter; ++i) {
-         ov::Tensor input_tensor(ov::element::f32, inp_shape, &pInput[i * patch_size]);
-         infer_request.set_tensor(input_name, input_tensor);
-
-         for (auto& state_name : state_names) {
-            const std::string& inp_state_name = state_name.first;
-            const std::string& out_state_name = state_name.second;
-            ov::Tensor state_tensor;
-            if (i > 0) {
-               // set input state by coresponding output state from prev infer
-               state_tensor = infer_request.get_tensor(out_state_name);
-            }
-            else {
-               // first iteration. set input state to zero tensor.
-               ov::Shape state_shape = compiledModel.input(inp_state_name).get_shape();
-               state_tensor = ov::Tensor(ov::element::f32, state_shape);
-               std::memset(state_tensor.data<float>(), 0, state_tensor.get_byte_size());
-            }
-            infer_request.set_tensor(inp_state_name, state_tensor);
-         }
-
-         infer_request.infer();
-
-         {
-            // process output
-            float* src = infer_request.get_tensor("output").data<float>();
-            float* dst = &pOutput[i * patch_size];
-            std::memcpy(dst, src, patch_size * sizeof(float));
-         }
-
-         // This returns true if the user clicks 'cancel' button
-         if (TotalProgress((double)(i + 1) / double(iter)))
-         {
-            return false;
-         }
-
-      } // for iter
-
-      ret = pChannel->Set((samplePtr)entire_output.get(), floatSample, start, total_samples);
-      if (!ret)
-      {
-         throw std::runtime_error("WaveTrack::Set failed for " + std::to_string(total_samples) + " samples.");
-      }
-
-   }
-   catch (const std::exception& error) {
-      wxLogError("In Noise Suppression, exception: %s", error.what());
-      EffectUIServices::DoMessageBox(*this,
-         XO("Noise Suppression failed. See details in Help->Diagnostics->Show Log..."),
-         wxICON_STOP,
-         XO("Error"));
-      return false;
-   }
-
-   return ret;
+   return pThis->UpdateProgress(perc_complete);
 }
 
 bool EffectOVNoiseSuppression::Process(EffectInstance&, EffectSettings&)
@@ -323,12 +349,50 @@ bool EffectOVNoiseSuppression::Process(EffectInstance&, EffectSettings&)
    bool bGoodResult = true;
 
    ov::CompiledModel compiledModel;
+   std::shared_ptr< NoiseSuppressionModel > ns_model;
    try
    {
       auto compile_compiledModel_fut = std::async(std::launch::async, [this, &compiledModel]() {
-         try {
-            CompileNoiseSuppression(compiledModel);
-            return true;
+         std::shared_ptr< NoiseSuppressionModel > ret;
+         try
+         {
+            //CompileNoiseSuppression(compiledModel);
+            FilePath model_folder = FileNames::MkDir(wxFileName(FileNames::BaseDir(), wxT("openvino-models")).GetFullPath());
+            FilePath cache_folder = FileNames::MkDir(wxFileName(FileNames::DataDir(), wxT("openvino-model-cache")).GetFullPath());
+            std::string cache_path = wstring_to_string(wxFileName(cache_folder).GetFullPath().ToStdWstring());
+
+            auto model_selection_string = mSupportedModels[m_modelSelectionChoice];
+            if ((model_selection_string == "deepfilternet2") || (model_selection_string == "deepfilternet3"))
+            {
+               ov_deepfilternet::ModelSelection dfnet_selection = ov_deepfilternet::ModelSelection::DEEPFILTERNET2;
+               if (model_selection_string == "deepfilternet3")
+               {
+                  dfnet_selection = ov_deepfilternet::ModelSelection::DEEPFILTERNET3;
+               }
+
+               auto ns_df = std::make_shared< NoiseSuppressionDFModel >(audacity::ToUTF8(wxFileName(model_folder).GetFullPath()),
+                  mSupportedDevices[m_deviceSelectionChoice], cache_path, dfnet_selection);
+
+               std::cout << "setting attn limit of " << mAttenuationLimit << std::endl;
+               ns_df->SetAttenLimit(mAttenuationLimit);
+
+               std::cout << "setting df3 post filter to " << mbRunDF3PostFilter << std::endl;
+               ns_df->SetDF3PostFilter(mbRunDF3PostFilter);
+
+               ret = ns_df;
+            }
+            else
+            {
+               //must be an omz model then.
+               auto model_file = model_selection_string + ".xml";
+               std::string  model_path = audacity::ToUTF8(wxFileName(model_folder, wxString(model_file))
+                  .GetFullPath());
+
+               std::cout << "Using model path = " << model_path << std::endl;
+               ret = std::make_shared< NoiseSuppressionOMZModel >(model_path, mSupportedDevices[m_deviceSelectionChoice], cache_path);
+            }
+
+            return ret;
          }
          catch (const std::exception& error) {
             wxLogError("In Noise Suppression Compilation, exception: %s", error.what());
@@ -336,9 +400,9 @@ bool EffectOVNoiseSuppression::Process(EffectInstance&, EffectSettings&)
                XO("Noise Suppression failed. See details in Help->Diagnostics->Show Log..."),
                wxICON_STOP,
                XO("Error"));
-            return false;
+            return ret;
          }
-         });
+      });
 
       std::future_status status;
       float total_time = 0.f;
@@ -358,69 +422,105 @@ bool EffectOVNoiseSuppression::Process(EffectInstance&, EffectSettings&)
 
       } while (status != std::future_status::ready);
 
-      auto success = compile_compiledModel_fut.get();
+      ns_model = compile_compiledModel_fut.get();
 
-      if (!success)
+      if (!ns_model)
       {
-         std::cout << "CompileNoiseSuppression routine failed." << std::endl;
+         //It'd be kind of odd for control to reach here, as any compilation failure should
+         // have thrown an exception which would put us in the below 'catch'.
+         wxLogError("Noise Suppression Compilation appears to have failed.");
+         EffectUIServices::DoMessageBox(*this,
+            XO("Noise Suppression failed. See details in Help->Diagnostics->Show Log..."),
+            wxICON_STOP,
+            XO("Error"));
          return false;
       }
+   }
+   catch (const std::exception& error) {
+      wxLogError("In Noise Suppression Compilation, exception: %s", error.what());
+      EffectUIServices::DoMessageBox(*this,
+         XO("Noise Suppression failed. See details in Help->Diagnostics->Show Log..."),
+         wxICON_STOP,
+         XO("Error"));
+      return false;
+   }
+
+   try
+   {
+      //mCurTrackNum = 0;
+      size_t wavetracki = 0;
+      for (auto pOutWaveTrack : outputs.Get().Selected<WaveTrack>())
+      {
+         //Get start and end times from track
+         double trackStart = pOutWaveTrack->GetStartTime();
+         double trackEnd = pOutWaveTrack->GetEndTime();
+
+         // Set the current bounds to whichever left marker is
+         // greater and whichever right marker is less:
+         const double curT0 = std::max(trackStart, mT0);
+         const double curT1 = std::min(trackEnd, mT1);
+
+         // Process only if the right marker is to the right of the left marker
+         if (curT1 > curT0) {
+
+            //first, copy the region of interest to a new track. We do this so that if we need
+            // to downsample to meet model requirements, we don't affect the area outside of the
+            // selection.
+            auto copiedTrackList = pOutWaveTrack->Copy(curT0, curT1);
+            auto pCopiedTrack = *copiedTrackList->Any<WaveTrack>().begin();
+
+            double origRate = pCopiedTrack->GetRate();
+            int model_sample_rate = ns_model->sample_rate();
+            if (origRate != model_sample_rate)
+            {
+               std::cout << "resampling from " << origRate << " to " << model_sample_rate << std::endl;
+               pCopiedTrack->Resample(model_sample_rate);
+            }
+            
+            //Transform the marker timepoints to samples
+            // Note, because of the above copy, we use start time of 0 here.
+            auto start = pCopiedTrack->TimeToLongSamples(0);
+            auto end = pCopiedTrack->TimeToLongSamples(curT1 - curT0);
+
+            size_t total_samples = (end - start).as_size_t();
+
+            for (size_t channeli = 0; channeli < pCopiedTrack->Channels().size(); channeli++)
+            {
+               std::string message = "Running Noise Suppression on Track " + std::to_string(wavetracki) + ", channel " + std::to_string(channeli);
+               if (TotalProgress(0.01, TranslatableString{ wxString(message), {} }))
+               {
+                  return false;
+               }
+
+               auto pChannel = pCopiedTrack->GetChannel(channeli);
+
+               if (!ns_model->run(pChannel, start, total_samples, NSProgressCallback, this) )
+               {
+                  return false;
+               }
+            }
+
+            //resample back to original rate.
+            if (origRate != model_sample_rate)
+            {
+               pCopiedTrack->Resample(origRate);
+            }
+
+            //now, paste 'filtered' samples stored in pCopiedTrack to output WaveTrack
+            pOutWaveTrack->ClearAndPaste(curT0, curT1, *copiedTrackList);
+         }
+
+         wavetracki++;
+      }
+
+      if (bGoodResult)
+         outputs.Commit();
+
    }
    catch (const std::exception& error) {
       std::cout << "CompileNoiseSuppression routine failed: " << error.what() << std::endl;
       return false;
    }
-
-   //mCurTrackNum = 0;
-   size_t wavetracki = 0;
-   for (auto pOutWaveTrack : outputs.Get().Selected<WaveTrack>())
-   {
-      //Get start and end times from track
-      double trackStart = pOutWaveTrack->GetStartTime();
-      double trackEnd = pOutWaveTrack->GetEndTime();
-
-      // Set the current bounds to whichever left marker is
-      // greater and whichever right marker is less:
-      const double curT0 = std::max(trackStart, mT0);
-      const double curT1 = std::min(trackEnd, mT1);
-
-      // Process only if the right marker is to the right of the left marker
-      if (curT1 > curT0) {
-         double origRate = pOutWaveTrack->GetRate();
-         pOutWaveTrack->Resample(16000);
-
-         //Transform the marker timepoints to samples
-         auto start = pOutWaveTrack->TimeToLongSamples(curT0);
-         auto end = pOutWaveTrack->TimeToLongSamples(curT1);
-
-         size_t total_samples = (end - start).as_size_t();
-
-         for (size_t channeli = 0; channeli < pOutWaveTrack->Channels().size(); channeli++)
-         {
-            std::string message = "Running Noise Suppression on Track " + std::to_string(wavetracki) + ", channel " + std::to_string(channeli);
-            if (TotalProgress(0.01, TranslatableString{ wxString(message), {} }))
-            {
-               return false;
-            }
-
-            auto pChannel = pOutWaveTrack->GetChannel(channeli);
-
-            if (!ApplyNoiseSuppression(pChannel, compiledModel, start, total_samples))
-            {
-               return false;
-            }
-
-         }
-
-         //resample back to original rate.
-         pOutWaveTrack->Resample(origRate);
-      }
-
-      wavetracki++;
-   }
-
-   if (bGoodResult)
-      outputs.Commit();
 
    return bGoodResult;
 }
