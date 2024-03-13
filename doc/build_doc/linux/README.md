@@ -15,7 +15,7 @@ Here are some of the dependencies that you need to grab. If applicable, I'll als
 ```
 sudo apt install build-essential
 ```
-* OpenVINO - Download appropriate version from [here](https://storage.openvinotoolkit.org/repositories/openvino/packages/2023.3/linux/). For these instructions, we will use ```l_openvino_toolkit_ubuntu22_*x86_64tgz```.
+* OpenVINO - Download appropriate version from [here](https://storage.openvinotoolkit.org/repositories/openvino/packages/2024.0/linux). For these instructions, we will use ```l_openvino_toolkit_ubuntu22_*x86_64tgz```.
 ```
 # Extract it
 tar xvf l_openvino_toolkit_ubuntu22_*x86_64.tgz 
@@ -28,13 +28,13 @@ cd ..
 # setup env
 source setupvars.sh
 ```
-* OpenVINO Tokenizers Extension - Download package from [here](https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/2023.3.0.0/). For these instructions, we will use ```openvino_tokenizers_ubuntu22_2023.3.0.0_x86_64.tgz```.
+* OpenVINO Tokenizers Extension - Download package from [here](https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/2024.0.0.0/). For these instructions, we will use ```openvino_tokenizers_ubuntu22_2024.0.0.0_x86_64.tgz```.
 ```
 # extract it 
-tar xzvf openvino_tokenizers_ubuntu22_2023.3.0.0_x86_64.tgz
+tar xzvf openvino_tokenizers_ubuntu22_2024.0.0.0_x86_64.tgz
 
 # copy extension libraries into OpenVINO lib folder:
-cp openvino_tokenizers_ubuntu22_2023.3.0.0_x86_64/* l_openvino_toolkit_ubuntu22_2023.3.0.13775.ceeafaf64f3_x86_64/runtime/lib/intel64/
+cp openvino_tokenizers_ubuntu22_2024.0.0.0_x86_64/* l_openvino_toolkit_ubuntu22_2024.0.0.14509.34caeefd078_x86_64/runtime/lib/intel64/
 ```
 
 * OpenCV - Only a dependency for the  OpenVINO Stable-Diffusion CPP samples (to read/write images from disk, display images, etc.). You can install like this:
