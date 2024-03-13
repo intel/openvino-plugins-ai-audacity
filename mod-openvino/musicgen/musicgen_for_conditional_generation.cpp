@@ -27,11 +27,8 @@ namespace ov_musicgen
       if (config.cache_folder)
       {
          std::cout << "Setting cache_dir to " << *config.cache_folder << std::endl;
-         //Note: We convert UTF-8 std::string to std::wstring, as there is some issue in in OV 2023.3
-         // that doesn't handle special characters properly. https://github.com/openvinotoolkit/openvino/issues/23072
-         // (even though core.read_model seems to handle these path's just fine.)
-         // TODO: Once this bug is fixed (presumably in 2024.0), remove this conversion to wstring.
-         core.set_property(ov::cache_dir(ToWString(*config.cache_folder)));
+
+         core.set_property(ov::cache_dir(*config.cache_folder));
       }
 
       torch::Generator generator = at::detail::createCPUGenerator();
