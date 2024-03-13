@@ -133,6 +133,7 @@ private:
    int m_contextLengthChoice = 0;
    wxChoice* mTypeChoiceContextLength;
 
+   std::vector< std::string > mModelSelections;
    std::vector< EnumValueSymbol > mGuiModelSelections;
    int m_modelSelectionChoice = 0;
    wxChoice* mTypeChoiceModelSelection;

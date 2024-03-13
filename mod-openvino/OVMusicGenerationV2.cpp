@@ -49,9 +49,87 @@ EVT_CHECKBOX(ID_Type_AudioContinuationCheckBox, EffectOVMusicGenerationV2::OnCon
 EVT_CHECKBOX(ID_Type_AudioContinuationAsNewTrackCheckBox, EffectOVMusicGenerationV2::OnContextLengthChanged)
 END_EVENT_TABLE()
 
+// Determine which variants of musicgen are available by polling available
+// file in openvino-models/musicgen. Note that this only checks a sub-sample
+// of the required files for each variant. In the case where *some* of the files
+// exist (enough to satisfy this check), but not *all* required for some variant,
+// then we'll see some exception thrown about missing files when user actually goes
+// to run that. This should be a rare occurence.
+// If all models are available, this function should return a list that look like this:
+//{
+//"musicgen-small-fp16-mono",
+//"musicgen-small-int8-mono",
+//"musicgen-small-fp16-stereo",
+//"musicgen-small-int8-stereo"
+//}
+static std::vector<std::string> FindAvailableModels()
+{
+   std::vector<std::string> available_models;
+
+   auto model_folder = wxFileName(FileNames::BaseDir(), wxT("openvino-models")).GetFullPath();
+   model_folder = wxFileName(model_folder, wxT("musicgen")).GetFullPath();
+
+   //make sure that a couple of the 'base' models, like EnCodec, tokenizer are present.
+   // If any of these aren't found, then just return an empty list.. we can't
+   // support anything without these 'base' files.
+   {
+      //check encodec encoder
+      auto encodec_enc_file = wxFileName(model_folder, wxString("encodec_encoder_10s.xml"));
+      if (!encodec_enc_file.FileExists())
+      {
+         return {};
+      }
+
+      //check encodec decoder
+      auto encodec_dec_file = wxFileName(model_folder, wxString("encodec_20s.xml"));
+      if (!encodec_dec_file.FileExists())
+      {
+         return {};
+      }
+
+      //check tokenizer
+      auto tokenizer_file = wxFileName(model_folder, wxString("musicgen-small-tokenizer.xml"));
+      if (!tokenizer_file.FileExists())
+      {
+         return {};
+      }
+   }
+
+   //mono
+   //check to see if a few mono-specific files are present.
+   {
+      auto mono_model_folder = wxFileName(model_folder, wxT("mono")).GetFullPath();
+
+      auto decoder = wxFileName(mono_model_folder, wxString("musicgen_decoder_static.xml"));
+      auto decoder_batch1 = wxFileName(mono_model_folder, wxString("musicgen_decoder_static_batch1.xml"));
+      auto decoder_int8 = wxFileName(mono_model_folder, wxString("musicgen_decoder_static_int8.xml"));
+      if (decoder.FileExists() && decoder_batch1.FileExists() && decoder_int8.FileExists())
+      {
+         available_models.push_back("musicgen-small-fp16-mono");
+         available_models.push_back("musicgen-small-int8-mono");
+      }
+   }
+
+   //stereo
+   //check to see if a few stereo-specific files are present.
+   {
+      auto stereo_model_folder = wxFileName(model_folder, wxT("stereo")).GetFullPath();
+
+      auto decoder = wxFileName(stereo_model_folder, wxString("musicgen_decoder_static.xml"));
+      auto decoder_batch1 = wxFileName(stereo_model_folder, wxString("musicgen_decoder_static_batch1.xml"));
+      auto decoder_int8 = wxFileName(stereo_model_folder, wxString("musicgen_decoder_static_int8.xml"));
+      if (decoder.FileExists() && decoder_batch1.FileExists() && decoder_int8.FileExists())
+      {
+         available_models.push_back("musicgen-small-fp16-stereo");
+         available_models.push_back("musicgen-small-int8-stereo");
+      }
+   }
+
+   return available_models;
+}
+
 EffectOVMusicGenerationV2::EffectOVMusicGenerationV2()
 {
-
    Parameters().Reset(*this);
 
    ov::Core core;
@@ -77,13 +155,11 @@ EffectOVMusicGenerationV2::EffectOVMusicGenerationV2()
       mGuiContextLengthSelections.push_back({ TranslatableString{ wxString(d), {}} });
    }
 
-   std::vector<std::string> model_selection_choices = { "musicgen-small-fp16-stereo",
-                                                        "musicgen-small-int8-stereo",
-                                                        "musicgen-small-fp16-mono",
-                                                        "musicgen-small-int8-mono" };
-   for (auto d : model_selection_choices)
+   mModelSelections = FindAvailableModels();
+
+   for (auto m : mModelSelections)
    {
-      mGuiModelSelections.push_back({ TranslatableString{ wxString(d), {}} });
+      mGuiModelSelections.push_back({ TranslatableString{ wxString(m), {}} });
    }
 
 }
@@ -202,8 +278,15 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
          continuation_context = ov_musicgen::MusicGenConfig::ContinuationContext::TEN_SECONDS;
       }
 
+      std::string model_selection_str = mModelSelections[m_modelSelectionChoice];
+
+      std::cout << "model_selection_string = " << model_selection_str << std::endl;
+
+      bool bFP16 = (model_selection_str.find("fp16") != std::string::npos);
+      bool bStereo = (model_selection_str.find("stereo") != std::string::npos);
+
       ov_musicgen::MusicGenConfig::ModelSelection model_selection;
-      if ((m_modelSelectionChoice % 2) == 0)
+      if (bFP16)
       {
          model_selection = ov_musicgen::MusicGenConfig::ModelSelection::MUSICGEN_SMALL_FP16;
       }
@@ -211,8 +294,6 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
       {
          model_selection = ov_musicgen::MusicGenConfig::ModelSelection::MUSICGEN_SMALL_INT8;
       }
-
-      bool bStereo = (m_modelSelectionChoice < 2);
 
       std::cout << "encodec_device = " << encodec_device << std::endl;
       std::cout << "MusicGen Decode Device 0 = " << musicgen_dec0_device << std::endl;
@@ -1125,6 +1206,12 @@ bool EffectOVMusicGenerationV2::TransferDataToWindow(const EffectSettings& setti
    }
 
    EffectEditor::EnablePreview(mUIParent, false);
+
+   if (mModelSelections.empty())
+   {
+      wxLogInfo("OpenVINO Music Generation V2 has no models installed.");
+      EffectEditor::EnableApply(mUIParent, false);
+   }
 
    if (mDurationT)
    {
