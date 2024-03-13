@@ -13,11 +13,21 @@ namespace ov_musicgen
          _gen = std::make_shared< MusicgenForConditionalGeneration >(config);
 
          ov::Core core;
-         //TODO: This library name will need to get changed from 'user_ov_extensions' to 'openvino_tokenizers' for future OpenVINO / openvino-tokenizers releases.
+
+#if OPENVINO_VERSION_MAJOR>=2024
+#ifdef WIN32
+         core.add_extension("openvino_tokenizers.dll");
+#else
+         core.add_extension("libopenvino_tokenizers.so");
+#endif
+#elif (OPENVINO_VERSION_MAJOR==2023)&&(OPENVINO_VERSION_MINOR==3)
 #ifdef WIN32
          core.add_extension("user_ov_extensions.dll");
 #else
          core.add_extension("libuser_ov_extensions.so");
+#endif
+#else
+#error OpenVINO 2023.3.0 or later is required.
 #endif
 
          auto tokenizer_model_path = FullPath(config.model_folder, "musicgen-small-tokenizer.xml");
