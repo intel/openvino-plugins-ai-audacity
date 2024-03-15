@@ -70,6 +70,7 @@ EffectOVMusicStyleRemix::EffectOVMusicStyleRemix()
       if (d == "NPU")
       {
          m_deviceSelectionChoice_UNetNegative = mGuiDeviceVPUSupportedSelections.size() - 1;
+         continue;
       }
 
       mGuiDeviceNonVPUSupportedSelections.push_back(wxString(d));
