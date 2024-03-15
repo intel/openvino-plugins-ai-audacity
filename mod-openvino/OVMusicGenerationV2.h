@@ -55,6 +55,8 @@ public:
 
    bool MusicGenCallback(float perc_complete);
 
+
+
 private:
 
    wxWeakRef<wxWindow> mUIParent{};
@@ -81,10 +83,13 @@ private:
 
       ID_Type_AudioContinuationCheckBox,
       ID_Type_AudioContinuationAsNewTrackCheckBox,
+
+      ID_Type_DeviceInfoButton
    };
 
    void OnContextLengthChanged(wxCommandEvent& evt);
    void OnUnloadModelsButtonClicked(wxCommandEvent& evt);
+   void OnDeviceInfoButtonClicked(wxCommandEvent& evt);
 
    wxChoice* mTypeChoiceDeviceCtrl_EnCodec;
    wxChoice* mTypeChoiceDeviceCtrl_Decode0;
@@ -145,6 +150,8 @@ private:
 
    void SetContinuationContextWarning();
    wxStaticText* _continuationContextWarning = nullptr;
+
+   std::vector<std::pair<std::string, std::string>> m_simple_to_full_device_map;
 
    DECLARE_EVENT_TABLE()
 };

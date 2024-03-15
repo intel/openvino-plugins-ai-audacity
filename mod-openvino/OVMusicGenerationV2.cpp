@@ -44,6 +44,7 @@ namespace { BuiltinEffectsModule::Registration< EffectOVMusicGenerationV2 > reg;
 
 BEGIN_EVENT_TABLE(EffectOVMusicGenerationV2, wxEvtHandler)
 EVT_BUTTON(ID_Type_UnloadModelsButton, EffectOVMusicGenerationV2::OnUnloadModelsButtonClicked)
+EVT_BUTTON(ID_Type_DeviceInfoButton, EffectOVMusicGenerationV2::OnDeviceInfoButtonClicked)
 EVT_CHOICE(ID_Type_ContextLength, EffectOVMusicGenerationV2::OnContextLengthChanged)
 EVT_CHECKBOX(ID_Type_AudioContinuationCheckBox, EffectOVMusicGenerationV2::OnContextLengthChanged)
 EVT_CHECKBOX(ID_Type_AudioContinuationAsNewTrackCheckBox, EffectOVMusicGenerationV2::OnContextLengthChanged)
@@ -142,7 +143,7 @@ EffectOVMusicGenerationV2::EffectOVMusicGenerationV2()
       //GNA devices are not supported
       if (d.find("GNA") != std::string::npos) continue;
 
-      //auto full_device_name = d + " [" + core.get_property(d, "FULL_DEVICE_NAME").as<std::string>() + "]";
+      m_simple_to_full_device_map.push_back({ d, core.get_property(d, "FULL_DEVICE_NAME").as<std::string>() });
 
       mGuiDeviceVPUSupportedSelections.push_back(wxString(d));
 
@@ -877,6 +878,22 @@ std::unique_ptr<EffectEditor> EffectOVMusicGenerationV2::PopulateOrExchange(
    return nullptr;
 }
 
+void EffectOVMusicGenerationV2::OnDeviceInfoButtonClicked(wxCommandEvent& evt)
+{
+   std::string device_mapping_str = "";
+   for (auto e : m_simple_to_full_device_map)
+   {
+      device_mapping_str += e.first + " = " + e.second;
+      device_mapping_str += "\n";
+   }
+   auto v = TranslatableString(device_mapping_str, {});
+
+   EffectUIServices::DoMessageBox(*this,
+      v,
+      wxICON_INFORMATION,
+      XO("OpenVINO Device Details"));
+}
+
 void EffectOVMusicGenerationV2::DoPopulateOrExchange(
    ShuttleGui& S, EffectSettingsAccess& access)
 {
@@ -959,28 +976,50 @@ void EffectOVMusicGenerationV2::DoPopulateOrExchange(
       }
       S.EndMultiColumn();
 
-      S.StartStatic(XO(""));
+      S.StartStatic(XO(""), wxRIGHT);
       {
-         S.StartMultiColumn(2, wxLEFT);
+         S.StartMultiColumn(3, wxEXPAND);
          {
-            mTypeChoiceDeviceCtrl_EnCodec = S.Id(ID_Type_EnCodec)
-               .MinSize({ -1, -1 })
-               .Validator<wxGenericValidator>(&m_deviceSelectionChoice_EnCodec)
-               .AddChoice(XXO("EnCodec Device:"),
-                  Msgids(mGuiDeviceNonVPUSupportedSelections.data(), mGuiDeviceNonVPUSupportedSelections.size()));
+            S.StartMultiColumn(2, wxLEFT);
+            {
+               mTypeChoiceDeviceCtrl_EnCodec = S.Id(ID_Type_EnCodec)
+                  .MinSize({ -1, -1 })
+                  .Validator<wxGenericValidator>(&m_deviceSelectionChoice_EnCodec)
+                  .AddChoice(XXO("EnCodec Device:"),
+                     Msgids(mGuiDeviceNonVPUSupportedSelections.data(), mGuiDeviceNonVPUSupportedSelections.size()));
 
-            mTypeChoiceDeviceCtrl_Decode0 = S.Id(ID_Type_MusicGenDecodeDevice0)
-               .MinSize({ -1, -1 })
-               .Validator<wxGenericValidator>(&m_deviceSelectionChoice_MusicGenDecode0)
-               .AddChoice(XXO("MusicGen Decode Device 0:"),
-                  Msgids(mGuiDeviceVPUSupportedSelections.data(), mGuiDeviceVPUSupportedSelections.size()));
+               mTypeChoiceDeviceCtrl_Decode0 = S.Id(ID_Type_MusicGenDecodeDevice0)
+                  .MinSize({ -1, -1 })
+                  .Validator<wxGenericValidator>(&m_deviceSelectionChoice_MusicGenDecode0)
+                  .AddChoice(XXO("MusicGen Decode Device 0:"),
+                     Msgids(mGuiDeviceVPUSupportedSelections.data(), mGuiDeviceVPUSupportedSelections.size()));
 
-            mTypeChoiceDeviceCtrl_Decode1 = S.Id(ID_Type_MusicGenDecodeDevice1)
-               .MinSize({ -1, -1 })
-               .Validator<wxGenericValidator>(&m_deviceSelectionChoice_MusicGenDecode1)
-               .AddChoice(XXO("MusicGen Decode Device 1:"),
-                  Msgids(mGuiDeviceVPUSupportedSelections.data(), mGuiDeviceVPUSupportedSelections.size()));
+               mTypeChoiceDeviceCtrl_Decode1 = S.Id(ID_Type_MusicGenDecodeDevice1)
+                  .MinSize({ -1, -1 })
+                  .Validator<wxGenericValidator>(&m_deviceSelectionChoice_MusicGenDecode1)
+                  .AddChoice(XXO("MusicGen Decode Device 1:"),
+                     Msgids(mGuiDeviceVPUSupportedSelections.data(), mGuiDeviceVPUSupportedSelections.size()));
 
+            }
+            S.EndMultiColumn();
+
+            S.StartMultiColumn(1, wxLEFT);
+            {
+               S.AddVariableText(XO(""));
+            }
+            S.EndMultiColumn();
+
+            S.StartMultiColumn(1, wxLEFT);
+            {
+               //add some dummy objects to move device info button down..
+               S.AddVariableText(XO(""));
+               S.AddVariableText(XO(""));
+               S.AddVariableText(XO(""));
+               auto device_info_button = S.Id(ID_Type_DeviceInfoButton).AddButton(XO("Device Details..."));
+            }
+            S.EndMultiColumn();
+
+            S.SetStretchyCol(1);
          }
          S.EndMultiColumn();
       }
