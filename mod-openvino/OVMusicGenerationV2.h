@@ -81,20 +81,17 @@ private:
 
       ID_Type_AudioContinuationCheckBox,
       ID_Type_AudioContinuationAsNewTrackCheckBox,
-
    };
 
    void OnContextLengthChanged(wxCommandEvent& evt);
    void OnUnloadModelsButtonClicked(wxCommandEvent& evt);
 
    wxChoice* mTypeChoiceDeviceCtrl_EnCodec;
-
    wxChoice* mTypeChoiceDeviceCtrl_Decode0;
    wxChoice* mTypeChoiceDeviceCtrl_Decode1;
 
 
    int m_deviceSelectionChoice_EnCodec = 0;
-
    int m_deviceSelectionChoice_MusicGenDecode0 = 0;
    int m_deviceSelectionChoice_MusicGenDecode1 = 0;
 
@@ -130,7 +127,7 @@ private:
    ov_musicgen::MusicGenConfig _musicgen_config;
 
    std::vector< EnumValueSymbol > mGuiContextLengthSelections;
-   int m_contextLengthChoice = 0;
+   int m_contextLengthChoice = 1; //default to 10s
    wxChoice* mTypeChoiceContextLength;
 
    std::vector< std::string > mModelSelections;

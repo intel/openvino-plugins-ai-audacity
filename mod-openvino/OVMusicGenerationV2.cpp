@@ -38,7 +38,7 @@
 
 #include "InterpolateAudio.h"
 
-const ComponentInterfaceSymbol EffectOVMusicGenerationV2::Symbol{ XO("OpenVINO Music Generation V2") };
+const ComponentInterfaceSymbol EffectOVMusicGenerationV2::Symbol{ XO("OpenVINO Music Generation") };
 
 namespace { BuiltinEffectsModule::Registration< EffectOVMusicGenerationV2 > reg; }
 
@@ -142,6 +142,8 @@ EffectOVMusicGenerationV2::EffectOVMusicGenerationV2()
       //GNA devices are not supported
       if (d.find("GNA") != std::string::npos) continue;
 
+      //auto full_device_name = d + " [" + core.get_property(d, "FULL_DEVICE_NAME").as<std::string>() + "]";
+
       mGuiDeviceVPUSupportedSelections.push_back(wxString(d));
 
       if (d == "NPU") continue;
@@ -161,7 +163,6 @@ EffectOVMusicGenerationV2::EffectOVMusicGenerationV2()
    {
       mGuiModelSelections.push_back({ TranslatableString{ wxString(m), {}} });
    }
-
 }
 
 EffectOVMusicGenerationV2::~EffectOVMusicGenerationV2()
@@ -876,15 +877,12 @@ std::unique_ptr<EffectEditor> EffectOVMusicGenerationV2::PopulateOrExchange(
    return nullptr;
 }
 
-
 void EffectOVMusicGenerationV2::DoPopulateOrExchange(
    ShuttleGui& S, EffectSettingsAccess& access)
 {
    mUIParent = S.GetParent();
 
    //EnablePreview(false); //Port this
-
-
 
    S.StartVerticalLay(wxLEFT);
    {
@@ -949,24 +947,22 @@ void EffectOVMusicGenerationV2::DoPopulateOrExchange(
             .Validator<wxGenericValidator>(&m_modelSelectionChoice)
             .AddChoice(XXO("Model Selection:"),
                Msgids(mGuiModelSelections.data(), mGuiModelSelections.size()));
-
-
       }
       S.EndMultiColumn();
 
-      S.StartMultiColumn(4, wxLEFT);
+
+      S.StartMultiColumn(2, wxLEFT);
       {
-         S.StartMultiColumn(2, wxCENTER);
-         {
-            mTextPrompt = S.Id(ID_Type_Prompt)
-               .Style(wxTE_LEFT)
-               .AddTextBox(XXO("Prompt:"), wxString(_prompt), 60);
-         }
-         S.EndMultiColumn();
+         mTextPrompt = S.Id(ID_Type_Prompt)
+            .Style(wxTE_LEFT)
+            .AddTextBox(XXO("Prompt:"), wxString(_prompt), 60);
+      }
+      S.EndMultiColumn();
 
-         S.StartMultiColumn(2, wxCENTER);
+      S.StartStatic(XO(""));
+      {
+         S.StartMultiColumn(2, wxLEFT);
          {
-
             mTypeChoiceDeviceCtrl_EnCodec = S.Id(ID_Type_EnCodec)
                .MinSize({ -1, -1 })
                .Validator<wxGenericValidator>(&m_deviceSelectionChoice_EnCodec)
@@ -976,20 +972,19 @@ void EffectOVMusicGenerationV2::DoPopulateOrExchange(
             mTypeChoiceDeviceCtrl_Decode0 = S.Id(ID_Type_MusicGenDecodeDevice0)
                .MinSize({ -1, -1 })
                .Validator<wxGenericValidator>(&m_deviceSelectionChoice_MusicGenDecode0)
-               .AddChoice(XXO("MusicGen Decode Device:"),
+               .AddChoice(XXO("MusicGen Decode Device 0:"),
                   Msgids(mGuiDeviceVPUSupportedSelections.data(), mGuiDeviceVPUSupportedSelections.size()));
 
             mTypeChoiceDeviceCtrl_Decode1 = S.Id(ID_Type_MusicGenDecodeDevice1)
                .MinSize({ -1, -1 })
                .Validator<wxGenericValidator>(&m_deviceSelectionChoice_MusicGenDecode1)
-               .AddChoice(XXO("MusicGen Decode Device:"),
+               .AddChoice(XXO("MusicGen Decode Device 1:"),
                   Msgids(mGuiDeviceVPUSupportedSelections.data(), mGuiDeviceVPUSupportedSelections.size()));
 
-            //mTypeChoiceScheduler->Hide();
          }
          S.EndMultiColumn();
       }
-      S.EndMultiColumn();
+      S.EndStatic();
 
       S.StartMultiColumn(2, wxLEFT);
       {
@@ -1100,8 +1095,6 @@ void EffectOVMusicGenerationV2::DoPopulateOrExchange(
       }
       S.EndMultiColumn();
 
-
-
       S.StartMultiColumn(2, wxLEFT);
       {
          _continuationContextWarning = S.AddVariableText(XO("Some default text"), false,
@@ -1115,10 +1108,8 @@ void EffectOVMusicGenerationV2::DoPopulateOrExchange(
       S.EndMultiColumn();
 
       }
-
    S.EndVerticalLay();
-
-   }
+}
 
 void EffectOVMusicGenerationV2::SetContinuationContextWarning()
 {
