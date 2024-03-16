@@ -45,6 +45,7 @@ public:
       EffectSettingsAccess& access, const EffectOutputs* pOutputs) override;
 
    void OnAdvancedCheckboxChanged(wxCommandEvent& evt);
+   void OnDeviceInfoButtonClicked(wxCommandEvent& evt);
 
 protected:
 
@@ -64,7 +65,8 @@ private:
       ID_Type = 10000,
       ID_Type_Model,
       ID_Attn_Limit,
-      ID_Type_AdvancedCheckbox
+      ID_Type_AdvancedCheckbox,
+      ID_Type_DeviceInfoButton
    };
 
    std::vector< std::string > mSupportedDevices;
@@ -90,6 +92,8 @@ private:
    wxSizer* df3postfiltersizer = nullptr;
 
    wxWeakRef<wxWindow> mUIParent{};
+
+   std::vector<std::pair<std::string, std::string>> m_simple_to_full_device_map;
 
    DECLARE_EVENT_TABLE()
 };

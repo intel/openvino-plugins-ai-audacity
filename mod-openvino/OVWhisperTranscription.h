@@ -45,6 +45,7 @@ public:
    bool _EncoderBegin();
 
    void OnAdvancedCheckboxChanged(wxCommandEvent& evt);
+   void OnDeviceInfoButtonClicked(wxCommandEvent& evt);
 
 protected:
 
@@ -73,6 +74,7 @@ private:
       ID_Type_Mode = 10002,
       ID_Type_Language = 10003,
       ID_Type_AdvancedCheckbox = 10004,
+      ID_Type_DeviceInfoButton = 10005
    };
 
    wxChoice* mTypeChoiceDeviceCtrl;
@@ -126,6 +128,8 @@ private:
 
    int mBestOf = 1;
    wxTextCtrl* mBestOfCtrl = nullptr;
+
+   std::vector<std::pair<std::string, std::string>> m_simple_to_full_device_map;
 
    DECLARE_EVENT_TABLE()
 };

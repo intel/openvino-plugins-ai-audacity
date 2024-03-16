@@ -40,7 +40,6 @@ public:
 
    EffectType GetType() const override;
 
-
    // Effect implementation
    bool Process(EffectInstance& instance, EffectSettings& settings) override;
    std::unique_ptr<EffectEditor> PopulateOrExchange(
