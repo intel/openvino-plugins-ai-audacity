@@ -34,6 +34,8 @@
 #include "SyncLock.h"
 #include "ConfigInterface.h"
 
+#include "OVStringUtils.h"
+
 #include <future>
 
 #include "InterpolateAudio.h"
@@ -302,7 +304,7 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
       std::cout << "MusicGen Decode Device 1 = " << musicgen_dec1_device << std::endl;
 
       FilePath cache_folder = FileNames::MkDir(wxFileName(FileNames::DataDir(), wxT("openvino-model-cache")).GetFullPath());
-      std::string cache_path = audacity::ToUTF8(wxFileName(cache_folder).GetFullPath());
+      std::string cache_path = wstring_to_string(wxFileName(cache_folder).GetFullPath().ToStdWstring());
       std::cout << "cache path = " << cache_path << std::endl;
 
       wxString added_trackName;
@@ -940,7 +942,6 @@ void EffectOVMusicGenerationLLM::DoPopulateOrExchange(
          S.AddPrompt(XXO("&Duration:"));
 
          auto& extra = access.Get().extra;
-         std::cout << "Creating prompt with duration = " << extra.GetDuration() << std::endl;
 
          mDurationT = safenew
             NumericTextCtrl(FormatterContext::SampleRateContext(mProjectRate),
