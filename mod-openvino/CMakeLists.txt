@@ -53,8 +53,8 @@ set( SOURCES
       ${NOISE_SUPPRESSION_SOURCES}
       OVMusicSeparation.cpp
       OVMusicSeparation.h
-      OVMusicGenerationV2.cpp
-      OVMusicGenerationV2.h
+      OVMusicGenerationLLM.cpp
+      OVMusicGenerationLLM.h
       OVWhisperTranscription.cpp
       OVWhisperTranscription.h
       htdemucs.cpp

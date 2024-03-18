@@ -20,15 +20,15 @@ class wxButton;
 #include <wx/weakref.h>
 #include "musicgen/musicgen.h"
 
-class EffectOVMusicGenerationV2 final : public StatefulEffect
+class EffectOVMusicGenerationLLM final : public StatefulEffect
 {
 public:
-   static inline EffectOVMusicGenerationV2*
-      FetchParameters(EffectOVMusicGenerationV2& e, EffectSettings&) { return &e; }
+   static inline EffectOVMusicGenerationLLM*
+      FetchParameters(EffectOVMusicGenerationLLM& e, EffectSettings&) { return &e; }
    static const ComponentInterfaceSymbol Symbol;
 
-   EffectOVMusicGenerationV2();
-   virtual ~EffectOVMusicGenerationV2();
+   EffectOVMusicGenerationLLM();
+   virtual ~EffectOVMusicGenerationLLM();
 
    // ComponentInterface implementation
 
@@ -122,7 +122,7 @@ private:
    std::string mProgMessage;
 
    double mRMSLevel = -20.0;
-   static constexpr EffectParameter RMSLevel{ &EffectOVMusicGenerationV2::mRMSLevel,
+   static constexpr EffectParameter RMSLevel{ &EffectOVMusicGenerationLLM::mRMSLevel,
    L"RMSLevel",            -20.0,      -145.0,  0.0,      1 };
 
    bool mIsCancelled = false;

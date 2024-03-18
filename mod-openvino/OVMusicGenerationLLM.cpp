@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 #include <openvino/openvino.hpp>
-#include "OVMusicGenerationV2.h"
+#include "OVMusicGenerationLLM.h"
 #include "WaveTrack.h"
 #include "EffectOutputTracks.h"
 #include "effects/EffectEditor.h"
@@ -38,16 +38,16 @@
 
 #include "InterpolateAudio.h"
 
-const ComponentInterfaceSymbol EffectOVMusicGenerationV2::Symbol{ XO("OpenVINO Music Generation") };
+const ComponentInterfaceSymbol EffectOVMusicGenerationLLM::Symbol{ XO("OpenVINO Music Generation") };
 
-namespace { BuiltinEffectsModule::Registration< EffectOVMusicGenerationV2 > reg; }
+namespace { BuiltinEffectsModule::Registration< EffectOVMusicGenerationLLM > reg; }
 
-BEGIN_EVENT_TABLE(EffectOVMusicGenerationV2, wxEvtHandler)
-EVT_BUTTON(ID_Type_UnloadModelsButton, EffectOVMusicGenerationV2::OnUnloadModelsButtonClicked)
-EVT_BUTTON(ID_Type_DeviceInfoButton, EffectOVMusicGenerationV2::OnDeviceInfoButtonClicked)
-EVT_CHOICE(ID_Type_ContextLength, EffectOVMusicGenerationV2::OnContextLengthChanged)
-EVT_CHECKBOX(ID_Type_AudioContinuationCheckBox, EffectOVMusicGenerationV2::OnContextLengthChanged)
-EVT_CHECKBOX(ID_Type_AudioContinuationAsNewTrackCheckBox, EffectOVMusicGenerationV2::OnContextLengthChanged)
+BEGIN_EVENT_TABLE(EffectOVMusicGenerationLLM, wxEvtHandler)
+EVT_BUTTON(ID_Type_UnloadModelsButton, EffectOVMusicGenerationLLM::OnUnloadModelsButtonClicked)
+EVT_BUTTON(ID_Type_DeviceInfoButton, EffectOVMusicGenerationLLM::OnDeviceInfoButtonClicked)
+EVT_CHOICE(ID_Type_ContextLength, EffectOVMusicGenerationLLM::OnContextLengthChanged)
+EVT_CHECKBOX(ID_Type_AudioContinuationCheckBox, EffectOVMusicGenerationLLM::OnContextLengthChanged)
+EVT_CHECKBOX(ID_Type_AudioContinuationAsNewTrackCheckBox, EffectOVMusicGenerationLLM::OnContextLengthChanged)
 END_EVENT_TABLE()
 
 // Determine which variants of musicgen are available by polling available
@@ -129,7 +129,7 @@ static std::vector<std::string> FindAvailableModels()
    return available_models;
 }
 
-EffectOVMusicGenerationV2::EffectOVMusicGenerationV2()
+EffectOVMusicGenerationLLM::EffectOVMusicGenerationLLM()
 {
    Parameters().Reset(*this);
 
@@ -166,29 +166,29 @@ EffectOVMusicGenerationV2::EffectOVMusicGenerationV2()
    }
 }
 
-EffectOVMusicGenerationV2::~EffectOVMusicGenerationV2()
+EffectOVMusicGenerationLLM::~EffectOVMusicGenerationLLM()
 {
    _musicgen = {};
 }
 
 // ComponentInterface implementation
-ComponentInterfaceSymbol EffectOVMusicGenerationV2::GetSymbol() const
+ComponentInterfaceSymbol EffectOVMusicGenerationLLM::GetSymbol() const
 {
    return Symbol;
 }
 
-TranslatableString EffectOVMusicGenerationV2::GetDescription() const
+TranslatableString EffectOVMusicGenerationLLM::GetDescription() const
 {
    return XO("Generates an audio track from a set of text prompts");
 }
 
-VendorSymbol EffectOVMusicGenerationV2::GetVendor() const
+VendorSymbol EffectOVMusicGenerationLLM::GetVendor() const
 {
    return XO("OpenVINO AI Effects");
 }
 
 // EffectDefinitionInterface implementation
-EffectType EffectOVMusicGenerationV2::GetType() const
+EffectType EffectOVMusicGenerationLLM::GetType() const
 {
    return EffectTypeGenerate;
 }
@@ -218,7 +218,7 @@ static void NormalizeSamples(std::shared_ptr<std::vector<float>> samples, WaveTr
    }
 }
 
-bool EffectOVMusicGenerationV2::MusicGenCallback(float perc_complete)
+bool EffectOVMusicGenerationLLM::MusicGenCallback(float perc_complete)
 {
    std::lock_guard<std::mutex> guard(mProgMutex);
 
@@ -234,7 +234,7 @@ bool EffectOVMusicGenerationV2::MusicGenCallback(float perc_complete)
 
 static bool musicgen_callback(float perc_complete, void* user)
 {
-   EffectOVMusicGenerationV2* music_gen = (EffectOVMusicGenerationV2*)user;
+   EffectOVMusicGenerationLLM* music_gen = (EffectOVMusicGenerationLLM*)user;
 
    if (music_gen)
    {
@@ -245,7 +245,7 @@ static bool musicgen_callback(float perc_complete, void* user)
 }
 
 // Effect implementation
-bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& settings)
+bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settings)
 {
    if (!mDurationT || (mDurationT->GetValue() <= 0))
    {
@@ -859,7 +859,7 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
    }
 }
 
-bool EffectOVMusicGenerationV2::UpdateProgress(double perc)
+bool EffectOVMusicGenerationLLM::UpdateProgress(double perc)
 {
    if (!TotalProgress(perc / 100.0))
    {
@@ -870,7 +870,7 @@ bool EffectOVMusicGenerationV2::UpdateProgress(double perc)
    return true;
 }
 
-std::unique_ptr<EffectEditor> EffectOVMusicGenerationV2::PopulateOrExchange(
+std::unique_ptr<EffectEditor> EffectOVMusicGenerationLLM::PopulateOrExchange(
    ShuttleGui& S, EffectInstance&, EffectSettingsAccess& access,
    const EffectOutputs*)
 {
@@ -878,7 +878,7 @@ std::unique_ptr<EffectEditor> EffectOVMusicGenerationV2::PopulateOrExchange(
    return nullptr;
 }
 
-void EffectOVMusicGenerationV2::OnDeviceInfoButtonClicked(wxCommandEvent& evt)
+void EffectOVMusicGenerationLLM::OnDeviceInfoButtonClicked(wxCommandEvent& evt)
 {
    std::string device_mapping_str = "";
    for (auto e : m_simple_to_full_device_map)
@@ -894,7 +894,7 @@ void EffectOVMusicGenerationV2::OnDeviceInfoButtonClicked(wxCommandEvent& evt)
       XO("OpenVINO Device Details"));
 }
 
-void EffectOVMusicGenerationV2::DoPopulateOrExchange(
+void EffectOVMusicGenerationLLM::DoPopulateOrExchange(
    ShuttleGui& S, EffectSettingsAccess& access)
 {
    mUIParent = S.GetParent();
@@ -1150,7 +1150,7 @@ void EffectOVMusicGenerationV2::DoPopulateOrExchange(
    S.EndVerticalLay();
 }
 
-void EffectOVMusicGenerationV2::SetContinuationContextWarning()
+void EffectOVMusicGenerationLLM::SetContinuationContextWarning()
 {
    if (!_AudioContinuationCheckBox->GetValue())
    {
@@ -1210,13 +1210,13 @@ void EffectOVMusicGenerationV2::SetContinuationContextWarning()
    _continuationContextWarning->Show();
 }
 
-void EffectOVMusicGenerationV2::OnContextLengthChanged(wxCommandEvent& evt)
+void EffectOVMusicGenerationLLM::OnContextLengthChanged(wxCommandEvent& evt)
 {
    std::cout << "OnContextLengthChanged called" << std::endl;
    SetContinuationContextWarning();
 }
 
-void EffectOVMusicGenerationV2::OnUnloadModelsButtonClicked(wxCommandEvent& evt)
+void EffectOVMusicGenerationLLM::OnUnloadModelsButtonClicked(wxCommandEvent& evt)
 {
    _musicgen = {};
 
@@ -1226,7 +1226,7 @@ void EffectOVMusicGenerationV2::OnUnloadModelsButtonClicked(wxCommandEvent& evt)
    }
 }
 
-bool EffectOVMusicGenerationV2::TransferDataToWindow(const EffectSettings& settings)
+bool EffectOVMusicGenerationLLM::TransferDataToWindow(const EffectSettings& settings)
 {
    std::cout << "TransferDataToWindow. settings.extra.GetDuration() = " << settings.extra.GetDuration() << std::endl;
 
@@ -1245,14 +1245,14 @@ bool EffectOVMusicGenerationV2::TransferDataToWindow(const EffectSettings& setti
 
    if (mDurationT)
    {
-      std::cout << "EffectOVMusicGenerationV2::TransferDataToWindow: Setting mDurationT to " << settings.extra.GetDuration() << std::endl;
+      std::cout << "EffectOVMusicGenerationLLM::TransferDataToWindow: Setting mDurationT to " << settings.extra.GetDuration() << std::endl;
       //mDurationT->SetValue(settings.extra.GetDuration());
    }
 
    return true;
 }
 
-bool EffectOVMusicGenerationV2::TransferDataFromWindow(EffectSettings& settings)
+bool EffectOVMusicGenerationLLM::TransferDataFromWindow(EffectSettings& settings)
 {
    std::cout << "TransferDataFromWindow. settings.extra.GetDuration() = " << settings.extra.GetDuration() << std::endl;
    if (!mUIParent->Validate() || !mUIParent->TransferDataFromWindow())
@@ -1262,7 +1262,7 @@ bool EffectOVMusicGenerationV2::TransferDataFromWindow(EffectSettings& settings)
 
    if (mDurationT)
    {
-      std::cout << "EffectOVMusicGenerationV2::TransferDataFromWindow: Setting settings.extra.SetDuration to " << mDurationT->GetValue() << std::endl;
+      std::cout << "EffectOVMusicGenerationLLM::TransferDataFromWindow: Setting settings.extra.SetDuration to " << mDurationT->GetValue() << std::endl;
       settings.extra.SetDuration(mDurationT->GetValue());
    }
 
