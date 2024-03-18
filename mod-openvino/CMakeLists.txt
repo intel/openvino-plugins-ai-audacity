@@ -19,14 +19,6 @@ find_library(whisper NAMES whisper HINTS ${WHISPERCPP_ROOTDIR}/lib/static ${WHIS
 include_directories(${WHISPERCPP_ROOTDIR}/include )
 message("whisper library = ${whisper}")
 
-#set(CPP_STABLE_DIFFUSION_OV_ROOTDIR $ENV{CPP_STABLE_DIFFUSION_OV_ROOTDIR})
-#find_library(stable_diffusion_ov NAMES stable_diffusion_ov HINTS ${CPP_STABLE_DIFFUSION_OV_ROOTDIR}/lib/static ${CPP_STABLE_DIFFUSION_OV_ROOTDIR}/lib )
-#find_library(stable_diffusion_audio_ov NAMES stable_diffusion_audio_ov HINTS ${CPP_STABLE_DIFFUSION_OV_ROOTDIR}/lib/static ${CPP_STABLE_DIFFUSION_OV_ROOTDIR}/lib )
-#include_directories(${CPP_STABLE_DIFFUSION_OV_ROOTDIR}/include )
-
-#message("stable_diffusion_ov library = ${stable_diffusion_ov}")
-#message("stable_diffusion_audio_ov library = ${stable_diffusion_audio_ov}")
-
 #for musicgen
 #whether ITT is enabled or not, include ittutils.
 # This allows the project source files to unconditionally include <ittutils.h>
@@ -61,12 +53,8 @@ set( SOURCES
       ${NOISE_SUPPRESSION_SOURCES}
       OVMusicSeparation.cpp
       OVMusicSeparation.h
-      #OVMusicGeneration.cpp
-      #OVMusicGeneration.h
       OVMusicGenerationV2.cpp
       OVMusicGenerationV2.h
-      #OVMusicStyleRemix.cpp
-      #OVMusicStyleRemix.h
       OVWhisperTranscription.cpp
       OVWhisperTranscription.h
       htdemucs.cpp
@@ -83,8 +71,6 @@ set( LIBRARIES
 	   OpenCL::OpenCL
       ${TORCH_LIBRARIES}
       ${whisper}
-      #${stable_diffusion_ov}
-      #${stable_diffusion_audio_ov}
 )
 
 audacity_module( ${TARGET} "${SOURCES}" "${LIBRARIES}" "" "" )

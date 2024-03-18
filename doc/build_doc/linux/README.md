@@ -5,7 +5,6 @@ Hi! The following is the process that we use when building the Audacity modules 
 ## High-Level Overview
 Before I get into the specifics, at a high-level we will be doing the following:
 * Cloning & building whisper.cpp with OpenVINO support (For transcription audacity module)
-* Cloning & building openvino-stable-diffusion-cpp (This is to support Music Generation & Remix features)
 * Cloning & building Audacity without modifications (just to make sure 'vanilla' build works fine)
 * Adding our OpenVINO module src's to the Audacity source tree, and re-building it.
 
@@ -37,18 +36,14 @@ tar xzvf openvino_tokenizers_ubuntu22_2024.0.0.0_x86_64.tgz
 cp openvino_tokenizers_ubuntu22_2024.0.0.0_x86_64/* l_openvino_toolkit_ubuntu22_2024.0.0.14509.34caeefd078_x86_64/runtime/lib/intel64/
 ```
 
-* OpenCV - Only a dependency for the  OpenVINO Stable-Diffusion CPP samples (to read/write images from disk, display images, etc.). You can install like this:
-```
-sudo apt install libopencv-dev
-```
-* Libtorch (C++ distribution of pytorch)- This is a dependency for the audio utilities in openvino-stable-diffusion-cpp (like spectrogram-to-wav, wav-to-spectrogram), as well as some of our htdemucs v4 routines (supporting music separation). We are currently using this version: [libtorch-cxx11-abi-shared-with-deps-2.1.1+cpu.zip ](https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.1.1%2Bcpu.zip). Setup environment like this:
+* Libtorch (C++ distribution of pytorch)- This is a dependency for many of the pipelines that we ported from pytorch (musicgen, htdemucs, etc). We are currently using this version: [libtorch-cxx11-abi-shared-with-deps-2.1.1+cpu.zip ](https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.1.1%2Bcpu.zip). Setup environment like this:
 ```
 unzip libtorch-cxx11-abi-shared-with-deps-2.1.1+cpu.zip
 export LIBTORCH_ROOTDIR=/path/to/libtorch
 ```
 
 ## Sub-Component builds
-We're now going to build whisper.cpp, stablediffusion-pipelines-cpp, and sentencepiece.  
+We're now going to build whisper.cpp.  
 ```
 # OpenVINO
 source /path/to/l_openvino_toolkit_ubuntu22_*_x86_64/setupvars.sh
@@ -85,33 +80,6 @@ export LD_LIBRARY_PATH=${WHISPERCPP_ROOTDIR}/lib:$LD_LIBRARY_PATH
 ```
 (I'll remind you later about this though)
 
-### OpenVINO Stable-Diffusion CPP
-```
-# clone it & check out v0.1 tag
-git clone https://github.com/intel/stablediffusion-pipelines-cpp.git
-cd stablediffusion-pipelines-cpp
-git checkout v0.1
-cd ..
-
-#create build folder
-mkdir stablediffusion-pipelines-cpp-build
-cd stablediffusion-pipelines-cpp-build
-
-# Run cmake
-cmake ../stablediffusion-pipelines-cpp
-
-# Build it
-make -j 8
-
-# Install it
-cmake --install . --config Release --prefix ./installed
-
-# Set environment variable that Audacity module will use to find this component.
-export CPP_STABLE_DIFFUSION_OV_ROOTDIR=/path/to/stablediffusion-pipelines-cpp-build/installed
-export LD_LIBRARY_PATH=${CPP_STABLE_DIFFUSION_OV_ROOTDIR}/lib:$LD_LIBRARY_PATH
-
-```
-
 ## Audacity 
 
 Okay, moving on to actually building Audacity. Just a reminder, we're first going to just build Audacity without any modifications. Once that is done, we'll copy our openvino-module into the Audacity src tree, and built that.
@@ -126,9 +94,10 @@ sudo apt-get install libgtk2.0-dev libasound2-dev libjack-jackd2-dev uuid-dev
 # clone Audacity
 git clone https://github.com/audacity/audacity.git
 
-# Check out Audacity-3.4.2 tag, 
+# Optional: You may want to check out specific tag here, such as Audacity-3.4.2
+# If so, replace <Audacity_Tag> in following command with tag.
 cd audacity
-git checkout Audacity-3.4.2
+git checkout <Audacity_Tag>
 cd ..
 
 # Create build directory
@@ -156,9 +125,10 @@ First, clone the following repo. This is where the actual Audacity module code l
 :: clone it
 git clone https://github.com/intel/openvino-plugins-ai-audacity.git
 
-# Check out the release tag that matches the Audacity version you're using
+# Optional: You may want to check out specific tag here, such as v3.4.2-R1
+# If so, replace <Audacity_AI_Tag> in the following command.
 cd openvino-plugins-ai-audacity
-git checkout v3.4.2-R1
+git checkout <Audacity_AI_Tag>
 cd ..
 ```
 
@@ -198,10 +168,6 @@ export LIBTORCH_ROOTDIR=/path/to/libtorch
 # Whisper.cpp
 export WHISPERCPP_ROOTDIR=/path/to/whisper-build/installed
 export LD_LIBRARY_PATH=${WHISPERCPP_ROOTDIR}/lib:$LD_LIBRARY_PATH
-
-# CPP Stable Diffusion
-export CPP_STABLE_DIFFUSION_OV_ROOTDIR=/path/to/stablediffusion-pipelines-cpp-build/installed
-export LD_LIBRARY_PATH=${CPP_STABLE_DIFFUSION_OV_ROOTDIR}/lib:$LD_LIBRARY_PATH
 ```
 
 Okay, on to the build:  

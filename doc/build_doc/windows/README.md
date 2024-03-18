@@ -5,7 +5,6 @@ Hi! The following is the process that we use when building the Audacity modules 
 ## High-Level Overview
 Before we get into the specifics, at a high-level we will be doing the following:
 * Cloning & building whisper.cpp with OpenVINO support (For transcription audacity module)
-* Cloning & building openvino-stable-diffusion-cpp (This is to support audio generation / remix features)
 * Cloning & building Audacity 3.4.2 without modifications (just to make sure 'vanilla' build works fine)
 * Adding our OpenVINO module src's to the Audacity source tree, and re-building it.
 
@@ -22,19 +21,14 @@ Here are some of the dependencies that you need to grab. If applicable, I'll als
    Make sure that you download the version that matches the version of OpenVINO that you are using. For example, we are using [openvino_tokenizers_windows_2024.0.0.0_x86_64.zip](https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/2024.0.0.0/openvino_tokenizers_windows_2024.0.0.0_x86_64.zip)
    Download the zip package, and copy the DLLs into your ```w_openvino_toolkit_windows_xxxx\runtime\bin\intel64\Release``` folder.  
    
-* OpenCV - Only a dependency for the openvino-stable-diffusion-cpp samples (to read/write images from disk, display images, etc.). You can find pre-packages Windows releases [here](https://github.com/opencv/opencv/releases). We currently use 4.8.1 with no issues, it's recommended that you use that.
-   ```
-   set OpenCV_DIR=C:\path\opencv\build
-   set Path=%OpenCV_DIR%\x64\vc16\bin;%Path%
-   ```
-* Libtorch (C++ distribution of pytorch)- This is a dependency for the audio utilities in openvino-stable-diffusion-cpp (like spectrogram-to-wav, wav-to-spectrogram), as well as some of our htdemucs v4 routines (supporting music separation). We are currently using this version: [libtorch-win-shared-with-deps-2.1.1+cpu.zip](https://download.pytorch.org/libtorch/cpu/libtorch-win-shared-with-deps-2.1.1%2Bcpu.zip). After extracting the package, setup environment like this:
+* Libtorch (C++ distribution of pytorch)- This is a dependency for many of the pipelines that we ported from pytorch (musicgen, htdemucs, etc). We are currently using this version: [libtorch-win-shared-with-deps-2.1.1+cpu.zip](https://download.pytorch.org/libtorch/cpu/libtorch-win-shared-with-deps-2.1.1%2Bcpu.zip). After extracting the package, setup environment like this:
     ```
     set LIBTORCH_ROOTDIR=C:\path\to\libtorch-shared-with-deps-2.1.1+cpu\libtorch
     set Path=%LIBTORCH_ROOTDIR%\lib;%Path%
     ```
 
 ## Sub-Component builds
-We're now going to build whisper.cpp and openvino-stable-diffusion-cpp. You should have a cmd.exe (not powershell!) shell running, and environment setup for above dependencies. To recap:  
+We're now going to build whisper.cpp. You should have a cmd.exe (not powershell!) shell running, and environment setup for above dependencies. To recap:  
 
     :: OpenVINO
     call "C:\path\to\w_openvino_toolkit_windows_xxxx\setupvars.bat"
@@ -73,37 +67,6 @@ With the build / install complete, the Audacity build will find the built collat
 ```
 set WHISPERCPP_ROOTDIR=C:\path\to\whisper-build\installed
 set Path=%WHISPERCPP_ROOTDIR%\bin;%Path%
-```
-(I'll remind you later about this though)
-
-### OpenVINO Stable-Diffusion CPP
-```
-:: clone it & check out v0.1 tag
-git clone https://github.com/intel/stablediffusion-pipelines-cpp.git
-cd stablediffusion-pipelines-cpp
-git checkout v0.1
-cd ..
-
-
-:: create build folder
-mkdir stablediffusion-pipelines-cpp-build
-cd stablediffusion-pipelines-cpp-build
-
-:: run cmake
-cmake ../stablediffusion-pipelines-cpp
-
-:: Build it:
-cmake --build . --config Release
-
-:: Install built collateral into a local 'installed' directory:
-cmake --install . --config Release --prefix ./installed
-
-```
-
-With the build / install complete, the Audacity build will find the built collateral via the CPP_STABLE_DIFFUSION_OV_ROOTDIR. So you can set it like this:
-```
-set CPP_STABLE_DIFFUSION_OV_ROOTDIR=C:\path\to\stablediffusion-pipelines-cpp-build\installed
-set Path=%CPP_STABLE_DIFFUSION_OV_ROOTDIR%\bin;%Path%
 ```
 (I'll remind you later about this though)
 
@@ -191,10 +154,6 @@ set Path=%LIBTORCH_ROOTDIR%\lib;%Path%
 :: Whisper.cpp 
 set WHISPERCPP_ROOTDIR=C:\path\to\whisper-build\installed
 set Path=%WHISPERCPP_ROOTDIR%\bin;%Path%
-
-:: C++ Stable Diffusion Pipelines using OpenVINO(TM)
-set CPP_STABLE_DIFFUSION_OV_ROOTDIR=C:\path\to\stablediffusion-pipelines-cpp-build\installed
-set Path=%CPP_STABLE_DIFFUSION_OV_ROOTDIR%\bin;%Path%
 ```
 
 Okay, on to the build:  
