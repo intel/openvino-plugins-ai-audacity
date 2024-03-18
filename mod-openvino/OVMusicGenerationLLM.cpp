@@ -431,12 +431,26 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
          std::cout << "Guidance Scale = " << mGuidanceScale << std::endl;
          std::cout << "TopK = " << mTopK << std::endl;
 
-         std::string descriptor_str = "prompt: " + _prompt;
-         descriptor_str += ", seed: " + std::to_string(*seed);
+         std::string descriptor_str = "Prompt: " + _prompt;
+         descriptor_str += ", Model:" + model_selection_str;
+         descriptor_str += ", Devices:" + std::string("[") + encodec_device + std::string(", ") + musicgen_dec0_device + std::string(", ") + musicgen_dec1_device + std::string("]");
+         descriptor_str += ", Seed: " + std::to_string(*seed);
          descriptor_str += ", Guidance Scale = " + std::to_string(mGuidanceScale);
          descriptor_str += ", TopK = " + std::to_string(mTopK);
 
-         added_trackName = wxString("Generated: (" + descriptor_str + ")");
+         if (_AudioContinuationCheckBox->GetValue() || ((float)mDurationT->GetValue() > 20))
+         {
+            if (m_contextLengthChoice == 0)
+            {
+               descriptor_str += ", Context Length = 5s";
+            }
+            else
+            {
+               descriptor_str += ", Context Length = 10s";
+            }
+         }
+
+         added_trackName = wxString("(" + descriptor_str + ")");
 
          std::cout << "Duration = " << (float)mDurationT->GetValue() << std::endl;
 
