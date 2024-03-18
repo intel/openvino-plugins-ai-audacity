@@ -284,35 +284,20 @@ std::unique_ptr<EffectEditor> EffectOVNoiseSuppression::PopulateOrExchange(
    S.AddSpace(0, 5);
    S.StartVerticalLay();
    {
-      S.StartStatic(XO(""), wxRIGHT);
+      S.StartStatic(XO(""), wxLEFT);
       {
-         S.StartMultiColumn(3, wxEXPAND);
+         S.StartMultiColumn(4, wxEXPAND);
          {
-            S.StartMultiColumn(2, wxLEFT);
-            {
-               mTypeChoiceDeviceCtrl = S.Id(ID_Type)
-                  .MinSize({ -1, -1 })
-                  .Validator<wxGenericValidator>(&m_deviceSelectionChoice)
-                  .AddChoice(XXO("OpenVINO Inference Device:"),
-                     Msgids(mGuiDeviceSelections.data(), mGuiDeviceSelections.size()));
-            }
-            S.EndMultiColumn();
+            mTypeChoiceDeviceCtrl = S.Id(ID_Type)
+               .MinSize({ -1, -1 })
+               .Validator<wxGenericValidator>(&m_deviceSelectionChoice)
+               .AddChoice(XXO("OpenVINO Inference Device:"),
+                  Msgids(mGuiDeviceSelections.data(), mGuiDeviceSelections.size()));
+            S.AddVariableText(XO(""));
 
-            S.StartMultiColumn(1, wxLEFT);
-            {
-               S.AddVariableText(XO(""));
-            }
-            S.EndMultiColumn();
+            auto device_info_button = S.Id(ID_Type_DeviceInfoButton).AddButton(XO("Device Details..."));
 
-            S.StartMultiColumn(1, wxLEFT);
-            {
-               //add some dummy objects to move device info button down..
-               S.AddVariableText(XO(""));
-               auto device_info_button = S.Id(ID_Type_DeviceInfoButton).AddButton(XO("Device Details..."));
-            }
-            S.EndMultiColumn();
-
-            S.SetStretchyCol(1);
+            S.SetStretchyCol(2);
          }
          S.EndMultiColumn();
       }
