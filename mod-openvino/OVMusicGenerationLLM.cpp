@@ -1136,10 +1136,9 @@ void EffectOVMusicGenerationLLM::DoPopulateOrExchange(
 
       S.StartMultiColumn(2, wxLEFT);
       {
-         _continuationContextWarning = S.AddVariableText(XO("Some default text"), false,
-            wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT);
+         _continuationContextWarning = S.AddVariableText(XO("Some default text"));
 
-         _continuationContextWarning->SetFont(_continuationContextWarning->GetFont().Scale(1.5));
+         _continuationContextWarning->SetFont(_continuationContextWarning->GetFont().Scale(1.25));
 
          SetContinuationContextWarning();
 
@@ -1205,6 +1204,8 @@ void EffectOVMusicGenerationLLM::SetContinuationContextWarning()
       auto warn_msg = wxString(warning_message);
       _continuationContextWarning->SetLabelText(warn_msg);
    }
+
+   _continuationContextWarning->Wrap(mTextPrompt->GetClientSize().GetWidth() * 1.25);
 
    _continuationContextWarning->Hide();
    _continuationContextWarning->Show();
