@@ -25,7 +25,14 @@ Here are some of the dependencies that you need to grab. If applicable, I'll als
     ```
     set LIBTORCH_ROOTDIR=C:\path\to\libtorch-shared-with-deps-2.1.1+cpu\libtorch
     set Path=%LIBTORCH_ROOTDIR%\lib;%Path%
+    ```  
+* OpenCL - To optimize performance for GPUs, we (lightly) use OpenCL with interoperability (i.e. remote tensor) APIs for OpenVINO. So, we need to download the OpenCL SDK. You can download this version: [OpenCL-SDK-v2023.04.17-Win-x64.zip](https://github.com/KhronosGroup/OpenCL-SDK/releases/download/v2023.04.17/OpenCL-SDK-v2023.04.17-Win-x64.zip). After extracting the package, setup environment like this:
     ```
+    set OCL_ROOT=C:\path\to\OpenCL-SDK-v2023.04.17-Win-x64
+    set Path=%OCL_ROOT%\bin;%Path%
+    ```
+    (Note -- 'OpenCL-SDK-v2023.04.17-Win-x64' folder pointed to by OCL_ROOT should be the one that contains 'bin', 'include', 'lib', etc. subdirectories.)
+  
 
 ## Sub-Component builds
 We're now going to build whisper.cpp. You should have a cmd.exe (not powershell!) shell running, and environment setup for above dependencies. To recap:  
@@ -154,6 +161,10 @@ set Path=%LIBTORCH_ROOTDIR%\lib;%Path%
 :: Whisper.cpp 
 set WHISPERCPP_ROOTDIR=C:\path\to\whisper-build\installed
 set Path=%WHISPERCPP_ROOTDIR%\bin;%Path%
+
+:: OpenCL
+set OCL_ROOT=C:\path\to\OpenCL-SDK-v2023.04.17-Win-x64
+set Path=%OCL_ROOT%\bin;%Path%
 ```
 
 Okay, on to the build:  
