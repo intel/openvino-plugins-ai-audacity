@@ -54,6 +54,15 @@ public:
 
    bool MusicGenCallback(float perc_complete);
 
+   virtual bool DoEffect(
+      EffectSettings& settings, //!< Always given; only for processing
+      const InstanceFinder& finder,
+      double projectRate, TrackList* list,
+      WaveTrackFactory* factory, NotifyingSelectedRegion& selectedRegion,
+      unsigned flags,
+      const EffectSettingsAccessPtr& pAccess = nullptr
+      //!< Sometimes given; only for UI
+   ) override;
 
 
 private:
@@ -151,6 +160,12 @@ private:
    wxStaticText* _continuationContextWarning = nullptr;
 
    std::vector<std::pair<std::string, std::string>> m_simple_to_full_device_map;
+
+   // The number of tracks that the user has selected upon selecting this generator from the menu.
+   // If it's 0 (i.e. they had no tracks selected), then EffectBase will create a new mono track on
+   // behalf of the user. In this special (but common) case, if they have selected a stereo model,
+   // then we will replace the one that EffectBase added with a stereo one.
+   size_t _num_selected_tracks_at_effect_start = 0;
 
    DECLARE_EVENT_TABLE()
 };

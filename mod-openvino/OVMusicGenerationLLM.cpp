@@ -195,6 +195,22 @@ EffectType EffectOVMusicGenerationLLM::GetType() const
    return EffectTypeGenerate;
 }
 
+bool EffectOVMusicGenerationLLM::DoEffect(
+   EffectSettings& settings,
+   const InstanceFinder& finder,
+   double projectRate, TrackList* list,
+   WaveTrackFactory* factory, NotifyingSelectedRegion& selectedRegion,
+   unsigned flags,
+   const EffectSettingsAccessPtr& pAccess
+)
+{
+   //get the number of selected tracks at the start of this effect.
+   const auto range = list->Selected<const WaveTrack>();
+   _num_selected_tracks_at_effect_start = range.sum(&WaveTrack::NChannels);
+
+   return EffectBase::DoEffect(settings, finder, projectRate, list, factory, selectedRegion, flags, pAccess);
+}
+
 static void NormalizeSamples(std::shared_ptr<std::vector<float>> samples, WaveTrack* base, float target_rms)
 {
    auto tmp_tracklist = base->WideEmptyCopy();
@@ -257,7 +273,46 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
 
    mIsCancelled = false;
 
+   std::string model_selection_str = mModelSelections[m_modelSelectionChoice];
+   std::cout << "model_selection_string = " << model_selection_str << std::endl;
+
+   bool bStereo = (model_selection_str.find("stereo") != std::string::npos);
+
+   // The following logic addresses the following scenario:
+   // The user has no tracks selected and chooses this generator from the
+   // menu. As of Audacity 3.5.0, EffectBase will automatically add a 'selected'
+   // mono track on behalf of the user.
+   // If they have chosen a stereo model, then most likely their intention /
+   // expecation is to generate a stereo track. So, in that case we replace
+   // the mono track that was added with a new stereo one.
+   auto selected_tracks = mTracks->Selected<WaveTrack>();
+   if ((_num_selected_tracks_at_effect_start == 0) && (selected_tracks.size() == 1))
+   {
+      auto track = *selected_tracks.begin();
+      if (track->IsEmpty(track->GetStartTime(), track->GetEndTime()))
+      {
+         if (bStereo && (track->NChannels() == 1))
+         {
+            auto pProject = const_cast<AudacityProject*>(FindProject());
+            auto& trackFactory = WaveTrackFactory::Get(*pProject);
+            auto format = track->GetSampleFormat();
+            auto rate = track->GetRate();
+            mTracks->Append(std::move(*trackFactory.Create((size_t)2, format, rate)));
+            (*mTracks->rbegin())->SetSelected(true);
+            auto track_name = track->GetName();
+            (*mTracks->rbegin())->SetName(track_name);
+            auto tempo = track->GetProjectTempo();
+            if (tempo)
+            {
+               (*mTracks->rbegin())->OnProjectTempoChange(*tempo);
+            }
+            mTracks->Remove(*track);
+         }
+      }
+   }
+
    EffectOutputTracks outputs{ *mTracks, GetType(), {{ mT0, mT1 }} };
+
    bool bGoodResult = true;
 
    {
@@ -282,12 +337,7 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
          continuation_context = ov_musicgen::MusicGenConfig::ContinuationContext::TEN_SECONDS;
       }
 
-      std::string model_selection_str = mModelSelections[m_modelSelectionChoice];
-
-      std::cout << "model_selection_string = " << model_selection_str << std::endl;
-
       bool bFP16 = (model_selection_str.find("fp16") != std::string::npos);
-      bool bStereo = (model_selection_str.find("stereo") != std::string::npos);
 
       ov_musicgen::MusicGenConfig::ModelSelection model_selection;
       if (bFP16)
