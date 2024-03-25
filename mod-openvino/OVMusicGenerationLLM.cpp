@@ -880,7 +880,16 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
                   const auto& selectedRegion =
                      ViewInfo::Get(*pProject).selectedRegion;
 
-                  std::cout << "Pasting " << selectedRegion.t0() << " : " << selectedRegion.t1() << std::endl;
+                  // If this is an empty track, set the sample rate to 32khz. We do
+                  // this to better support (potential) audio continuation later on. Otherwise,
+                  // if we just force the output to the 'project rate' (most likely 44.1 or 48 khz),
+                  // we'll just need to convert back to 32khz later on, which just introduces more potential
+                  // for artifacts, etc.
+                  if (track->IsEmpty(track->GetStartTime(), track->GetEndTime()))
+                  {
+                     track->SetRate(32000);
+                  }
+
                   track->ClearAndPaste(
                      selectedRegion.t0(), selectedRegion.t1(),
                      *tmp_tracklist, true, false, &warper);
