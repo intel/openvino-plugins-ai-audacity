@@ -42,6 +42,11 @@ unzip libtorch-cxx11-abi-shared-with-deps-2.1.1+cpu.zip
 export LIBTORCH_ROOTDIR=/path/to/libtorch
 ```
 
+* OpenCL - To optimize performance for GPUs, we (lightly) use OpenCL with interoperability (i.e. remote tensor) APIs for OpenVINO. So, we need to install the OpenCL development packages.
+```
+sudo apt install ocl-icd-opencl-dev
+```
+
 ## Sub-Component builds
 We're now going to build whisper.cpp.  
 ```
