@@ -274,9 +274,15 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
    mIsCancelled = false;
 
    std::string model_selection_str = mModelSelections[m_modelSelectionChoice];
+
+   //convert model_selection_str to lower case. This is to add some safety
+   // to the substring searches "stereo" and "fp16" that are about to take
+   // place on this string.
+   for (auto& c : model_selection_str) c = tolower(c);
+
    std::cout << "model_selection_string = " << model_selection_str << std::endl;
 
-   bool bStereo = (model_selection_str.find("stereo") != std::string::npos);
+   bool bIsModelStereo = (model_selection_str.find("stereo") != std::string::npos);
 
    // The following logic addresses the following scenario:
    // The user has no tracks selected and chooses this generator from the
@@ -291,7 +297,7 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
       auto track = *selected_tracks.begin();
       if (track->IsEmpty(track->GetStartTime(), track->GetEndTime()))
       {
-         if (bStereo && (track->NChannels() == 1))
+         if (bIsModelStereo && (track->NChannels() == 1))
          {
             auto pProject = const_cast<AudacityProject*>(FindProject());
             auto& trackFactory = WaveTrackFactory::Get(*pProject);
@@ -337,10 +343,10 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
          continuation_context = ov_musicgen::MusicGenConfig::ContinuationContext::TEN_SECONDS;
       }
 
-      bool bFP16 = (model_selection_str.find("fp16") != std::string::npos);
+      bool bIsModelFP16 = (model_selection_str.find("fp16") != std::string::npos);
 
       ov_musicgen::MusicGenConfig::ModelSelection model_selection;
-      if (bFP16)
+      if (bIsModelFP16)
       {
          model_selection = ov_musicgen::MusicGenConfig::ModelSelection::MUSICGEN_SMALL_FP16;
       }
@@ -364,7 +370,7 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
 
          auto musicgen_pipeline_creation_future = std::async(std::launch::async,
             [this, &musicgen_model_folder, &cache_path, &encodec_device, &musicgen_dec0_device, &musicgen_dec1_device,
-            &continuation_context, &model_selection, &bStereo]
+            &continuation_context, &model_selection, &bIsModelStereo]
             {
 
                try
@@ -395,7 +401,7 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
                      _musicgen = {};
                   }
 
-                  if (bStereo != _musicgen_config.bStereo)
+                  if (bIsModelStereo != _musicgen_config.bStereo)
                   {
                      _musicgen = {};
                   }
@@ -413,7 +419,7 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
 
                      _musicgen_config.m_continuation_context = continuation_context;
 
-                     _musicgen_config.bStereo = bStereo;
+                     _musicgen_config.bStereo = bIsModelStereo;
 
                      _musicgen_config.model_selection = model_selection;
 
