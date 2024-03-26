@@ -28,6 +28,7 @@
 #include "widgets/valnum.h"
 
 #include "OVStringUtils.h"
+#include <openvino/openvino.hpp>
 
 const ComponentInterfaceSymbol EffectOVMusicSeparation::Symbol{ XO("OpenVINO Music Separation") };
 
@@ -35,21 +36,20 @@ namespace { BuiltinEffectsModule::Registration< EffectOVMusicSeparation > reg; }
 
 BEGIN_EVENT_TABLE(EffectOVMusicSeparation, wxEvtHandler)
 EVT_CHECKBOX(ID_Type_AdvancedCheckbox, EffectOVMusicSeparation::OnAdvancedCheckboxChanged)
+EVT_BUTTON(ID_Type_DeviceInfoButton, EffectOVMusicSeparation::OnDeviceInfoButtonClicked)
 END_EVENT_TABLE()
 
 EffectOVMusicSeparation::EffectOVMusicSeparation()
 {
    mSupportedDevices = ovdemucs::HTDemucs::GetSupportedDevices();
 
+   ov::Core core;
+
    for (auto d : mSupportedDevices)
    {
       mGuiDeviceSelections.push_back({ TranslatableString{ wxString(d), {}} });
 
-      //default to GPU, if it's an available device.
-      if (d == "GPU")
-      {
-         m_deviceSelectionChoice = mGuiDeviceSelections.size() - 1;
-      }
+      m_simple_to_full_device_map.push_back({ d, core.get_property(d, "FULL_DEVICE_NAME").as<std::string>() });
    }
 
    mGuiSeparationModeSelections.push_back({ TranslatableString{ wxString("(2 Stem) Instrumental, Vocals"), {}} });
@@ -111,17 +111,27 @@ std::unique_ptr<EffectEditor> EffectOVMusicSeparation::PopulateOrExchange(
             .Validator<wxGenericValidator>(&m_separationModeSelectionChoice)
             .AddChoice(XXO("Separation Mode:"),
                Msgids(mGuiSeparationModeSelections.data(), mGuiSeparationModeSelections.size()));
-
-         //m_deviceSelectionChoice
-         mTypeChoiceDeviceCtrl = S.Id(ID_Type)
-            .MinSize({ -1, -1 })
-            .Validator<wxGenericValidator>(&m_deviceSelectionChoice)
-            .AddChoice(XXO("OpenVINO Inference Device:"),
-               Msgids(mGuiDeviceSelections.data(), mGuiDeviceSelections.size()));
-
-         
       }
       S.EndMultiColumn();
+
+      S.StartStatic(XO(""), wxLEFT);
+      {
+         S.StartMultiColumn(4, wxEXPAND);
+         {
+            mTypeChoiceDeviceCtrl = S.Id(ID_Type)
+               .MinSize({ -1, -1 })
+               .Validator<wxGenericValidator>(&m_deviceSelectionChoice)
+               .AddChoice(XXO("OpenVINO Inference Device:"),
+                  Msgids(mGuiDeviceSelections.data(), mGuiDeviceSelections.size()));
+            S.AddVariableText(XO(""));
+
+            auto device_info_button = S.Id(ID_Type_DeviceInfoButton).AddButton(XO("Device Details..."));
+
+            S.SetStretchyCol(2);
+         }
+         S.EndMultiColumn();
+      }
+      S.EndStatic();
 
       //advanced options
       S.StartMultiColumn(2, wxLEFT);
@@ -180,6 +190,22 @@ void EffectOVMusicSeparation::OnAdvancedCheckboxChanged(wxCommandEvent& evt)
       }
 
    }
+}
+
+void EffectOVMusicSeparation::OnDeviceInfoButtonClicked(wxCommandEvent& evt)
+{
+   std::string device_mapping_str = "";
+   for (auto e : m_simple_to_full_device_map)
+   {
+      device_mapping_str += e.first + " = " + e.second;
+      device_mapping_str += "\n";
+   }
+   auto v = TranslatableString(device_mapping_str, {});
+
+   EffectUIServices::DoMessageBox(*this,
+      v,
+      wxICON_INFORMATION,
+      XO("OpenVINO Device Details"));
 }
 
 static std::vector<WaveTrack::Holder> CreateSourceTracks

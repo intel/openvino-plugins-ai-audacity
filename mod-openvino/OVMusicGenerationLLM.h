@@ -20,15 +20,15 @@ class wxButton;
 #include <wx/weakref.h>
 #include "musicgen/musicgen.h"
 
-class EffectOVMusicGenerationV2 final : public StatefulEffect
+class EffectOVMusicGenerationLLM final : public StatefulEffect
 {
 public:
-   static inline EffectOVMusicGenerationV2*
-      FetchParameters(EffectOVMusicGenerationV2& e, EffectSettings&) { return &e; }
+   static inline EffectOVMusicGenerationLLM*
+      FetchParameters(EffectOVMusicGenerationLLM& e, EffectSettings&) { return &e; }
    static const ComponentInterfaceSymbol Symbol;
 
-   EffectOVMusicGenerationV2();
-   virtual ~EffectOVMusicGenerationV2();
+   EffectOVMusicGenerationLLM();
+   virtual ~EffectOVMusicGenerationLLM();
 
    // ComponentInterface implementation
 
@@ -39,7 +39,6 @@ public:
    // EffectDefinitionInterface implementation
 
    EffectType GetType() const override;
-
 
    // Effect implementation
    bool Process(EffectInstance& instance, EffectSettings& settings) override;
@@ -54,6 +53,17 @@ public:
    bool UpdateProgress(double perc);
 
    bool MusicGenCallback(float perc_complete);
+
+   virtual bool DoEffect(
+      EffectSettings& settings, //!< Always given; only for processing
+      const InstanceFinder& finder,
+      double projectRate, TrackList* list,
+      WaveTrackFactory* factory, NotifyingSelectedRegion& selectedRegion,
+      unsigned flags,
+      const EffectSettingsAccessPtr& pAccess = nullptr
+      //!< Sometimes given; only for UI
+   ) override;
+
 
 private:
 
@@ -82,19 +92,19 @@ private:
       ID_Type_AudioContinuationCheckBox,
       ID_Type_AudioContinuationAsNewTrackCheckBox,
 
+      ID_Type_DeviceInfoButton
    };
 
    void OnContextLengthChanged(wxCommandEvent& evt);
    void OnUnloadModelsButtonClicked(wxCommandEvent& evt);
+   void OnDeviceInfoButtonClicked(wxCommandEvent& evt);
 
    wxChoice* mTypeChoiceDeviceCtrl_EnCodec;
-
    wxChoice* mTypeChoiceDeviceCtrl_Decode0;
    wxChoice* mTypeChoiceDeviceCtrl_Decode1;
 
 
    int m_deviceSelectionChoice_EnCodec = 0;
-
    int m_deviceSelectionChoice_MusicGenDecode0 = 0;
    int m_deviceSelectionChoice_MusicGenDecode1 = 0;
 
@@ -121,7 +131,7 @@ private:
    std::string mProgMessage;
 
    double mRMSLevel = -20.0;
-   static constexpr EffectParameter RMSLevel{ &EffectOVMusicGenerationV2::mRMSLevel,
+   static constexpr EffectParameter RMSLevel{ &EffectOVMusicGenerationLLM::mRMSLevel,
    L"RMSLevel",            -20.0,      -145.0,  0.0,      1 };
 
    bool mIsCancelled = false;
@@ -130,9 +140,10 @@ private:
    ov_musicgen::MusicGenConfig _musicgen_config;
 
    std::vector< EnumValueSymbol > mGuiContextLengthSelections;
-   int m_contextLengthChoice = 0;
+   int m_contextLengthChoice = 1; //default to 10s
    wxChoice* mTypeChoiceContextLength;
 
+   std::vector< std::string > mModelSelections;
    std::vector< EnumValueSymbol > mGuiModelSelections;
    int m_modelSelectionChoice = 0;
    wxChoice* mTypeChoiceModelSelection;
@@ -147,6 +158,14 @@ private:
 
    void SetContinuationContextWarning();
    wxStaticText* _continuationContextWarning = nullptr;
+
+   std::vector<std::pair<std::string, std::string>> m_simple_to_full_device_map;
+
+   // The number of tracks that the user has selected upon selecting this generator from the menu.
+   // If it's 0 (i.e. they had no tracks selected), then EffectBase will create a new mono track on
+   // behalf of the user. In this special (but common) case, if they have selected a stereo model,
+   // then we will replace the one that EffectBase added with a stereo one.
+   size_t _num_selected_tracks_at_effect_start = 0;
 
    DECLARE_EVENT_TABLE()
 };

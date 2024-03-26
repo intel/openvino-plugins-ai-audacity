@@ -219,6 +219,7 @@ static bool is_whisper_model_present(std::string whisper_basename)
 
 BEGIN_EVENT_TABLE(EffectOVWhisperTranscription, wxEvtHandler)
     EVT_CHECKBOX(ID_Type_AdvancedCheckbox, EffectOVWhisperTranscription::OnAdvancedCheckboxChanged)
+    EVT_BUTTON(ID_Type_DeviceInfoButton, EffectOVWhisperTranscription::OnDeviceInfoButtonClicked)
 END_EVENT_TABLE()
 
 EffectOVWhisperTranscription::EffectOVWhisperTranscription()
@@ -230,6 +231,8 @@ EffectOVWhisperTranscription::EffectOVWhisperTranscription()
    {
       //GNA devices are not supported
       if (d.find("GNA") != std::string::npos) continue;
+
+      m_simple_to_full_device_map.push_back({ d, core.get_property(d, "FULL_DEVICE_NAME").as<std::string>() });
 
       mSupportedDevices.push_back(d);
    }
@@ -994,6 +997,39 @@ void EffectOVWhisperTranscription::OnAdvancedCheckboxChanged(wxCommandEvent& evt
    }
 }
 
+void EffectOVWhisperTranscription::OnDeviceInfoButtonClicked(wxCommandEvent& evt)
+{
+   std::string device_mapping_str = "";
+   for (auto e : m_simple_to_full_device_map)
+   {
+      device_mapping_str += e.first + " = " + e.second;
+      device_mapping_str += "\n";
+   }
+   auto v = TranslatableString(device_mapping_str, {});
+
+   EffectUIServices::DoMessageBox(*this,
+      v,
+      wxICON_INFORMATION,
+      XO("OpenVINO Device Details"));
+}
+
+bool EffectOVWhisperTranscription::TransferDataToWindow(const EffectSettings&)
+{
+   if (!mUIParent || !mUIParent->TransferDataToWindow())
+   {
+      return false;
+   }
+
+
+   if (mSupportedModels.empty())
+   {
+      wxLogInfo("OpenVINO Whisper Transcription has no models installed.");
+      EffectEditor::EnableApply(mUIParent, false);
+   }
+
+   return true;
+}
+
 std::unique_ptr<EffectEditor> EffectOVWhisperTranscription::PopulateOrExchange(
    ShuttleGui& S, EffectInstance&, EffectSettingsAccess& access,
    const EffectOutputs*)
@@ -1003,16 +1039,24 @@ std::unique_ptr<EffectEditor> EffectOVWhisperTranscription::PopulateOrExchange(
    S.AddSpace(0, 5);
    S.StartVerticalLay();
    {
-      S.StartMultiColumn(4, wxLEFT);
+      S.StartStatic(XO(""), wxLEFT);
       {
-         //m_deviceSelectionChoice
-         mTypeChoiceDeviceCtrl = S.Id(ID_Type)
-            .MinSize({ -1, -1 })
-            .Validator<wxGenericValidator>(&m_deviceSelectionChoice)
-            .AddChoice(XXO("OpenVINO Inference Device:"),
-               Msgids(mGuiDeviceSelections.data(), mGuiDeviceSelections.size()));
+         S.StartMultiColumn(4, wxEXPAND);
+         {
+            mTypeChoiceDeviceCtrl = S.Id(ID_Type)
+               .MinSize({ -1, -1 })
+               .Validator<wxGenericValidator>(&m_deviceSelectionChoice)
+               .AddChoice(XXO("OpenVINO Inference Device:"),
+                  Msgids(mGuiDeviceSelections.data(), mGuiDeviceSelections.size()));
+            S.AddVariableText(XO(""));
+
+            auto device_info_button = S.Id(ID_Type_DeviceInfoButton).AddButton(XO("Device Details..."));
+
+            S.SetStretchyCol(2);
+         }
+         S.EndMultiColumn();
       }
-      S.EndMultiColumn();
+      S.EndStatic();
 
       S.StartMultiColumn(4, wxLEFT);
       {

@@ -43,6 +43,7 @@ class EffectOVMusicSeparation final : public StatefulEffect
       bool TransferDataToWindow(const EffectSettings& settings) override;
 
       void OnAdvancedCheckboxChanged(wxCommandEvent& evt);
+      void OnDeviceInfoButtonClicked(wxCommandEvent& evt);
 
    protected:
 
@@ -54,7 +55,8 @@ class EffectOVMusicSeparation final : public StatefulEffect
        enum control
        {
           ID_Type = 10000,
-          ID_Type_AdvancedCheckbox
+          ID_Type_AdvancedCheckbox,
+          ID_Type_DeviceInfoButton
        };
 
        std::vector< std::string > mSupportedDevices;
@@ -74,6 +76,8 @@ class EffectOVMusicSeparation final : public StatefulEffect
        void show_or_hide_advanced_options();
        wxSizer* advancedSizer = nullptr;
        bool mbAdvanced = false;
+
+       std::vector<std::pair<std::string, std::string>> m_simple_to_full_device_map;
 
        DECLARE_EVENT_TABLE()
 };

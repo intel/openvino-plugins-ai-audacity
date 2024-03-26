@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 #include <openvino/openvino.hpp>
-#include "OVMusicGenerationV2.h"
+#include "OVMusicGenerationLLM.h"
 #include "WaveTrack.h"
 #include "EffectOutputTracks.h"
 #include "effects/EffectEditor.h"
@@ -34,24 +34,105 @@
 #include "SyncLock.h"
 #include "ConfigInterface.h"
 
+#include "OVStringUtils.h"
+
 #include <future>
 
 #include "InterpolateAudio.h"
 
-const ComponentInterfaceSymbol EffectOVMusicGenerationV2::Symbol{ XO("OpenVINO Music Generation V2") };
+const ComponentInterfaceSymbol EffectOVMusicGenerationLLM::Symbol{ XO("OpenVINO Music Generation") };
 
-namespace { BuiltinEffectsModule::Registration< EffectOVMusicGenerationV2 > reg; }
+namespace { BuiltinEffectsModule::Registration< EffectOVMusicGenerationLLM > reg; }
 
-BEGIN_EVENT_TABLE(EffectOVMusicGenerationV2, wxEvtHandler)
-EVT_BUTTON(ID_Type_UnloadModelsButton, EffectOVMusicGenerationV2::OnUnloadModelsButtonClicked)
-EVT_CHOICE(ID_Type_ContextLength, EffectOVMusicGenerationV2::OnContextLengthChanged)
-EVT_CHECKBOX(ID_Type_AudioContinuationCheckBox, EffectOVMusicGenerationV2::OnContextLengthChanged)
-EVT_CHECKBOX(ID_Type_AudioContinuationAsNewTrackCheckBox, EffectOVMusicGenerationV2::OnContextLengthChanged)
+BEGIN_EVENT_TABLE(EffectOVMusicGenerationLLM, wxEvtHandler)
+EVT_BUTTON(ID_Type_UnloadModelsButton, EffectOVMusicGenerationLLM::OnUnloadModelsButtonClicked)
+EVT_BUTTON(ID_Type_DeviceInfoButton, EffectOVMusicGenerationLLM::OnDeviceInfoButtonClicked)
+EVT_CHOICE(ID_Type_ContextLength, EffectOVMusicGenerationLLM::OnContextLengthChanged)
+EVT_CHECKBOX(ID_Type_AudioContinuationCheckBox, EffectOVMusicGenerationLLM::OnContextLengthChanged)
+EVT_CHECKBOX(ID_Type_AudioContinuationAsNewTrackCheckBox, EffectOVMusicGenerationLLM::OnContextLengthChanged)
 END_EVENT_TABLE()
 
-EffectOVMusicGenerationV2::EffectOVMusicGenerationV2()
+// Determine which variants of musicgen are available by polling available
+// file in openvino-models/musicgen. Note that this only checks a sub-sample
+// of the required files for each variant. In the case where *some* of the files
+// exist (enough to satisfy this check), but not *all* required for some variant,
+// then we'll see some exception thrown about missing files when user actually goes
+// to run that. This should be a rare occurence.
+// If all models are available, this function should return a list that look like this:
+//{
+//"musicgen-small-fp16-mono",
+//"musicgen-small-int8-mono",
+//"musicgen-small-fp16-stereo",
+//"musicgen-small-int8-stereo"
+//}
+static std::vector<std::string> FindAvailableModels()
 {
+   std::vector<std::string> available_models;
 
+   auto model_folder = wxFileName(FileNames::BaseDir(), wxT("openvino-models")).GetFullPath();
+   model_folder = wxFileName(model_folder, wxT("musicgen")).GetFullPath();
+
+   //make sure that a couple of the 'base' models, like EnCodec, tokenizer are present.
+   // If any of these aren't found, then just return an empty list.. we can't
+   // support anything without these 'base' files.
+   {
+      //check encodec encoder
+      auto encodec_enc_file = wxFileName(model_folder, wxString("encodec_encoder_10s.xml"));
+      if (!encodec_enc_file.FileExists())
+      {
+         return {};
+      }
+
+      //check encodec decoder
+      auto encodec_dec_file = wxFileName(model_folder, wxString("encodec_20s.xml"));
+      if (!encodec_dec_file.FileExists())
+      {
+         return {};
+      }
+
+      //check tokenizer
+      auto tokenizer_file = wxFileName(model_folder, wxString("musicgen-small-tokenizer.xml"));
+      if (!tokenizer_file.FileExists())
+      {
+         return {};
+      }
+   }
+
+   //mono
+   //check to see if a few mono-specific files are present.
+   {
+      auto mono_model_folder = wxFileName(model_folder, wxT("mono")).GetFullPath();
+
+      auto decoder = wxFileName(mono_model_folder, wxString("musicgen_decoder_static.xml"));
+      auto decoder_batch1 = wxFileName(mono_model_folder, wxString("musicgen_decoder_static_batch1.xml"));
+      auto decoder_int8 = wxFileName(mono_model_folder, wxString("musicgen_decoder_static_int8.xml"));
+      if (decoder.FileExists() && decoder_batch1.FileExists() && decoder_int8.FileExists())
+      {
+         available_models.push_back("musicgen-small-fp16-mono");
+         available_models.push_back("musicgen-small-int8-mono");
+      }
+   }
+
+   //stereo
+   //check to see if a few stereo-specific files are present.
+   {
+      auto stereo_model_folder = wxFileName(model_folder, wxT("stereo")).GetFullPath();
+
+      auto decoder = wxFileName(stereo_model_folder, wxString("musicgen_decoder_static.xml"));
+      auto decoder_batch1 = wxFileName(stereo_model_folder, wxString("musicgen_decoder_static_batch1.xml"));
+      auto decoder_int8 = wxFileName(stereo_model_folder, wxString("musicgen_decoder_static_int8.xml"));
+      if (decoder.FileExists() && decoder_batch1.FileExists() && decoder_int8.FileExists())
+      {
+         available_models.push_back("musicgen-small-fp16-stereo");
+         available_models.push_back("musicgen-small-int8-stereo");
+      }
+   }
+
+   return available_models;
+}
+
+EffectOVMusicGenerationLLM::EffectOVMusicGenerationLLM()
+{
    Parameters().Reset(*this);
 
    ov::Core core;
@@ -63,6 +144,8 @@ EffectOVMusicGenerationV2::EffectOVMusicGenerationV2()
    {
       //GNA devices are not supported
       if (d.find("GNA") != std::string::npos) continue;
+
+      m_simple_to_full_device_map.push_back({ d, core.get_property(d, "FULL_DEVICE_NAME").as<std::string>() });
 
       mGuiDeviceVPUSupportedSelections.push_back(wxString(d));
 
@@ -77,42 +160,55 @@ EffectOVMusicGenerationV2::EffectOVMusicGenerationV2()
       mGuiContextLengthSelections.push_back({ TranslatableString{ wxString(d), {}} });
    }
 
-   std::vector<std::string> model_selection_choices = { "musicgen-small-fp16-stereo",
-                                                        "musicgen-small-int8-stereo",
-                                                        "musicgen-small-fp16-mono",
-                                                        "musicgen-small-int8-mono" };
-   for (auto d : model_selection_choices)
-   {
-      mGuiModelSelections.push_back({ TranslatableString{ wxString(d), {}} });
-   }
+   mModelSelections = FindAvailableModels();
 
+   for (auto m : mModelSelections)
+   {
+      mGuiModelSelections.push_back({ TranslatableString{ wxString(m), {}} });
+   }
 }
 
-EffectOVMusicGenerationV2::~EffectOVMusicGenerationV2()
+EffectOVMusicGenerationLLM::~EffectOVMusicGenerationLLM()
 {
    _musicgen = {};
 }
 
 // ComponentInterface implementation
-ComponentInterfaceSymbol EffectOVMusicGenerationV2::GetSymbol() const
+ComponentInterfaceSymbol EffectOVMusicGenerationLLM::GetSymbol() const
 {
    return Symbol;
 }
 
-TranslatableString EffectOVMusicGenerationV2::GetDescription() const
+TranslatableString EffectOVMusicGenerationLLM::GetDescription() const
 {
    return XO("Generates an audio track from a set of text prompts");
 }
 
-VendorSymbol EffectOVMusicGenerationV2::GetVendor() const
+VendorSymbol EffectOVMusicGenerationLLM::GetVendor() const
 {
    return XO("OpenVINO AI Effects");
 }
 
 // EffectDefinitionInterface implementation
-EffectType EffectOVMusicGenerationV2::GetType() const
+EffectType EffectOVMusicGenerationLLM::GetType() const
 {
    return EffectTypeGenerate;
+}
+
+bool EffectOVMusicGenerationLLM::DoEffect(
+   EffectSettings& settings,
+   const InstanceFinder& finder,
+   double projectRate, TrackList* list,
+   WaveTrackFactory* factory, NotifyingSelectedRegion& selectedRegion,
+   unsigned flags,
+   const EffectSettingsAccessPtr& pAccess
+)
+{
+   //get the number of selected tracks at the start of this effect.
+   const auto range = list->Selected<const WaveTrack>();
+   _num_selected_tracks_at_effect_start = range.sum(&WaveTrack::NChannels);
+
+   return EffectBase::DoEffect(settings, finder, projectRate, list, factory, selectedRegion, flags, pAccess);
 }
 
 static void NormalizeSamples(std::shared_ptr<std::vector<float>> samples, WaveTrack* base, float target_rms)
@@ -140,7 +236,7 @@ static void NormalizeSamples(std::shared_ptr<std::vector<float>> samples, WaveTr
    }
 }
 
-bool EffectOVMusicGenerationV2::MusicGenCallback(float perc_complete)
+bool EffectOVMusicGenerationLLM::MusicGenCallback(float perc_complete)
 {
    std::lock_guard<std::mutex> guard(mProgMutex);
 
@@ -156,7 +252,7 @@ bool EffectOVMusicGenerationV2::MusicGenCallback(float perc_complete)
 
 static bool musicgen_callback(float perc_complete, void* user)
 {
-   EffectOVMusicGenerationV2* music_gen = (EffectOVMusicGenerationV2*)user;
+   EffectOVMusicGenerationLLM* music_gen = (EffectOVMusicGenerationLLM*)user;
 
    if (music_gen)
    {
@@ -167,7 +263,7 @@ static bool musicgen_callback(float perc_complete, void* user)
 }
 
 // Effect implementation
-bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& settings)
+bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settings)
 {
    if (!mDurationT || (mDurationT->GetValue() <= 0))
    {
@@ -177,7 +273,52 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
 
    mIsCancelled = false;
 
+   std::string model_selection_str = mModelSelections[m_modelSelectionChoice];
+
+   //convert model_selection_str to lower case. This is to add some safety
+   // to the substring searches "stereo" and "fp16" that are about to take
+   // place on this string.
+   for (auto& c : model_selection_str) c = tolower(c);
+
+   std::cout << "model_selection_string = " << model_selection_str << std::endl;
+
+   bool bIsModelStereo = (model_selection_str.find("stereo") != std::string::npos);
+
+   // The following logic addresses the following scenario:
+   // The user has no tracks selected and chooses this generator from the
+   // menu. As of Audacity 3.5.0, EffectBase will automatically add a 'selected'
+   // mono track on behalf of the user.
+   // If they have chosen a stereo model, then most likely their intention /
+   // expecation is to generate a stereo track. So, in that case we replace
+   // the mono track that was added with a new stereo one.
+   auto selected_tracks = mTracks->Selected<WaveTrack>();
+   if ((_num_selected_tracks_at_effect_start == 0) && (selected_tracks.size() == 1))
+   {
+      auto track = *selected_tracks.begin();
+      if (track->IsEmpty(track->GetStartTime(), track->GetEndTime()))
+      {
+         if (bIsModelStereo && (track->NChannels() == 1))
+         {
+            auto pProject = const_cast<AudacityProject*>(FindProject());
+            auto& trackFactory = WaveTrackFactory::Get(*pProject);
+            auto format = track->GetSampleFormat();
+            auto rate = track->GetRate();
+            mTracks->Append(std::move(*trackFactory.Create((size_t)2, format, rate)));
+            (*mTracks->rbegin())->SetSelected(true);
+            auto track_name = track->GetName();
+            (*mTracks->rbegin())->SetName(track_name);
+            auto tempo = track->GetProjectTempo();
+            if (tempo)
+            {
+               (*mTracks->rbegin())->OnProjectTempoChange(*tempo);
+            }
+            mTracks->Remove(*track);
+         }
+      }
+   }
+
    EffectOutputTracks outputs{ *mTracks, GetType(), {{ mT0, mT1 }} };
+
    bool bGoodResult = true;
 
    {
@@ -202,8 +343,10 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
          continuation_context = ov_musicgen::MusicGenConfig::ContinuationContext::TEN_SECONDS;
       }
 
+      bool bIsModelFP16 = (model_selection_str.find("fp16") != std::string::npos);
+
       ov_musicgen::MusicGenConfig::ModelSelection model_selection;
-      if ((m_modelSelectionChoice % 2) == 0)
+      if (bIsModelFP16)
       {
          model_selection = ov_musicgen::MusicGenConfig::ModelSelection::MUSICGEN_SMALL_FP16;
       }
@@ -212,14 +355,12 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
          model_selection = ov_musicgen::MusicGenConfig::ModelSelection::MUSICGEN_SMALL_INT8;
       }
 
-      bool bStereo = (m_modelSelectionChoice < 2);
-
       std::cout << "encodec_device = " << encodec_device << std::endl;
       std::cout << "MusicGen Decode Device 0 = " << musicgen_dec0_device << std::endl;
       std::cout << "MusicGen Decode Device 1 = " << musicgen_dec1_device << std::endl;
 
       FilePath cache_folder = FileNames::MkDir(wxFileName(FileNames::DataDir(), wxT("openvino-model-cache")).GetFullPath());
-      std::string cache_path = audacity::ToUTF8(wxFileName(cache_folder).GetFullPath());
+      std::string cache_path = wstring_to_string(wxFileName(cache_folder).GetFullPath().ToStdWstring());
       std::cout << "cache path = " << cache_path << std::endl;
 
       wxString added_trackName;
@@ -229,7 +370,7 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
 
          auto musicgen_pipeline_creation_future = std::async(std::launch::async,
             [this, &musicgen_model_folder, &cache_path, &encodec_device, &musicgen_dec0_device, &musicgen_dec1_device,
-            &continuation_context, &model_selection, &bStereo]
+            &continuation_context, &model_selection, &bIsModelStereo]
             {
 
                try
@@ -260,7 +401,7 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
                      _musicgen = {};
                   }
 
-                  if (bStereo != _musicgen_config.bStereo)
+                  if (bIsModelStereo != _musicgen_config.bStereo)
                   {
                      _musicgen = {};
                   }
@@ -278,7 +419,7 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
 
                      _musicgen_config.m_continuation_context = continuation_context;
 
-                     _musicgen_config.bStereo = bStereo;
+                     _musicgen_config.bStereo = bIsModelStereo;
 
                      _musicgen_config.model_selection = model_selection;
 
@@ -346,12 +487,26 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
          std::cout << "Guidance Scale = " << mGuidanceScale << std::endl;
          std::cout << "TopK = " << mTopK << std::endl;
 
-         std::string descriptor_str = "prompt: " + _prompt;
-         descriptor_str += ", seed: " + std::to_string(*seed);
+         std::string descriptor_str = "Prompt: " + _prompt;
+         descriptor_str += ", Model:" + model_selection_str;
+         descriptor_str += ", Devices:" + std::string("[") + encodec_device + std::string(", ") + musicgen_dec0_device + std::string(", ") + musicgen_dec1_device + std::string("]");
+         descriptor_str += ", Seed: " + std::to_string(*seed);
          descriptor_str += ", Guidance Scale = " + std::to_string(mGuidanceScale);
          descriptor_str += ", TopK = " + std::to_string(mTopK);
 
-         added_trackName = wxString("Generated: (" + descriptor_str + ")");
+         if (_AudioContinuationCheckBox->GetValue() || ((float)mDurationT->GetValue() > 20))
+         {
+            if (m_contextLengthChoice == 0)
+            {
+               descriptor_str += ", Context Length = 5s";
+            }
+            else
+            {
+               descriptor_str += ", Context Length = 10s";
+            }
+         }
+
+         added_trackName = wxString("(" + descriptor_str + ")");
 
          std::cout << "Duration = " << (float)mDurationT->GetValue() << std::endl;
 
@@ -731,7 +886,16 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
                   const auto& selectedRegion =
                      ViewInfo::Get(*pProject).selectedRegion;
 
-                  std::cout << "Pasting " << selectedRegion.t0() << " : " << selectedRegion.t1() << std::endl;
+                  // If this is an empty track, set the sample rate to 32khz. We do
+                  // this to better support (potential) audio continuation later on. Otherwise,
+                  // if we just force the output to the 'project rate' (most likely 44.1 or 48 khz),
+                  // we'll just need to convert back to 32khz later on, which just introduces more potential
+                  // for artifacts, etc.
+                  if (track->IsEmpty(track->GetStartTime(), track->GetEndTime()))
+                  {
+                     track->SetRate(32000);
+                  }
+
                   track->ClearAndPaste(
                      selectedRegion.t0(), selectedRegion.t1(),
                      *tmp_tracklist, true, false, &warper);
@@ -776,7 +940,7 @@ bool EffectOVMusicGenerationV2::Process(EffectInstance&, EffectSettings& setting
    }
 }
 
-bool EffectOVMusicGenerationV2::UpdateProgress(double perc)
+bool EffectOVMusicGenerationLLM::UpdateProgress(double perc)
 {
    if (!TotalProgress(perc / 100.0))
    {
@@ -787,7 +951,7 @@ bool EffectOVMusicGenerationV2::UpdateProgress(double perc)
    return true;
 }
 
-std::unique_ptr<EffectEditor> EffectOVMusicGenerationV2::PopulateOrExchange(
+std::unique_ptr<EffectEditor> EffectOVMusicGenerationLLM::PopulateOrExchange(
    ShuttleGui& S, EffectInstance&, EffectSettingsAccess& access,
    const EffectOutputs*)
 {
@@ -795,15 +959,28 @@ std::unique_ptr<EffectEditor> EffectOVMusicGenerationV2::PopulateOrExchange(
    return nullptr;
 }
 
+void EffectOVMusicGenerationLLM::OnDeviceInfoButtonClicked(wxCommandEvent& evt)
+{
+   std::string device_mapping_str = "";
+   for (auto e : m_simple_to_full_device_map)
+   {
+      device_mapping_str += e.first + " = " + e.second;
+      device_mapping_str += "\n";
+   }
+   auto v = TranslatableString(device_mapping_str, {});
 
-void EffectOVMusicGenerationV2::DoPopulateOrExchange(
+   EffectUIServices::DoMessageBox(*this,
+      v,
+      wxICON_INFORMATION,
+      XO("OpenVINO Device Details"));
+}
+
+void EffectOVMusicGenerationLLM::DoPopulateOrExchange(
    ShuttleGui& S, EffectSettingsAccess& access)
 {
    mUIParent = S.GetParent();
 
    //EnablePreview(false); //Port this
-
-
 
    S.StartVerticalLay(wxLEFT);
    {
@@ -844,7 +1021,6 @@ void EffectOVMusicGenerationV2::DoPopulateOrExchange(
          S.AddPrompt(XXO("&Duration:"));
 
          auto& extra = access.Get().extra;
-         std::cout << "Creating prompt with duration = " << extra.GetDuration() << std::endl;
 
          mDurationT = safenew
             NumericTextCtrl(FormatterContext::SampleRateContext(mProjectRate),
@@ -868,47 +1044,51 @@ void EffectOVMusicGenerationV2::DoPopulateOrExchange(
             .Validator<wxGenericValidator>(&m_modelSelectionChoice)
             .AddChoice(XXO("Model Selection:"),
                Msgids(mGuiModelSelections.data(), mGuiModelSelections.size()));
-
-
       }
       S.EndMultiColumn();
 
-      S.StartMultiColumn(4, wxLEFT);
+
+      S.StartMultiColumn(2, wxLEFT);
       {
-         S.StartMultiColumn(2, wxCENTER);
-         {
-            mTextPrompt = S.Id(ID_Type_Prompt)
-               .Style(wxTE_LEFT)
-               .AddTextBox(XXO("Prompt:"), wxString(_prompt), 60);
-         }
-         S.EndMultiColumn();
+         mTextPrompt = S.Id(ID_Type_Prompt)
+            .Style(wxTE_LEFT)
+            .AddTextBox(XXO("Prompt:"), wxString(_prompt), 60);
+      }
+      S.EndMultiColumn();
 
-         S.StartMultiColumn(2, wxCENTER);
+      S.StartStatic(XO(""), wxLEFT);
+      {
+         S.StartMultiColumn(4, wxEXPAND);
          {
-
             mTypeChoiceDeviceCtrl_EnCodec = S.Id(ID_Type_EnCodec)
                .MinSize({ -1, -1 })
                .Validator<wxGenericValidator>(&m_deviceSelectionChoice_EnCodec)
                .AddChoice(XXO("EnCodec Device:"),
                   Msgids(mGuiDeviceNonVPUSupportedSelections.data(), mGuiDeviceNonVPUSupportedSelections.size()));
+            S.AddVariableText(XO(""));
+            S.AddVariableText(XO(""));
 
             mTypeChoiceDeviceCtrl_Decode0 = S.Id(ID_Type_MusicGenDecodeDevice0)
                .MinSize({ -1, -1 })
                .Validator<wxGenericValidator>(&m_deviceSelectionChoice_MusicGenDecode0)
-               .AddChoice(XXO("MusicGen Decode Device:"),
+               .AddChoice(XXO("MusicGen Decode Device 0:"),
                   Msgids(mGuiDeviceVPUSupportedSelections.data(), mGuiDeviceVPUSupportedSelections.size()));
+            S.AddVariableText(XO(""));
+            S.AddVariableText(XO(""));
 
             mTypeChoiceDeviceCtrl_Decode1 = S.Id(ID_Type_MusicGenDecodeDevice1)
                .MinSize({ -1, -1 })
                .Validator<wxGenericValidator>(&m_deviceSelectionChoice_MusicGenDecode1)
-               .AddChoice(XXO("MusicGen Decode Device:"),
+               .AddChoice(XXO("MusicGen Decode Device 1:"),
                   Msgids(mGuiDeviceVPUSupportedSelections.data(), mGuiDeviceVPUSupportedSelections.size()));
+            S.AddVariableText(XO(""));
+            auto device_info_button = S.Id(ID_Type_DeviceInfoButton).AddButton(XO("Device Details..."));
 
-            //mTypeChoiceScheduler->Hide();
+            S.SetStretchyCol(2);
          }
          S.EndMultiColumn();
       }
-      S.EndMultiColumn();
+      S.EndStatic();
 
       S.StartMultiColumn(2, wxLEFT);
       {
@@ -1019,14 +1199,11 @@ void EffectOVMusicGenerationV2::DoPopulateOrExchange(
       }
       S.EndMultiColumn();
 
-
-
       S.StartMultiColumn(2, wxLEFT);
       {
-         _continuationContextWarning = S.AddVariableText(XO("Some default text"), false,
-            wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT);
+         _continuationContextWarning = S.AddVariableText(XO("Some default text"));
 
-         _continuationContextWarning->SetFont(_continuationContextWarning->GetFont().Scale(1.5));
+         _continuationContextWarning->SetFont(_continuationContextWarning->GetFont().Scale(1.25));
 
          SetContinuationContextWarning();
 
@@ -1034,12 +1211,10 @@ void EffectOVMusicGenerationV2::DoPopulateOrExchange(
       S.EndMultiColumn();
 
       }
-
    S.EndVerticalLay();
+}
 
-   }
-
-void EffectOVMusicGenerationV2::SetContinuationContextWarning()
+void EffectOVMusicGenerationLLM::SetContinuationContextWarning()
 {
    if (!_AudioContinuationCheckBox->GetValue())
    {
@@ -1095,17 +1270,19 @@ void EffectOVMusicGenerationV2::SetContinuationContextWarning()
       _continuationContextWarning->SetLabelText(warn_msg);
    }
 
+   _continuationContextWarning->Wrap(mTextPrompt->GetClientSize().GetWidth() * 1.25);
+
    _continuationContextWarning->Hide();
    _continuationContextWarning->Show();
 }
 
-void EffectOVMusicGenerationV2::OnContextLengthChanged(wxCommandEvent& evt)
+void EffectOVMusicGenerationLLM::OnContextLengthChanged(wxCommandEvent& evt)
 {
    std::cout << "OnContextLengthChanged called" << std::endl;
    SetContinuationContextWarning();
 }
 
-void EffectOVMusicGenerationV2::OnUnloadModelsButtonClicked(wxCommandEvent& evt)
+void EffectOVMusicGenerationLLM::OnUnloadModelsButtonClicked(wxCommandEvent& evt)
 {
    _musicgen = {};
 
@@ -1115,7 +1292,7 @@ void EffectOVMusicGenerationV2::OnUnloadModelsButtonClicked(wxCommandEvent& evt)
    }
 }
 
-bool EffectOVMusicGenerationV2::TransferDataToWindow(const EffectSettings& settings)
+bool EffectOVMusicGenerationLLM::TransferDataToWindow(const EffectSettings& settings)
 {
    std::cout << "TransferDataToWindow. settings.extra.GetDuration() = " << settings.extra.GetDuration() << std::endl;
 
@@ -1126,16 +1303,22 @@ bool EffectOVMusicGenerationV2::TransferDataToWindow(const EffectSettings& setti
 
    EffectEditor::EnablePreview(mUIParent, false);
 
+   if (mModelSelections.empty())
+   {
+      wxLogInfo("OpenVINO Music Generation V2 has no models installed.");
+      EffectEditor::EnableApply(mUIParent, false);
+   }
+
    if (mDurationT)
    {
-      std::cout << "EffectOVMusicGenerationV2::TransferDataToWindow: Setting mDurationT to " << settings.extra.GetDuration() << std::endl;
+      std::cout << "EffectOVMusicGenerationLLM::TransferDataToWindow: Setting mDurationT to " << settings.extra.GetDuration() << std::endl;
       //mDurationT->SetValue(settings.extra.GetDuration());
    }
 
    return true;
 }
 
-bool EffectOVMusicGenerationV2::TransferDataFromWindow(EffectSettings& settings)
+bool EffectOVMusicGenerationLLM::TransferDataFromWindow(EffectSettings& settings)
 {
    std::cout << "TransferDataFromWindow. settings.extra.GetDuration() = " << settings.extra.GetDuration() << std::endl;
    if (!mUIParent->Validate() || !mUIParent->TransferDataFromWindow())
@@ -1145,7 +1328,7 @@ bool EffectOVMusicGenerationV2::TransferDataFromWindow(EffectSettings& settings)
 
    if (mDurationT)
    {
-      std::cout << "EffectOVMusicGenerationV2::TransferDataFromWindow: Setting settings.extra.SetDuration to " << mDurationT->GetValue() << std::endl;
+      std::cout << "EffectOVMusicGenerationLLM::TransferDataFromWindow: Setting settings.extra.SetDuration to " << mDurationT->GetValue() << std::endl;
       settings.extra.SetDuration(mDurationT->GetValue());
    }
 
