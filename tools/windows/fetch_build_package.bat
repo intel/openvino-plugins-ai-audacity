@@ -90,12 +90,6 @@ exit /b
 
 set OPENCL_SDK_DIR=%EXTRACTED_PACKAGE_PATH%
 
-:: TODO: These paths will need to come from some other config, probably based on the QB manifest somehow.
-#set OPENVINO_DIR=C:\Users\vmd\Workspace\Audacity_OV2024.0\BAT\w_openvino_toolkit_windows_2024.0.0.14509.34caeefd078_x86_64
-#set OPENVINO_TOKENIZERS_DIR=C:\Users\vmd\Workspace\Audacity_OV2024.0\BAT\openvino_tokenizers_windows_2023.3.0.0_x86_64
-#set OPENCL_SDK_DIR=C:\Users\vmd\Workspace\Audacity_OV2024.0\BAT\OpenCL-SDK-v2023.04.17-Win-x64
-#set LIBTORCH_DIR=C:\Users\vmd\Workspace\Audacity_OV2024.0\BAT\libtorch
-
 set AI_PLUGIN_REPO_SOURCE_FOLDER=%bat_path%\..\..\
 
 echo AI_PLUGIN_REPO_SOURCE_FOLDER=%AI_PLUGIN_REPO_SOURCE_FOLDER%
