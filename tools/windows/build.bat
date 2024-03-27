@@ -44,13 +44,13 @@ IF "%AUDACITY_BUILD_CONFIG%"=="" (
     exit /b
 )
 
-IF "%OPENVINO_AUDACITY_AI_REPO_CHECKOUT%"=="" (
-    echo OPENVINO_AUDACITY_AI_REPO_CHECKOUT is not set. Exiting.
+IF "%WHISPERCPP_REPO_CHECKOUT%"=="" (
+    echo WHISPERCPP_REPO_CHECKOUT is not set. Exiting.
     exit /b
 )
 
-IF "%WHISPERCPP_REPO_CHECKOUT%"=="" (
-    echo WHISPERCPP_REPO_CHECKOUT is not set. Exiting.
+IF "%AI_PLUGIN_REPO_SOURCE_FOLDER%"=="" (
+    echo AI_PLUGIN_REPO_SOURCE_FOLDER is not set. Exiting.
     exit /b
 )
 
@@ -125,11 +125,6 @@ echo "installing conan"
 pip install conan
 
 
-echo "Cloning OpenVINO AI Plugins for Audacity"
-
-:: clone OpenVINO AI Plugins for Audacity
-git clone --depth 1 --branch %OPENVINO_AUDACITY_AI_REPO_CHECKOUT% %OPENVINO_AUDACITY_AI_REPO_CLONE_URL%
-
 echo "Cloning Audacity"
 
 :: clone Audacity
@@ -141,7 +136,7 @@ git apply %audacity_add_ov_mod_patch_path%
 cd ..
 
 echo "Copying mod-openvino into audacity\modules"
-xcopy "openvino-plugins-ai-audacity\mod-openvino" "audacity\modules\mod-openvino" /E /I
+xcopy %AI_PLUGIN_REPO_SOURCE_FOLDER%mod-openvino "audacity\modules\mod-openvino" /E /I
 
 :: Build Audacity + our OpenVINO module
 mkdir audacity-build

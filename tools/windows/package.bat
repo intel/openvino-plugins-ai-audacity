@@ -31,6 +31,12 @@ IF "%AI_PLUGIN_VERSION%"=="" (
     exit /b
 )
 
+IF "%AI_PLUGIN_REPO_SOURCE_FOLDER%"=="" (
+    echo AI_PLUGIN_REPO_SOURCE_FOLDER is not set. Exiting.
+    exit /b
+)
+
+
 
 set "bat_path=%~dp0"
 set "audacity_ai_plugins_iss_path=%bat_path%audacity_ai_plugins.iss
@@ -43,6 +49,7 @@ iscc /O+ %audacity_ai_plugins_iss_path% ^
   /DLIBTORCH_DIR=%LIBTORCH_DIR% ^
   /DAUDACITY_BUILD_CONFIG=%AUDACITY_BUILD_CONFIG% ^
   /DAI_PLUGIN_VERSION=%AI_PLUGIN_VERSION% ^
+  /DAI_PLUGIN_REPO_SOURCE_FOLDER=%AI_PLUGIN_REPO_SOURCE_FOLDER% ^
   /O%BUILD_FOLDER% ^
   /Faudacity-win-%AI_PLUGIN_VERSION%-64bit-OpenVINO-AI-Plugins
   

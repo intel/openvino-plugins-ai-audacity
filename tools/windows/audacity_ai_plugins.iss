@@ -33,7 +33,7 @@ ArchitecturesAllowed=x64
 ; done in "64-bit mode" on x64, meaning it should use the native
 ; 64-bit Program Files directory and the 64-bit view of the registry.
 ArchitecturesInstallIn64BitMode=x64
-InfoBeforeFile={#BUILD_FOLDER}\openvino-plugins-ai-audacity\LICENSE.txt
+InfoBeforeFile={#AI_PLUGIN_REPO_SOURCE_FOLDER}\LICENSE.txt
 DisableWelcomePage=no
 
 [Languages]

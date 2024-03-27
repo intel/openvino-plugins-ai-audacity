@@ -8,10 +8,6 @@ set AUDACITY_REPO_CHECKOUT=Audacity-3.4.2
 set AUDACITY_BUILD_LEVEL=2
 set AUDACITY_BUILD_CONFIG=RelWithDebInfo
 
-:: Branch or tag of AI Plugin repo to check out
-:: TODO: umm... isn't this going into the ai repo? If so, we shouldn't need to clone this..s
-set OPENVINO_AUDACITY_AI_REPO_CHECKOUT=main
-
 :: The version that we will pass to inno setup as the app version.
 set AI_PLUGIN_VERSION=v3.4.2-R2
 
@@ -29,7 +25,7 @@ set "timestamp=%TIME:~0,2%%TIME:~3,2%%TIME:~6,2%"
 set "timestamp=%timestamp: =0%"
 
 :: Combine them to form a folder name
-set "BUILD_FOLDER=%bat_path%BuildArtifacts-%datestamp%_%timestamp%"
+set "BUILD_FOLDER=%cd%\BuildArtifacts-%datestamp%_%timestamp%"
 
 echo BUILD_FOLDER=%BUILD_FOLDER%
 
@@ -99,6 +95,10 @@ set OPENCL_SDK_DIR=%EXTRACTED_PACKAGE_PATH%
 #set OPENVINO_TOKENIZERS_DIR=C:\Users\vmd\Workspace\Audacity_OV2024.0\BAT\openvino_tokenizers_windows_2023.3.0.0_x86_64
 #set OPENCL_SDK_DIR=C:\Users\vmd\Workspace\Audacity_OV2024.0\BAT\OpenCL-SDK-v2023.04.17-Win-x64
 #set LIBTORCH_DIR=C:\Users\vmd\Workspace\Audacity_OV2024.0\BAT\libtorch
+
+set AI_PLUGIN_REPO_SOURCE_FOLDER=%bat_path%\..\..\
+
+echo AI_PLUGIN_REPO_SOURCE_FOLDER=%AI_PLUGIN_REPO_SOURCE_FOLDER%
 
 echo Done fetching packages.
 echo OPENVINO_DIR=%OPENVINO_DIR%
