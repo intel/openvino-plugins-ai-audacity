@@ -3,17 +3,6 @@ setlocal
 
 :: Copyright (C) 2024 Intel Corporation
 :: SPDX-License-Identifier: GPL-3.0-only
-
-:: Repo's we will clone from.
-set OPENVINO_AUDACITY_AI_REPO_CLONE_URL=https://github.com/intel/openvino-plugins-ai-audacity.git
-set AUDACITY_REPO_CLONE_URL=https://github.com/audacity/audacity.git
-set WHISPERCPP_REPO_CLONE_URL=https://github.com/ggerganov/whisper.cpp
-
-IF "%BUILD_FOLDER%"=="" (
-    echo BUILD_FOLDER is not set. Exiting.
-    exit /b
-)
-
 IF "%OPENVINO_DIR%"=="" (
     echo OPENVINO_DIR is not set. Exiting.
     exit /b
@@ -29,11 +18,6 @@ IF "%LIBTORCH_DIR%"=="" (
     exit /b
 )
 
-IF "%AUDACITY_REPO_CHECKOUT%"=="" (
-    echo AUDACITY_REPO_CHECKOUT is not set. Exiting.
-    exit /b
-)
-
 IF "%AUDACITY_BUILD_LEVEL%"=="" (
     echo AUDACITY_BUILD_LEVEL is not set. Exiting.
     exit /b
@@ -41,11 +25,6 @@ IF "%AUDACITY_BUILD_LEVEL%"=="" (
 
 IF "%AUDACITY_BUILD_CONFIG%"=="" (
     echo AUDACITY_BUILD_CONFIG is not set. Exiting.
-    exit /b
-)
-
-IF "%WHISPERCPP_REPO_CHECKOUT%"=="" (
-    echo WHISPERCPP_REPO_CHECKOUT is not set. Exiting.
     exit /b
 )
 
@@ -58,9 +37,6 @@ set "bat_path=%~dp0"
 set "audacity_add_ov_mod_patch_path=%bat_path%add_ov_module.patch
 
 echo "audacity_add_ov_mod_patch_path=%audacity_add_ov_mod_patch_path%"
-
-:: go into build folder
-cd %BUILD_FOLDER%
 
 :: Set up OpenVINO build environment.
 call %OPENVINO_DIR%\setupvars.bat
@@ -76,7 +52,11 @@ set Path=%OCL_ROOT%\bin;%Path%
 ::::::::::::::::::::::::
 :: Whisper.cpp build. ::
 ::::::::::::::::::::::::
-git clone --depth 1 --branch %WHISPERCPP_REPO_CHECKOUT% %WHISPERCPP_REPO_CLONE_URL%
+
+IF NOT EXIST whisper.cpp (
+    echo Can't find whisper.cpp directory.
+    echo /B
+)
 
 :: Create build folder
 mkdir whisper-build-avx
@@ -114,22 +94,10 @@ cd ..
 ::::::::::::::::::::::::::::::::::::::::::::
 :: Audacity  + OpenVINO AI Plugins build. ::
 ::::::::::::::::::::::::::::::::::::::::::::
-
-:: Create local python env, just to install conan.
-python -m venv build_env
-
-echo "activating..."
-call "build_env\Scripts\activate"
-
-echo "installing conan"
-pip install conan
-
-
-echo "Cloning Audacity"
-
-:: clone Audacity
-git clone --depth 1 --branch %AUDACITY_REPO_CHECKOUT% %AUDACITY_REPO_CLONE_URL%
-
+IF NOT EXIST audacity (
+    echo Can't find whisper.cpp directory.
+    echo /B
+)
 :: apply patch that adds mod-openvino to build
 cd audacity
 git apply %audacity_add_ov_mod_patch_path%
