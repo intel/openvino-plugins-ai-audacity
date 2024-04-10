@@ -13,7 +13,7 @@ It can be found under the **Generate** menu:
 3. **Model Selection**: This is where you can select between the various MusicGen models that are detected to have been installed. Note that these models are selected / downloaded at installation time.
    - fp16 (16-bit floating-point) models (in general) produce better quality than int8 (8-bit integer) compressed models. But, int8 models consume less system memory and run faster than fp16 models on most devices.
    - mono models natively produce a single channel of audio (32khz), stereo models natively produce 2 stereo channels (also 32khz).
-4. **Prompt**: This is used to describe the type of music to generate. It works best to describe 1.
+4. **Prompt**: This is used to describe the type of music to generate. 
 5. **Device Selection**: The set of OpenVINO™ devices that will be used to run the various stages of the MusicGen LLM pipeline. The pipeline is dominated by many decode (token generation) operations, so changing the Decode devices here will have the most impact on performance.
 6. **Device Details**: Clicking this button will give more detailed information about your devices, and device-mapping. For example, this can be useful if you have multiple GPUs and to easily understand which is mapped to 'GPU.0', and 'GPU.1', etc.
 7. **Seed**: Used to initialize the RNG (random noise generator). If left blank, an arbitrary value is chosen as a seed, and will be different each time you click 'Generate', and so generated results may greatly vary for each 'Generate'. And this can be a good thing for experimentation. To generate consistent results, or to recreate something previously generated, the seed should be set.
