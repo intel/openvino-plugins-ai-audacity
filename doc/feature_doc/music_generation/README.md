@@ -35,12 +35,32 @@ It can be found under the **Generate** menu:
 ## Video Demonstrations
 
 ### Music Generation:
+The following video demonstrates a simple text-to-music flow.
+
 https://github.com/intel/openvino-plugins-ai-audacity/assets/107415876/7b975dc8-16a7-4e31-952c-9e367be51ee7
 
 ### Audio Continuation (On same track):
+The following video demonstrates audio continuation, such that audio is generated into an existing track. This is very useful in cases where you want to extend previously generated audio segments.  
+
+To do this, click the end-point of the track, and go to 'OpenVINO Music Generation' from the Generators menu. You'll see that the 'Audio Continuation' has been selected for you.
+
 https://github.com/intel/openvino-plugins-ai-audacity/assets/107415876/8db00517-5fff-4309-ac95-b06907960fdb
 
-### Audio Continuation (On new track):
+### Audio Continuation (On new track): 
+The following video demontrates audio continuation, such that audio (and re-Encodec'ed context) is generated into a new track. In this case, the existing audio track / selection is *not* something that was generated.  
+
+To do this, select a portion of audio from a single track, and go to  'OpenVINO Music Generation' from the Generators menu. You'll see that the 'Audio Continuation' has been selected for you, as well as 'Audio Continuation on new track'.
+
 https://github.com/intel/openvino-plugins-ai-audacity/assets/107415876/8bcecb7d-5a76-45fc-9b56-ed1cd731aef8
 
 
+## Tips and Tricks
+
+:bulb: **A generated segment is labeled with it's properties**: You'll notice that the generated audio snippet is labeled with the properties used to generate it:  
+    <img width="402" alt="labeled_track" src="https://github.com/intel/openvino-plugins-ai-audacity/assets/107415876/33027a4d-3546-4e61-8450-18fc8eae96f4">
+
+  This contains all of the information you need to recreate it, like seed, models used, devices, etc.
+    
+:bulb: **Generate short snippets when experimenting**: Setting the duration to something short, like 5 seconds, can save a lot of time when experimenting with prompts, models, devices, and other settings. If you generate a 5 second segment that you like, you can always generate something longer with the same seed, or use audio continuation to extend it!
+
+:bulb: **Generated Music fades into silence, or transitions into noise is typical**: It's fairly normal for the audio generation to do something weird like fade into silence, or transition into something really weird sounding, or noise. If you liked what was generated before it did something weird, you can always delete the portion of audio that went astray (faded to silence, transitioned to noise, etc.) and then use audio continuation to pick up where the 'good' segment left off, and hopefully have more luck the second time.
