@@ -1,6 +1,6 @@
 # OpenVINO™ Music Generation & Continuation :notes:
 
-This feature allows a user to generate snippets of music from a text prompt, as well as generate a continuation from an already exiting snippet of music.  
+This feature allows a user to generate snippets of music from a text prompt, as well as generate a continuation from an already existing snippet of music.  
 
 It can be found under the **Generate** menu:  
 <img width="518" alt="ov_music_gen_menu" src="https://github.com/intel/openvino-plugins-ai-audacity/assets/107415876/7be98a8c-f345-4700-9b20-9733c097870b">
