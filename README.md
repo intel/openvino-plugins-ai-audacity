@@ -5,9 +5,8 @@
 A set of AI-enabled effects, generators, and analyzers for [Audacity®](https://www.audacityteam.org/). These AI features run 100% locally on your PC :computer: -- no internet connection necessary! [OpenVINO™](https://github.com/openvinotoolkit/openvino) is used to run AI models on supported accelerators found on the user's system such as CPU, GPU, and NPU.
 
 - [**Music Separation**](doc/feature_doc/music_separation/README.md):musical_note: -- Separate a mono or stereo track into individual stems -- Drums, Bass, Vocals, & Other Instruments. 
-- [**Music Style Remix**](doc/feature_doc/music_style_remix/README.md):cd: -- Uses Stable Diffusion to alter a mono or stereo track using a text prompt.
 - [**Noise Suppression**](doc/feature_doc/noise_suppression/README.md):broom: -- Removes background noise from an audio sample.
-- [**Music Generation**](doc/feature_doc/music_generation/README.md):notes: -- Uses Stable Diffusion to generate snippets of music from a text prompt.
+- [**Music Generation & Continuation**](doc/feature_doc/music_generation/README.md):notes: -- Uses MusicGen LLM to generate snippets of music, or to generate a continuation of an existing snippet of music.
 - [**Whisper Transcription**](doc/feature_doc/whisper_transcription/README.md):microphone: -- Uses [whisper.cpp](https://github.com/ggerganov/whisper.cpp) to generate a label track containing the transcription or translation for a given selection of spoken audio or vocals.
 
 ## Installation :floppy_disk: 
