@@ -32,4 +32,8 @@ It can be found under the **Generate** menu:
     - *Audio Continuation on New Track will be checked by default when...* you've highlighted some chunk of audio that isn't at the end of the track. 
     
 
+## Video Demonstrations
+
+## Music Generation:
+https://github.com/intel/openvino-plugins-ai-audacity/assets/107415876/7b975dc8-16a7-4e31-952c-9e367be51ee7
 
