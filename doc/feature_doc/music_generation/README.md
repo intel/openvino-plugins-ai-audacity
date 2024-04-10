@@ -34,6 +34,13 @@ It can be found under the **Generate** menu:
 
 ## Video Demonstrations
 
-## Music Generation:
+### Music Generation:
 https://github.com/intel/openvino-plugins-ai-audacity/assets/107415876/7b975dc8-16a7-4e31-952c-9e367be51ee7
+
+### Audio Continuation (On same track):
+https://github.com/intel/openvino-plugins-ai-audacity/assets/107415876/8db00517-5fff-4309-ac95-b06907960fdb
+
+### Audio Continuation (On new track):
+https://github.com/intel/openvino-plugins-ai-audacity/assets/107415876/8bcecb7d-5a76-45fc-9b56-ed1cd731aef8
+
 
