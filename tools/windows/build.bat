@@ -33,6 +33,19 @@ IF "%AI_PLUGIN_REPO_SOURCE_FOLDER%"=="" (
     exit /b
 )
 
+IF "%AUDACITY_CLONE_DIR%"=="" (
+    echo AUDACITY_CLONE_DIR is not set. Exiting.
+    exit /b
+)
+
+IF "%WHISPER_CLONE_DIR%"=="" (
+    echo WHISPER_CLONE_DIR is not set. Exiting.
+    exit /b
+)
+
+
+
+
 set "bat_path=%~dp0"
 set "audacity_add_ov_mod_patch_path=%bat_path%add_ov_module.patch
 
@@ -63,7 +76,7 @@ mkdir whisper-build-avx
 cd whisper-build-avx
 
 :: Run CMake, specifying that you want to enable OpenVINO support.
-cmake ..\whisper.cpp -A x64 -DWHISPER_OPENVINO=ON
+cmake %WHISPER_CLONE_DIR% -A x64 -DWHISPER_OPENVINO=ON
 
 :: Build it:
 cmake --build . --config Release
@@ -82,7 +95,7 @@ mkdir whisper-build-no-avx
 cd whisper-build-no-avx
 
 :: Run CMake, specifying that you want to enable OpenVINO support, but no AVX / AVX2 / other advanced instruction support
-cmake ..\whisper.cpp -A x64 -DWHISPER_OPENVINO=ON -DWHISPER_NO_AVX=ON -DWHISPER_NO_AVX2=ON -DWHISPER_NO_FMA=ON -DWHISPER_NO_F16C=ON
+cmake %WHISPER_CLONE_DIR%  -A x64 -DWHISPER_OPENVINO=ON -DWHISPER_NO_AVX=ON -DWHISPER_NO_AVX2=ON -DWHISPER_NO_FMA=ON -DWHISPER_NO_F16C=ON
 
 :: Build it:
 cmake --build . --config Release
@@ -98,10 +111,13 @@ IF NOT EXIST audacity (
     echo Can't find whisper.cpp directory.
     echo /B
 )
+
+set current_work_dir=%cd%
 :: apply patch that adds mod-openvino to build
-cd audacity
+cd %AUDACITY_CLONE_DIR%
 git apply %audacity_add_ov_mod_patch_path%
-cd ..
+cd %current_work_dir%
+set current_work_dir=
 
 echo "Copying mod-openvino into audacity\modules"
 xcopy %AI_PLUGIN_REPO_SOURCE_FOLDER%mod-openvino "audacity\modules\mod-openvino" /E /I
@@ -111,7 +127,7 @@ mkdir audacity-build
 cd audacity-build
 
 :: Run cmake
-cmake ..\audacity -DAUDACITY_BUILD_LEVEL=%AUDACITY_BUILD_LEVEL%
+cmake %AUDACITY_CLONE_DIR% -DAUDACITY_BUILD_LEVEL=%AUDACITY_BUILD_LEVEL%
 
 :: build it
 cmake --build . --config %AUDACITY_BUILD_CONFIG%

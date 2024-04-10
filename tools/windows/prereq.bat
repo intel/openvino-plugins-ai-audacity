@@ -23,15 +23,8 @@ set OPENCL_SDK_256SUM=11844a1d69a71f82dc14ce66382c6b9fc8a4aee5840c21a786c5accb1d
 set AUDACITY_REPO_CLONE_URL=https://github.com/audacity/audacity.git
 set AUDACITY_REPO_CHECKOUT=Audacity-3.4.2
 
-:: Build Level 0=alpha, 1=beta, 2=release
-set AUDACITY_BUILD_LEVEL=2
-set AUDACITY_BUILD_CONFIG=RelWithDebInfo
-
 set WHISPERCPP_REPO_CLONE_URL=https://github.com/ggerganov/whisper.cpp
 set WHISPERCPP_REPO_CHECKOUT=v1.5.4
-
-:: The version that we will pass to inno setup as the app version.
-set AI_PLUGIN_VERSION=v3.4.2-R2
 
 ::::::::::::::::::::::::::::::::::::::::::::::::
 :: Download, verify, and extract the packages ::
@@ -69,9 +62,21 @@ exit /b
 
 set OPENCL_SDK_DIR=%EXTRACTED_PACKAGE_PATH%
 
-:: Set some env. var's
-set AI_PLUGIN_REPO_SOURCE_FOLDER=%bat_path%\..\..\
-echo AI_PLUGIN_REPO_SOURCE_FOLDER=%AI_PLUGIN_REPO_SOURCE_FOLDER%
+:: Clone the required repo's and check out the desired tags
+git clone --depth 1 --branch %WHISPERCPP_REPO_CHECKOUT% %WHISPERCPP_REPO_CLONE_URL%
+
+git clone --depth 1 --branch %AUDACITY_REPO_CHECKOUT% %AUDACITY_REPO_CLONE_URL%
+
+:: Create local python env, just to install conan.
+python -m venv build_env
+
+echo "activating..."
+call "build_env\Scripts\activate"
+
+echo "installing conan"
+pip install conan
+
+call %bat_path%\set_env.bat %LIBTORCH_DIR% %OPENVINO_DIR% %OPENVINO_TOKENIZERS_DIR% %OPENCL_SDK_DIR% whisper.cpp audacity %CONAN_CACHE_PATH%
 
 goto :eof
 
@@ -108,24 +113,5 @@ powershell -Command "Expand-Archive -LiteralPath '%package_file%' -DestinationPa
 for %%A in ("%package_file%") do set "package_folder=%%~nA"
 
 set EXTRACTED_PACKAGE_PATH=%BUILD_FOLDER%\%package_folder%
-
-
-:: Clone the required repo's and check out the desired tags
-git clone --depth 1 --branch %WHISPERCPP_REPO_CHECKOUT% %WHISPERCPP_REPO_CLONE_URL%
-
-git clone --depth 1 --branch %AUDACITY_REPO_CHECKOUT% %AUDACITY_REPO_CLONE_URL%
-
-
-
-:: Create local python env, just to install conan.
-python -m venv build_env
-
-echo "activating..."
-call "build_env\Scripts\activate"
-
-echo "installing conan"
-pip install conan
-
-
 
 goto :eof
