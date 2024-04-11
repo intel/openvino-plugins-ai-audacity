@@ -67,7 +67,7 @@ echo set WHISPER_CLONE_DIR=%WHISPER_CLONE_DIR% >> env.bat
 echo set AUDACITY_CLONE_DIR=%AUDACITY_CLONE_DIR% >> env.bat
 
 set BUILD_FOLDER=%cd%
-echo BUILD_FOLDER=%BUILD_FOLDER% >> env.bat
+echo set BUILD_FOLDER=%BUILD_FOLDER% >> env.bat
 
 if "%~7"=="" (
     goto end
