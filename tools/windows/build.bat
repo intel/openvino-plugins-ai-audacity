@@ -70,7 +70,7 @@ set "audacity_add_ov_mod_patch_path=%bat_path%add_ov_module.patch
 echo audacity_add_ov_mod_patch_path=%audacity_add_ov_mod_patch_path%
 
 :: Set up OpenVINO build environment.
-call %OPENVINO_DIR%\setupvars.bat || exit /b
+call %OPENVINO_DIR%\setupvars.bat || exit /b 1
 
 :: Setup Libtorch end.
 set LIBTORCH_ROOTDIR=%LIBTORCH_DIR%
@@ -94,13 +94,13 @@ mkdir whisper-build-avx
 cd whisper-build-avx
 
 :: Run CMake, specifying that you want to enable OpenVINO support.
-cmake %WHISPER_CLONE_DIR% -A x64 -DWHISPER_OPENVINO=ON || exit /b
+cmake %WHISPER_CLONE_DIR% -A x64 -DWHISPER_OPENVINO=ON || exit /b 1
 
 :: Build it:
-cmake --build . --config Release || exit /b
+cmake --build . --config Release || exit /b 1
 
 :: Install built whisper collateral into a local 'installed' directory:
-cmake --install . --config Release --prefix .\installed || exit /b
+cmake --install . --config Release --prefix .\installed || exit /b 1
 
 :: Setup whisper.cpp env.
 set WHISPERCPP_ROOTDIR=%cd%\installed
@@ -113,13 +113,13 @@ mkdir whisper-build-no-avx
 cd whisper-build-no-avx
 
 :: Run CMake, specifying that you want to enable OpenVINO support, but no AVX / AVX2 / other advanced instruction support
-cmake %WHISPER_CLONE_DIR%  -A x64 -DWHISPER_OPENVINO=ON -DWHISPER_NO_AVX=ON -DWHISPER_NO_AVX2=ON -DWHISPER_NO_FMA=ON -DWHISPER_NO_F16C=ON || exit /b
+cmake %WHISPER_CLONE_DIR%  -A x64 -DWHISPER_OPENVINO=ON -DWHISPER_NO_AVX=ON -DWHISPER_NO_AVX2=ON -DWHISPER_NO_FMA=ON -DWHISPER_NO_F16C=ON || exit /b 1
 
 :: Build it:
-cmake --build . --config Release || exit /b
+cmake --build . --config Release || exit /b 1
 
 :: Install built whisper collateral into a local 'installed' directory:
-cmake --install . --config Release --prefix .\installed || exit /b
+cmake --install . --config Release --prefix .\installed || exit /b 1
 cd ..
 
 ::::::::::::::::::::::::::::::::::::::::::::
@@ -127,28 +127,28 @@ cd ..
 ::::::::::::::::::::::::::::::::::::::::::::
 IF NOT EXIST %AUDACITY_CLONE_DIR% (
     echo Can't find whisper.cpp directory.
-    echo /B
+    echo /B 1
 )
 
 set current_work_dir=%cd%
 :: apply patch that adds mod-openvino to build
 cd %AUDACITY_CLONE_DIR%
 
-git apply %audacity_add_ov_mod_patch_path% || exit /b
+git apply %audacity_add_ov_mod_patch_path% || exit /b 1
 cd %current_work_dir%
 set current_work_dir=
 
-xcopy %AI_PLUGIN_REPO_SOURCE_FOLDER%mod-openvino "%AUDACITY_CLONE_DIR%\modules\mod-openvino" /E /I || exit /b
+xcopy %AI_PLUGIN_REPO_SOURCE_FOLDER%mod-openvino "%AUDACITY_CLONE_DIR%\modules\mod-openvino" /E /I || exit /b 1
 
 :: Build Audacity + our OpenVINO module
 mkdir audacity-build
 cd audacity-build
 
 :: Run cmake
-cmake %AUDACITY_CLONE_DIR% -DAUDACITY_BUILD_LEVEL=%AUDACITY_BUILD_LEVEL% || exit /b
+cmake %AUDACITY_CLONE_DIR% -DAUDACITY_BUILD_LEVEL=%AUDACITY_BUILD_LEVEL% || exit /b 1
 
 :: build it
-cmake --build . --config %AUDACITY_BUILD_CONFIG% || exit /b
+cmake --build . --config %AUDACITY_BUILD_CONFIG% || exit /b 1
 cd ..
 
 endlocal

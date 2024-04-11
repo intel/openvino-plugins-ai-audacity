@@ -55,19 +55,19 @@ echo AUDACITY_CLONE_DIR=%AUDACITY_CLONE_DIR%
 echo BUILD_FOLDER=%BUILD_FOLDER%
 
 :: Save env. var's to a .bat to then source in next build steps.
-echo set AUDACITY_BUILD_LEVEL=%AUDACITY_BUILD_LEVEL% > env.bat
-echo set AUDACITY_BUILD_CONFIG=%AUDACITY_BUILD_CONFIG% >> env.bat
-echo set AI_PLUGIN_VERSION=%AI_PLUGIN_VERSION% >> env.bat
-echo set AI_PLUGIN_REPO_SOURCE_FOLDER=%AI_PLUGIN_REPO_SOURCE_FOLDER% >> env.bat
-echo set LIBTORCH_DIR=%LIBTORCH_DIR% >> env.bat
-echo set OPENVINO_DIR=%OPENVINO_DIR% >> env.bat
-echo set OPENVINO_TOKENIZERS_DIR=%OPENVINO_TOKENIZERS_DIR% >> env.bat
-echo set OPENCL_SDK_DIR=%OPENCL_SDK_DIR% >> env.bat
-echo set WHISPER_CLONE_DIR=%WHISPER_CLONE_DIR% >> env.bat
-echo set AUDACITY_CLONE_DIR=%AUDACITY_CLONE_DIR% >> env.bat
+echo set AUDACITY_BUILD_LEVEL=%AUDACITY_BUILD_LEVEL%> env.bat
+echo set AUDACITY_BUILD_CONFIG=%AUDACITY_BUILD_CONFIG%>> env.bat
+echo set AI_PLUGIN_VERSION=%AI_PLUGIN_VERSION%>> env.bat
+echo set AI_PLUGIN_REPO_SOURCE_FOLDER=%AI_PLUGIN_REPO_SOURCE_FOLDER%>> env.bat
+echo set LIBTORCH_DIR=%LIBTORCH_DIR%>> env.bat
+echo set OPENVINO_DIR=%OPENVINO_DIR%>> env.bat
+echo set OPENVINO_TOKENIZERS_DIR=%OPENVINO_TOKENIZERS_DIR%>> env.bat
+echo set OPENCL_SDK_DIR=%OPENCL_SDK_DIR%>> env.bat
+echo set WHISPER_CLONE_DIR=%WHISPER_CLONE_DIR%>> env.bat
+echo set AUDACITY_CLONE_DIR=%AUDACITY_CLONE_DIR%>> env.bat
 
 set BUILD_FOLDER=%cd%
-echo set BUILD_FOLDER=%BUILD_FOLDER% >> env.bat
+echo set BUILD_FOLDER=%BUILD_FOLDER%>> env.bat
 
 if "%~7"=="" (
     goto end
@@ -78,7 +78,7 @@ set CONAN_CACHE_ABS_PATH=%ABS_PATH%
 set CONAN_HOME=%CONAN_CACHE_ABS_PATH%
 
 echo CONAN_HOME=%CONAN_HOME%
-echo set CONAN_HOME=%CONAN_HOME% >> env.bat
+echo set CONAN_HOME=%CONAN_HOME%>> env.bat
 
 goto end
 
