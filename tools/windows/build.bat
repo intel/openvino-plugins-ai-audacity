@@ -1,49 +1,68 @@
 @echo off
 setlocal
 
+IF NOT EXIST env.bat (
+    echo env.bat is not set. Exiting.
+    exit /b 1
+)
+
+call env.bat
+
+echo LIBTORCH_DIR=%LIBTORCH_DIR%
+echo OPENVINO_DIR=%OPENVINO_DIR%
+echo OPENVINO_TOKENIZERS_DIR=%OPENVINO_TOKENIZERS_DIR%
+echo OPENCL_SDK_DIR=%OPENCL_SDK_DIR%
+echo WHISPER_CLONE_DIR=%WHISPER_CLONE_DIR%
+echo AUDACITY_CLONE_DIR=%AUDACITY_CLONE_DIR%
+echo BUILD_FOLDER=%BUILD_FOLDER%
+echo CONAN_HOME=%CONAN_HOME%
+
 :: Copyright (C) 2024 Intel Corporation
 :: SPDX-License-Identifier: GPL-3.0-only
 IF "%OPENVINO_DIR%"=="" (
     echo OPENVINO_DIR is not set. Exiting.
-    exit /b
+    exit /b 1
 )
 
 IF "%OPENVINO_TOKENIZERS_DIR%"=="" (
     echo OPENVINO_TOKENIZERS_DIR is not set. Exiting.
-    exit /b
+    exit /b 1
 )
 
 IF "%LIBTORCH_DIR%"=="" (
     echo LIBTORCH_DIR is not set. Exiting.
-    exit /b
+    exit /b 1
+)
+
+IF "%OPENCL_SDK_DIR%"=="" (
+    echo OPENCL_SDK_DIR is not set. Exiting.
+    exit /b 1
 )
 
 IF "%AUDACITY_BUILD_LEVEL%"=="" (
     echo AUDACITY_BUILD_LEVEL is not set. Exiting.
-    exit /b
+    exit /b 1
 )
 
 IF "%AUDACITY_BUILD_CONFIG%"=="" (
     echo AUDACITY_BUILD_CONFIG is not set. Exiting.
-    exit /b
+    exit /b 1
 )
 
 IF "%AI_PLUGIN_REPO_SOURCE_FOLDER%"=="" (
     echo AI_PLUGIN_REPO_SOURCE_FOLDER is not set. Exiting.
-    exit /b
+    exit /b 1
 )
 
 IF "%AUDACITY_CLONE_DIR%"=="" (
     echo AUDACITY_CLONE_DIR is not set. Exiting.
-    exit /b
+    exit /b 1
 )
 
 IF "%WHISPER_CLONE_DIR%"=="" (
     echo WHISPER_CLONE_DIR is not set. Exiting.
-    exit /b
+    exit /b 1
 )
-
-
 
 
 set "bat_path=%~dp0"
@@ -66,9 +85,9 @@ set Path=%OCL_ROOT%\bin;%Path%
 :: Whisper.cpp build. ::
 ::::::::::::::::::::::::
 
-IF NOT EXIST whisper.cpp (
+IF NOT EXIST %WHISPER_CLONE_DIR% (
     echo Can't find whisper.cpp directory.
-    echo /B
+    echo /B 1
 )
 
 :: Create build folder
@@ -107,7 +126,7 @@ cd ..
 ::::::::::::::::::::::::::::::::::::::::::::
 :: Audacity  + OpenVINO AI Plugins build. ::
 ::::::::::::::::::::::::::::::::::::::::::::
-IF NOT EXIST audacity (
+IF NOT EXIST %AUDACITY_CLONE_DIR% (
     echo Can't find whisper.cpp directory.
     echo /B
 )
