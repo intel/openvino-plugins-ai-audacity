@@ -74,7 +74,7 @@ set CONAN_CACHE_ABS_PATH=%ABS_PATH%
 set CONAN_HOME=%CONAN_CACHE_ABS_PATH%
 
 echo CONAN_HOME=%CONAN_HOME%
-echo CONAN_HOME=%CONAN_HOME% >> env.bat
+echo set CONAN_HOME=%CONAN_HOME% >> env.bat
 
 goto end
 
