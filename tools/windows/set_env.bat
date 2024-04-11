@@ -2,6 +2,8 @@
 
 set "bat_path=%~dp0"
 
+set PATH_TO_SET=
+
 :: Check if exactly 4 arguments are passed
 if "%~1"=="" goto error
 if "%~2"=="" goto error
@@ -20,22 +22,22 @@ set AI_PLUGIN_VERSION=v3.4.2-R2
 set AI_PLUGIN_REPO_SOURCE_FOLDER=%bat_path%\..\..\
 echo AI_PLUGIN_REPO_SOURCE_FOLDER=%AI_PLUGIN_REPO_SOURCE_FOLDER%
 
-call :ConvertRelToAbsPath %1
+call :ConvertRelToAbsPath %1 || exit /b 1
 set LIBTORCH_ABS_PATH=%ABS_PATH%
 
-call :ConvertRelToAbsPath %2
+call :ConvertRelToAbsPath %2 || exit /b 1
 set OPENVINO_ABS_PATH=%ABS_PATH%
 
-call :ConvertRelToAbsPath %3
+call :ConvertRelToAbsPath %3 || exit /b 1
 set OPENVINO_TOKENIZERS_ABS_PATH=%ABS_PATH%
 
-call :ConvertRelToAbsPath %4
+call :ConvertRelToAbsPath %4 || exit /b 1
 set OPENCL_SDK_ABS_PATH=%ABS_PATH%
 
-call :ConvertRelToAbsPath %5
+call :ConvertRelToAbsPath %5 || exit /b 1
 set WHISPER_CLONE_ABS_PATH=%ABS_PATH%
 
-call :ConvertRelToAbsPath %6
+call :ConvertRelToAbsPath %6 || exit /b 1
 set AUDACITY_CLONE_ABS_PATH=%ABS_PATH%
 
 set LIBTORCH_DIR=%LIBTORCH_ABS_PATH%
@@ -73,12 +75,20 @@ if "%~7"=="" (
     goto end
 )
 
-call :ConvertRelToAbsPath %7
+call :ConvertRelToAbsPath %7 || exit /b 1
 set CONAN_CACHE_ABS_PATH=%ABS_PATH%
 set CONAN_HOME=%CONAN_CACHE_ABS_PATH%
 
 echo CONAN_HOME=%CONAN_HOME%
 echo set CONAN_HOME=%CONAN_HOME%>> env.bat
+
+if "%~8"=="" (
+    goto end
+)
+
+call :ConvertRelToAbsPath %8 || exit /b 1
+set CMAKE_ABS_PATH=%ABS_PATH%
+set PATH_TO_SET=%CMAKE_ABS_PATH%\bin
 
 goto end
 
@@ -95,8 +105,15 @@ for %%i in ("%rel_path%") do set "ABS_PATH=%%~fi"
 goto :eof
 
 :error
-echo Error: First 6 arguments are required, last one -- the conan_cache_path -- is optional
-echo Usage: set_env.bat libtorch_location openvino_location openvino_tokenizers_location opencl_sdk_location whisper_clone_location audacity_clone_location [conan_cache_path]
+echo Error: First 6 arguments are required, last 2 -- the conan_cache_path and cmake_path are optional. 
+echo Usage: set_env.bat libtorch_location openvino_location openvino_tokenizers_location opencl_sdk_location whisper_clone_location audacity_clone_location [conan_cache_path] [cmake_path]
 exit /b 1
 
 :end
+
+IF "%PATH_TO_SET%"=="" (
+   goto :eof
+)
+
+echo PATH_TO_SET=%PATH_TO_SET%
+echo set PATH=%PATH_TO_SET%;%PATH_TO_SET%>> env.bat
