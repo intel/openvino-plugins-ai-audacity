@@ -162,8 +162,15 @@ xcopy %AI_PLUGIN_REPO_SOURCE_FOLDER%mod-openvino "%AUDACITY_CLONE_DIR%\modules\m
 mkdir audacity-build
 cd audacity-build
 
+
+if defined Python3_ROOT_DIR (
+    set Python3_ROOT_DIR_DEFINE=-DPython3_ROOT_DIR=%Python3_ROOT_DIR%
+) else (
+    set Python3_ROOT_DIR_DEFINE=""
+)
+
 :: Run cmake
-cmake %AUDACITY_CLONE_DIR% -DAUDACITY_BUILD_LEVEL=%AUDACITY_BUILD_LEVEL% || exit /b 1
+cmake %AUDACITY_CLONE_DIR% -DAUDACITY_BUILD_LEVEL=%AUDACITY_BUILD_LEVEL% %Python3_ROOT_DIR_DEFINE% || exit /b 1
 
 :: build it
 cmake --build . --config %AUDACITY_BUILD_CONFIG% || exit /b 1
