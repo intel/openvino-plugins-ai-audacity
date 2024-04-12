@@ -30,7 +30,9 @@ A set of AI-enabled effects, generators, and analyzers for [Audacity®](https://
 * Audacity® development team & Muse Group-- Thank you for your support!  
 * Audacity® GitHub -- https://github.com/audacity/audacity  
 * Whisper transcription & translation analyzer uses whisper.cpp (with OpenVINO™ backend): https://github.com/ggerganov/whisper.cpp  
-* Music Generation & Music Style Remix use Riffusion's UNet model, Riffusion pipelines that were ported to C++ from this project: https://github.com/riffusion/riffusion    
+* Music Generation & Continuation use MusicGen model, from Meta.
+  - We currently have support for [MusicGen-Small](https://huggingface.co/facebook/musicgen-small), and [MusicGen-Small-Stereo](https://huggingface.co/facebook/musicgen-stereo-small)
+  - The txt-to-music pipelines were ported from python to C++, referencing logic from the Hugging Face transformers project: https://github.com/huggingface/transformers 
 * Music Separation effect uses Meta's Demucs v4 model (https://github.com/facebookresearch/demucs), which has been ported to work with OpenVINO™  
 * Noise Suppression:
   * noise-suppression-denseunet-ll:  from OpenVINO™'s Open Model Zoo: https://github.com/openvinotoolkit/open_model_zoo   
@@ -52,9 +54,6 @@ A set of AI-enabled effects, generators, and analyzers for [Audacity®](https://
       booktitle={INTERSPEECH},
       year = {2023},
       }
-      ``` 
+      ```
+* [OpenVINO™ Notebooks](https://github.com/openvinotoolkit/openvino_notebooks) -- We have learned a lot from this awesome set of python notebooks, and are still using it to learn latest / best practices for implementing AI pipelines using OpenVINO™!
   
-
-## Disclaimer :warning:
-Stable Diffusion & Riffusion's data model is governed by the Creative ML Open Rail M license, which is not an open source license.
-https://github.com/CompVis/stable-diffusion. Users are responsible for their own assessment whether their proposed use of the project code and model would be governed by and permissible under this license.
