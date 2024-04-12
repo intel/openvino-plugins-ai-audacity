@@ -134,7 +134,23 @@ set current_work_dir=%cd%
 :: apply patch that adds mod-openvino to build
 cd %AUDACITY_CLONE_DIR%
 
-git apply %audacity_add_ov_mod_patch_path% || exit /b 1
+:: Check if 'git' command exists
+git --version >nul 2>&1
+IF NOT ERRORLEVEL 1 (
+  echo Applying patch using git command...
+  git apply %audacity_add_ov_mod_patch_path% || exit /b 1
+) ELSE (
+  :: Since git is not available, check if 'patch' command exists
+  patch --version >nul 2>&1
+  IF NOT ERRORLEVEL 1 (
+    echo Applying patch using patch command...
+    patch -p1 < %audacity_add_ov_mod_patch_path% || exit /b 1
+  ) ELSE (
+    echo Neither git nor patch command is available.
+    exit /b 1
+  )
+)
+
 cd %current_work_dir%
 set current_work_dir=
 
