@@ -16,6 +16,8 @@ echo AUDACITY_CLONE_DIR=%AUDACITY_CLONE_DIR%
 echo BUILD_FOLDER=%BUILD_FOLDER%
 echo CONAN_HOME=%CONAN_HOME%
 
+echo Path=%Path%
+
 :: Copyright (C) 2024 Intel Corporation
 :: SPDX-License-Identifier: GPL-3.0-only
 IF "%OPENVINO_DIR%"=="" (
