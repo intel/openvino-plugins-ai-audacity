@@ -68,8 +68,10 @@ IF "%WHISPER_CLONE_DIR%"=="" (
 
 set "bat_path=%~dp0"
 set "audacity_add_ov_mod_patch_path=%bat_path%add_ov_module.patch
-
 echo audacity_add_ov_mod_patch_path=%audacity_add_ov_mod_patch_path%
+
+set "audacity_no_vc_runtime_install_patch=%bat_path%audacity_no_vc_runtime_install.patch
+echo audacity_no_vc_runtime_install_patch=%audacity_no_vc_runtime_install_patch%
 
 :: Set up OpenVINO build environment.
 call %OPENVINO_DIR%\setupvars.bat || exit /b 1
@@ -141,12 +143,14 @@ git --version >nul 2>&1
 IF NOT ERRORLEVEL 1 (
   echo Applying patch using git command...
   git apply %audacity_add_ov_mod_patch_path% || exit /b 1
+  git apply %audacity_no_vc_runtime_install_patch% || exit /b 1
 ) ELSE (
   :: Since git is not available, check if 'patch' command exists
   patch --version >nul 2>&1
   IF NOT ERRORLEVEL 1 (
     echo Applying patch using patch command...
     patch -p1 < %audacity_add_ov_mod_patch_path% || exit /b 1
+    patch -p1 < %audacity_no_vc_runtime_install_patch% || exit /b 1
   ) ELSE (
     echo Neither git nor patch command is available.
     exit /b 1
@@ -170,7 +174,7 @@ if defined Python3_ROOT_DIR (
 )
 
 :: Run cmake
-cmake %AUDACITY_CLONE_DIR% -DAUDACITY_BUILD_LEVEL=%AUDACITY_BUILD_LEVEL% %Python3_ROOT_DIR_DEFINE% || exit /b 1
+cmake %AUDACITY_CLONE_DIR% -DCMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_NO_WARNINGS=TRUE -DAUDACITY_BUILD_LEVEL=%AUDACITY_BUILD_LEVEL% %Python3_ROOT_DIR_DEFINE% || exit /b 1
 
 :: build it
 cmake --build . --config %AUDACITY_BUILD_CONFIG% || exit /b 1
