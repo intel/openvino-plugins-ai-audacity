@@ -82,14 +82,6 @@ set CONAN_HOME=%CONAN_CACHE_ABS_PATH%
 echo CONAN_HOME=%CONAN_HOME%
 echo set CONAN_HOME=%CONAN_HOME%>> env.bat
 
-if "%~8"=="" (
-    goto end
-)
-
-call :ConvertRelToAbsPath %8 || exit /b 1
-set CMAKE_ABS_PATH=%ABS_PATH%
-set PATH_TO_SET=%CMAKE_ABS_PATH%\bin
-
 goto end
 
 :: Helper function to check existance of a path, and convert it to an absolute path
@@ -105,15 +97,8 @@ for %%i in ("%rel_path%") do set "ABS_PATH=%%~fi"
 goto :eof
 
 :error
-echo Error: First 6 arguments are required, last 2 -- the conan_cache_path and cmake_path are optional. 
-echo Usage: set_env.bat libtorch_location openvino_location openvino_tokenizers_location opencl_sdk_location whisper_clone_location audacity_clone_location [conan_cache_path] [cmake_path]
+echo Error: First 6 arguments are required, last 1 -- the conan_cache_path is optional. 
+echo Usage: set_env.bat libtorch_location openvino_location openvino_tokenizers_location opencl_sdk_location whisper_clone_location audacity_clone_location [conan_cache_path]
 exit /b 1
 
 :end
-
-IF "%PATH_TO_SET%"=="" (
-   goto :eof
-)
-
-echo PATH_TO_SET=%PATH_TO_SET%
-echo set PATH=%PATH_TO_SET%;%PATH_TO_SET%>> env.bat
