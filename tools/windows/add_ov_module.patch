@@ -1,13 +1,13 @@
 diff --git a/modules/CMakeLists.txt b/modules/CMakeLists.txt
-index 5f9ff5b75..47b784beb 100644
+index 6fb4f3e..47ff042 100644
 --- a/modules/CMakeLists.txt
 +++ b/modules/CMakeLists.txt
-@@ -46,6 +46,8 @@ if ( USE_LIBOPUS AND USE_OPUSFILE AND USE_LIBOGG )
-    list ( APPEND MODULES mod-opus )
+@@ -26,6 +26,8 @@ if ( USE_LIBFLAC )
+    list( APPEND MODULES mod-flac )
  endif()
  
 +list ( APPEND MODULES mod-openvino )
 +
- foreach( MODULE ${MODULES} )
-    add_subdirectory("${MODULE}")
- endforeach()
+ if ( USE_LIBTWOLAME )
+    list ( APPEND MODULES mod-mp2)
+ endif()
