@@ -52,9 +52,13 @@ Name: "noise_sup\deepfilternet2"; Description: "DeepFilterNet2"; Types: all reco
 Name: "noise_sup\deepfilternet3"; Description: "DeepFilterNet3"; Types: all recommended; ExtraDiskSpaceRequired: 9045784
 Name: "noise_sup\denseunet"; Description: "noise-suppression-denseunet-ll-0001"; Types: all; ExtraDiskSpaceRequired: 9315388
 Name: "whisper"; Description: "Whisper Transcription (Speech-to-Text) Models"; Types: all
-Name: "whisper\base"; Description: "Base"; Types: all recommended; ExtraDiskSpaceRequired: 189420073
-Name: "whisper\small"; Description: "Small"; Types: all; ExtraDiskSpaceRequired: 664733264
-Name: "whisper\small_en_tdrz"; Description: "Small(English-only) + Speaker Segmentation via tinydiarize (experimental)"; Types: all; ExtraDiskSpaceRequired: 664446765  
+Name: "whisper\base"; Description: "Base (74M)"; Types: all recommended; ExtraDiskSpaceRequired: 189420073
+Name: "whisper\small"; Description: "Small (244M)"; Types: all; ExtraDiskSpaceRequired: 664733264
+Name: "whisper\small_en_tdrz"; Description: "Small(English-only) + Speaker Segmentation via tinydiarize (experimental) (244M)"; Types: all; ExtraDiskSpaceRequired: 664446765
+Name: "whisper\medium"; Description: "Medium (769 M)"; Types: all; ExtraDiskSpaceRequired: 2763649009
+Name: "whisper\large_v1"; Description: "Large v1 (1550 M)"; Types: all; ExtraDiskSpaceRequired: 5643116237
+Name: "whisper\large_v2"; Description: "Large v2 (1550 M)"; Types: all; ExtraDiskSpaceRequired: 5643116237
+Name: "whisper\large_v3"; Description: "Large v3 (1550 M)"; Types: all; ExtraDiskSpaceRequired: 5644263320  
 Name: "music_gen"; Description: "Music Generation Models"; Types: all recommended; ExtraDiskSpaceRequired: 342495982
 Name: "music_gen\small_mono"; Description: "Small Mono Model"; Types: all recommended; ExtraDiskSpaceRequired: 1220980259
 Name: "music_gen\small_stereo"; Description: "Small Stereo Model"; Types: all; ExtraDiskSpaceRequired: 1355200757
@@ -84,6 +88,12 @@ Source: "module_preferences.bmp"; Flags: dontcopy
 Source: "{tmp}\ggml-base-models.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\ggml-base-models.zip', '{app}\openvino-models'); Components: whisper\base; Flags: external
 Source: "{tmp}\ggml-small-models.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\ggml-small-models.zip', '{app}\openvino-models'); Components: whisper\small; Flags: external
 Source: "{tmp}\ggml-small.en-tdrz-models.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\ggml-small.en-tdrz-models.zip', '{app}\openvino-models'); Components: whisper\small_en_tdrz; Flags: external
+Source: "{tmp}\ggml-medium-models.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\ggml-medium-models.zip', '{app}\openvino-models'); Components: whisper\medium; Flags: external
+Source: "{tmp}\ggml-large-v1-models.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\ggml-large-v1-models.zip', '{app}\openvino-models'); Components: whisper\large_v1; Flags: external
+Source: "{tmp}\ggml-large-v2-models.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\ggml-large-v2-models.zip', '{app}\openvino-models'); Components: whisper\large_v2; Flags: external
+Source: "{tmp}\ggml-large-v3-models.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\ggml-large-v3-models.zip', '{app}\openvino-models'); Components: whisper\large_v3; Flags: external
+
+
 Source: "{tmp}\musicgen_small_enc_dec_tok_openvino_models.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\musicgen_small_enc_dec_tok_openvino_models.zip', '{app}\openvino-models\musicgen'); Components: music_gen; Flags: external
 Source: "{tmp}\musicgen_small_stereo_openvino_models.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\musicgen_small_stereo_openvino_models.zip', '{app}\openvino-models\musicgen'); Components: music_gen\small_stereo; Flags: external
 Source: "{tmp}\musicgen_small_mono_openvino_models.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\musicgen_small_mono_openvino_models.zip', '{app}\openvino-models\musicgen'); Components: music_gen\small_mono; Flags: external
@@ -102,7 +112,7 @@ Name: "{app}\openvino-models\musicgen"; Components: music_gen;
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\openvino-models"
-Type: filesandordirs; Name: "{userappdata}\audacity\openvino-model-cache"
+;Type: filesandordirs; Name: "{userappdata}\audacity\openvino-model-cache"
 
 [Icons]
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
@@ -213,6 +223,34 @@ begin
             DownloadPage.Add('https://huggingface.co/Intel/whisper.cpp-openvino-models/resolve/194efafbee09390bbf33f33d02d9856dacfdd162/ggml-small.en-tdrz-models.zip?download=true', 
                              'ggml-small.en-tdrz-models.zip', 
                              'ea825cb105e48aa0796e332c93827339dd60aa1a61633df14bb6611bcef26b95');
+        end;
+
+        if WizardIsComponentSelected('whisper\medium') then 
+        begin
+            DownloadPage.Add('https://huggingface.co/Intel/whisper.cpp-openvino-models/resolve/5c2f20da06aa17198dbd778d4190383557c23b1b/ggml-medium-models.zip?download=true', 
+                             'ggml-medium-models.zip', 
+                             'afd961c0bac5830dbcbd15826f49553a5d5fb8a09c7a24eb634304fa068fe59f');
+        end;
+
+        if WizardIsComponentSelected('whisper\large_v1') then 
+        begin
+            DownloadPage.Add('https://huggingface.co/Intel/whisper.cpp-openvino-models/resolve/9731937f2b9ca0aff8b8acd031ed77a1a378cc72/ggml-large-v1-models.zip?download=true', 
+                             'ggml-large-v1-models.zip', 
+                             'fa187861eb46b701f242d63fc0067878de6345a71714d926c4b0eecf1ec0fffa');
+        end;
+
+        if WizardIsComponentSelected('whisper\large_v2') then 
+        begin
+            DownloadPage.Add('https://huggingface.co/Intel/whisper.cpp-openvino-models/resolve/dc08ae819b895594cae08b0210bee051462aba75/ggml-large-v2-models.zip?download=true', 
+                             'ggml-large-v2-models.zip', 
+                             'ab306b0a0a93a731e56efbfa4e80448206bd9b5b863d5a99e40a3532d64ec754');
+        end;
+
+        if WizardIsComponentSelected('whisper\large_v3') then 
+        begin
+            DownloadPage.Add('https://huggingface.co/Intel/whisper.cpp-openvino-models/resolve/d0c3075c40e4938fb2a4cccfc91704106d3e7d12/ggml-large-v3-models.zip?download=true', 
+                             'ggml-large-v3-models.zip', 
+                             'd61160dc5b1c1abc1dbdd6ae571fe4da87079fa3170156408f8775b493c15cdd');
         end;
 
         if WizardIsComponentSelected('music_gen') then 
