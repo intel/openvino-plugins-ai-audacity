@@ -19,6 +19,7 @@ AppUpdatesURL={#MyAppURL}
 ;DefaultDirName=C:\Program Files\Audacity
 ;DefaultDirName={reg:HKCR\Audacity.Project,Path|C:\Program Files\Audacity}
 DefaultDirName={code:FindAudacity}
+AppendDefaultDirName=no
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 DirExistsWarning=no
@@ -33,7 +34,7 @@ ArchitecturesAllowed=x64
 ; done in "64-bit mode" on x64, meaning it should use the native
 ; 64-bit Program Files directory and the 64-bit view of the registry.
 ArchitecturesInstallIn64BitMode=x64
-InfoBeforeFile={#AI_PLUGIN_REPO_SOURCE_FOLDER}\LICENSE.txt
+InfoBeforeFile=LICENSE_text.txt
 DisableWelcomePage=no
 
 [Languages]
@@ -92,8 +93,6 @@ Source: "{tmp}\ggml-medium-models.zip"; DestDir: "{tmp}"; AfterInstall: ExtractS
 Source: "{tmp}\ggml-large-v1-models.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\ggml-large-v1-models.zip', '{app}\openvino-models'); Components: whisper\large_v1; Flags: external
 Source: "{tmp}\ggml-large-v2-models.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\ggml-large-v2-models.zip', '{app}\openvino-models'); Components: whisper\large_v2; Flags: external
 Source: "{tmp}\ggml-large-v3-models.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\ggml-large-v3-models.zip', '{app}\openvino-models'); Components: whisper\large_v3; Flags: external
-
-
 Source: "{tmp}\musicgen_small_enc_dec_tok_openvino_models.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\musicgen_small_enc_dec_tok_openvino_models.zip', '{app}\openvino-models\musicgen'); Components: music_gen; Flags: external
 Source: "{tmp}\musicgen_small_stereo_openvino_models.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\musicgen_small_stereo_openvino_models.zip', '{app}\openvino-models\musicgen'); Components: music_gen\small_stereo; Flags: external
 Source: "{tmp}\musicgen_small_mono_openvino_models.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\musicgen_small_mono_openvino_models.zip', '{app}\openvino-models\musicgen'); Components: music_gen\small_mono; Flags: external
@@ -104,7 +103,10 @@ Source: "{tmp}\htdemucs_v4.xml"; DestDir: "{app}\openvino-models\";  Components:
 Source: "{tmp}\noise-suppression-denseunet-ll-0001.bin"; DestDir: "{app}\openvino-models\";  Components: noise_sup\denseunet; Flags: external
 Source: "{tmp}\noise-suppression-denseunet-ll-0001.xml"; DestDir: "{app}\openvino-models\";  Components: noise_sup\denseunet; Flags: external
 
-
+[Messages]
+WizardSelectComponents=Select Models
+SelectComponentsDesc=Which models should be downloaded & installed?
+SelectComponentsLabel2=Select the models you want to download/install; clear the models you do not want to download/install. Click Next when you are ready to start the download.
 
 [Dirs]
 Name: "{app}\openvino-models"
@@ -137,9 +139,28 @@ begin
 end;
 
 function InitializeSetup(): Boolean;
+var
+  ResultCode: Integer;
+  TempDir: string;
 begin
+  TempDir := ExpandConstant('{tmp}');
+  if not Exec('cmd.exe', '/C icacls "' + TempDir + '" /inheritance:r /grant administrators:F', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+  begin
+    MsgBox('Failed to set directory permissions. Error Code: ' + IntToStr(ResultCode), mbError, MB_OK);
+    Result := False; 
+  end
+  else
+  begin
+    Result := True;
+  end;
+
   SupportsAVX2 := IsProcessorFeaturePresent(PF_AVX2_INSTRUCTIONS_AVAILABLE);
-  Result := True;
+  if SupportsAVX2 then
+    Log('This system supports AVX2')
+  else
+    Log('This system does NOT support AVX2');
+
+  
 end;
 
 function OnDownloadProgress(const Url, FileName: String; const Progress, ProgressMax: Int64): Boolean;
@@ -165,8 +186,6 @@ begin
   DocumentationLabel := TLabel.Create(WizardForm);
   DocumentationLabel.Parent := WizardForm.FinishedPage;
   DocumentationLabel.AutoSize := True;
-  
-
 end;
 
 function FindAudacity(Param: String): String;
@@ -190,9 +209,11 @@ begin
     end;
 end;
 
+
 function NextButtonClick(PageId: Integer): Boolean;
 begin
     Result := True;
+    
     if (PageId = wpSelectDir) and not FileExists(ExpandConstant('{app}\Audacity.exe')) then begin
         MsgBox('Audacity does not seem to be installed in that folder.  Please select a folder that contains Audacity.exe', mbError, MB_OK);
         Result := False;
