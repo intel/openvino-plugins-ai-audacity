@@ -19,6 +19,7 @@ AppUpdatesURL={#MyAppURL}
 ;DefaultDirName=C:\Program Files\Audacity
 ;DefaultDirName={reg:HKCR\Audacity.Project,Path|C:\Program Files\Audacity}
 DefaultDirName={code:FindAudacity}
+UsePreviousAppDir=no
 AppendDefaultDirName=no
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
