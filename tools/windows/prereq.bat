@@ -21,7 +21,7 @@ set OPENCL_SDK_256SUM=11844a1d69a71f82dc14ce66382c6b9fc8a4aee5840c21a786c5accb1d
 ::  GIT Repo Configuration ::
 :::::::::::::::::::::::::::::
 set AUDACITY_REPO_CLONE_URL=https://github.com/audacity/audacity.git
-set AUDACITY_REPO_CHECKOUT=release-3.5.0
+set AUDACITY_REPO_CHECKOUT=release-3.5.1
 
 set WHISPERCPP_REPO_CLONE_URL=https://github.com/ggerganov/whisper.cpp
 set WHISPERCPP_REPO_CHECKOUT=v1.5.4
