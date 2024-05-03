@@ -140,20 +140,8 @@ begin
 end;
 
 function InitializeSetup(): Boolean;
-var
-  ResultCode: Integer;
-  TempDir: string;
 begin
-  TempDir := ExpandConstant('{tmp}');
-  if not Exec('cmd.exe', '/C icacls "' + TempDir + '" /inheritance:r /grant administrators:F', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
-  begin
-    MsgBox('Failed to set directory permissions. Error Code: ' + IntToStr(ResultCode), mbError, MB_OK);
-    Result := False; 
-  end
-  else
-  begin
-    Result := True;
-  end;
+  Result := True;
 
   SupportsAVX2 := IsProcessorFeaturePresent(PF_AVX2_INSTRUCTIONS_AVAILABLE);
   if SupportsAVX2 then
