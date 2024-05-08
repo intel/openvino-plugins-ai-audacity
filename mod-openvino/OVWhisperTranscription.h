@@ -50,6 +50,7 @@ public:
 protected:
 
    bool TransferDataToWindow(const EffectSettings& settings) override;
+   bool TransferDataFromWindow(EffectSettings& settings) override;
 
 private:
    // EffectFindCliping implementation

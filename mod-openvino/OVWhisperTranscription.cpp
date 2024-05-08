@@ -768,7 +768,6 @@ bool EffectOVWhisperTranscription::Whisper(std::vector<float>& mono_samples, Lab
 
    params.max_len = mMaxTextSegLength;
 
-   mInitialPrompt = audacity::ToUTF8(mInitialPromptCtrl->GetLineText(0));
    params.prompt = mInitialPrompt;
 
    //whisper init
@@ -1026,6 +1025,18 @@ bool EffectOVWhisperTranscription::TransferDataToWindow(const EffectSettings&)
       wxLogInfo("OpenVINO Whisper Transcription has no models installed.");
       EffectEditor::EnableApply(mUIParent, false);
    }
+
+   return true;
+}
+
+bool EffectOVWhisperTranscription::TransferDataFromWindow(EffectSettings&)
+{
+   if (!mUIParent || !mUIParent->Validate() || !mUIParent->TransferDataFromWindow())
+   {
+      return false;
+   }
+
+   mInitialPrompt = audacity::ToUTF8(mInitialPromptCtrl->GetLineText(0));
 
    return true;
 }
