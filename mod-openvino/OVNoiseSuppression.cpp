@@ -388,6 +388,9 @@ bool EffectOVNoiseSuppression::Process(EffectInstance&, EffectSettings&)
             FilePath cache_folder = FileNames::MkDir(wxFileName(FileNames::DataDir(), wxT("openvino-model-cache")).GetFullPath());
             std::string cache_path = wstring_to_string(wxFileName(cache_folder).GetFullPath().ToStdWstring());
 
+            // WA for OpenVINO locale caching issue (https://github.com/openvinotoolkit/openvino/issues/24370)
+            OVLocaleWorkaround wa;
+
             auto model_selection_string = mSupportedModels[m_modelSelectionChoice];
             if ((model_selection_string == "deepfilternet2") || (model_selection_string == "deepfilternet3"))
             {

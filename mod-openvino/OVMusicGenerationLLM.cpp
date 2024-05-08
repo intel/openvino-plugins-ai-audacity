@@ -423,6 +423,8 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
 
                      _musicgen_config.model_selection = model_selection;
 
+                     // WA for OpenVINO locale caching issue (https://github.com/openvinotoolkit/openvino/issues/24370)
+                     OVLocaleWorkaround wa;
                      _musicgen = std::make_shared< ov_musicgen::MusicGen >(_musicgen_config);
                   }
                }
