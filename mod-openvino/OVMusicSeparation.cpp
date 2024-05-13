@@ -286,6 +286,9 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
       {
          auto device = mSupportedDevices[m_deviceSelectionChoice];
          auto create_htdemucs_fut = std::async(std::launch::async, [&demucs_v4_path, &device, &cache_path]() {
+
+            // WA for OpenVINO locale caching issue (https://github.com/openvinotoolkit/openvino/issues/24370)
+            OVLocaleWorkaround wa;
             return std::make_shared< ovdemucs::HTDemucs >(demucs_v4_path.c_str(), device, cache_path);
             });
 

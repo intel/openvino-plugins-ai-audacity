@@ -835,6 +835,8 @@ bool EffectOVWhisperTranscription::Whisper(std::vector<float>& mono_samples, Lab
          auto w_ctx = whisper_init_from_file_with_params(whisper_model_path.c_str(), params);
          if (w_ctx)
          {
+            // WA for OpenVINO locale caching issue (https://github.com/openvinotoolkit/openvino/issues/24370)
+            OVLocaleWorkaround wa;
             if (whisper_ctx_init_openvino_encoder(w_ctx, nullptr, device_name.c_str(), cache_path.c_str()))
             {
                wxLogError("whisper_ctx_init_openvino_encoder failed for device = %s", device_name.c_str());
