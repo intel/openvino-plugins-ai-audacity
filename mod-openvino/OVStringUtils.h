@@ -34,7 +34,7 @@ static inline std::string wstring_to_string(const std::wstring& wstr) {
 
 // WA for OpenVINO locale caching issue (https://github.com/openvinotoolkit/openvino/issues/24370)
 // RAII-based method for performing the following
-// 1. Upon instantiation, changes global numberic locale to "C".
+// 1. Upon instantiation, changes global numeric locale to "C".
 // 2. When instance goes out of scope, previous locale is restored.
 class OVLocaleWorkaround
 {
