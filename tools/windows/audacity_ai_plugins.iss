@@ -83,6 +83,9 @@ Source: "{#BUILD_FOLDER}\whisper-build-no-avx\installed\bin\whisper.dll"; DestDi
 ; Audacity module
 Source: "{#BUILD_FOLDER}\audacity-build\{#AUDACITY_BUILD_CONFIG}\modules\mod-openvino.dll"; DestDir: "{app}\modules"; Flags: ignoreversion
 
+; OpenCL DLL
+Source: "{#OPENCL_SDK_DIR}\bin\OpenCL.dll"; DestDir: "{app}"; Flags: ignoreversion
+
 Source: "module_preferences.bmp"; Flags: dontcopy
 
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
