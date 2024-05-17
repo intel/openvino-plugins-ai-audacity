@@ -24,7 +24,7 @@ set AUDACITY_REPO_CLONE_URL=https://github.com/audacity/audacity.git
 set AUDACITY_REPO_CHECKOUT=release-3.5.1
 
 set WHISPERCPP_REPO_CLONE_URL=https://github.com/ggerganov/whisper.cpp
-set WHISPERCPP_REPO_CHECKOUT=v1.5.4
+set WHISPERCPP_REPO_CHECKOUT=v1.6.0
 
 ::::::::::::::::::::::::::::::::::::::::::::::::
 :: Download, verify, and extract the packages ::
