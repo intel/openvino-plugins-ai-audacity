@@ -532,13 +532,8 @@ bool EffectOVWhisperTranscription::ProcessWhisper(WaveTrack* mono, LabelTrack* l
 
 bool EffectOVWhisperTranscription::UpdateProgress(double perc)
 {
-   // This returns true if user clicks 'cancel'
-   if (TotalProgress(perc / 100.0))
-   {
-      std::lock_guard<std::mutex> guard(mMutex);
-      mIsCancelled = true;
-      return false;
-   }
+   std::lock_guard<std::mutex> guard(mMutex);
+   mProgressFrac = perc / 100.0;
 
    return true;
 }
@@ -957,13 +952,40 @@ bool EffectOVWhisperTranscription::Whisper(std::vector<float>& mono_samples, Lab
       wparams.encoder_begin_callback = whisper_encoder_callback;
       wparams.encoder_begin_callback_user_data = this;
 
-      if (whisper_full_parallel(ctx, wparams, mono_samples.data(), mono_samples.size(), params.n_processors) != 0) {
-         whisper_free(ctx);
+      mProgressFrac = 0.0;
+      mProgMessage = "Running Whisper Transcription using OpenVINO";
+
+      auto whisper_parallel_run_future = std::async(std::launch::async,
+         [this, &ctx, &wparams, &mono_samples, &params]
+         {
+            return whisper_full_parallel(ctx, wparams, mono_samples.data(), mono_samples.size(), params.n_processors);
+         }
+      );
+
+      std::future_status status;
+      do {
+         using namespace std::chrono_literals;
+         status = whisper_parallel_run_future.wait_for(0.5s);
+         {
+            std::lock_guard<std::mutex> guard(mMutex);
+            mProgress->SetMessage(TranslatableString{ wxString(mProgMessage), {} });
+            if (TotalProgress(mProgressFrac))
+            {
+               mIsCancelled = true;
+            }
+         }
+
+      } while (status != std::future_status::ready);
+
+      auto whisper_full_parallel_ret = whisper_parallel_run_future.get();
+
+      whisper_free(ctx);
+
+      if (whisper_full_parallel_ret != 0) {
          throw std::runtime_error("whisper_full_parallel failed.");
       }
    }
 
-   whisper_free(ctx);
    return ret;
 }
 
