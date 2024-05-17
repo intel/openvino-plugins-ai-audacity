@@ -132,5 +132,8 @@ private:
 
    std::vector<std::pair<std::string, std::string>> m_simple_to_full_device_map;
 
+   float mProgressFrac = 0.f;
+   std::string mProgMessage;
+
    DECLARE_EVENT_TABLE()
 };

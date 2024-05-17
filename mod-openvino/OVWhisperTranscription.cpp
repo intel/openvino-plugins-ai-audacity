@@ -41,6 +41,117 @@
 
 #include <openvino/openvino.hpp>
 
+struct whispercpp_lang_entry
+{
+   std::string lang_full_string;
+   std::string lang_code_string;
+   int id;
+};
+
+static const std::vector< whispercpp_lang_entry > g_lang_entries =
+{
+    { "english", "en", 0, },
+    { "afrikaans", "af", 68, },
+    { "albanian", "sq", 58, },
+    { "amharic", "am", 75, },
+    { "arabic", "ar", 13, },
+    { "armenian", "hy", 53, },
+    { "assamese", "as", 91, },
+    { "azerbaijani", "az", 45, },
+    { "bashkir", "ba", 96, },
+    { "basque", "eu", 51, },
+    { "belarusian", "be", 71, },
+    { "bengali", "bn", 43, },
+    { "bosnian", "bs", 56, },
+    { "breton", "br", 50, },
+    { "bulgarian", "bg", 33, },
+    { "catalan", "ca", 11, },
+    { "chinese", "zh", 1, },
+    { "croatian", "hr", 32, },
+    { "czech", "cs", 24, },
+    { "danish", "da", 26, },
+    { "dutch", "nl", 12, },
+    { "estonian", "et", 48, },
+    { "faroese", "fo", 79, },
+    { "finnish", "fi", 18, },
+    { "french", "fr", 6, },
+    { "galician", "gl", 60, },
+    { "georgian", "ka", 70, },
+    { "german", "de", 2, },
+    { "greek", "el", 22, },
+    { "gujarati", "gu", 74, },
+    { "haitian creole", "ht", 80, },
+    { "hausa", "ha", 95, },
+    { "hawaiian", "haw", 93, },
+    { "hebrew", "he", 20, },
+    { "hindi", "hi", 17, },
+    { "hungarian", "hu", 27, },
+    { "icelandic", "is", 52, },
+    { "indonesian", "id", 16, },
+    { "italian", "it", 15, },
+    { "japanese", "ja", 7, },
+    { "javanese", "jw", 97, },
+    { "kannada", "kn", 47, },
+    { "kazakh", "kk", 57, },
+    { "khmer", "km", 64, },
+    { "korean", "ko", 5, },
+    { "lao", "lo", 77, },
+    { "latin", "la", 35, },
+    { "latvian", "lv", 42, },
+    { "lingala", "ln", 94, },
+    { "lithuanian", "lt", 34, },
+    { "luxembourgish", "lb", 86, },
+    { "macedonian", "mk", 49, },
+    { "malagasy", "mg", 90, },
+    { "malay", "ms", 23, },
+    { "malayalam", "ml", 37, },
+    { "maltese", "mt", 84, },
+    { "maori", "mi", 36, },
+    { "marathi", "mr", 61, },
+    { "mongolian", "mn", 55, },
+    { "myanmar", "my", 87, },
+    { "nepali", "ne", 54, },
+    { "norwegian", "no", 29, },
+    { "nynorsk", "nn", 83, },
+    { "occitan", "oc", 69, },
+    { "pashto", "ps", 81, },
+    { "persian", "fa", 41, },
+    { "polish", "pl", 10, },
+    { "portuguese", "pt", 8, },
+    { "punjabi", "pa", 62, },
+    { "romanian", "ro", 25, },
+    { "russian", "ru", 4, },
+    { "sanskrit", "sa", 85, },
+    { "serbian", "sr", 44, },
+    { "shona", "sn", 65, },
+    { "sindhi", "sd", 73, },
+    { "sinhala", "si", 63, },
+    { "slovak", "sk", 39, },
+    { "slovenian", "sl", 46, },
+    { "somali", "so", 67, },
+    { "spanish", "es", 3, },
+    { "sundanese", "su", 98, },
+    { "swahili", "sw", 59, },
+    { "swedish", "sv", 14, },
+    { "tagalog", "tl", 89, },
+    { "tajik", "tg", 72, },
+    { "tamil", "ta", 28, },
+    { "tatar", "tt", 92, },
+    { "telugu", "te", 40, },
+    { "thai", "th", 30, },
+    { "tibetan", "bo", 88, },
+    { "turkish", "tr", 9, },
+    { "turkmen", "tk", 82, },
+    { "ukrainian", "uk", 21, },
+    { "urdu", "ur", 31, },
+    { "uzbek", "uz", 78, },
+    { "vietnamese", "vi", 19, },
+    { "welsh", "cy", 38, },
+    { "yiddish", "yi", 76, },
+    { "yoruba", "yo", 66, },
+};
+
+#if 0
 static const std::map<std::string, std::pair<int, std::string>> g_lang = {
     { "en",  { 0,  "english",         } },
     { "zh",  { 1,  "chinese",         } },
@@ -142,6 +253,7 @@ static const std::map<std::string, std::pair<int, std::string>> g_lang = {
     { "jw",  { 97,  "javanese",       } },
     { "su",  { 98,  "sundanese",      } },
 };
+#endif
 
 #if 0
 const EffectParameterMethods& EffectOVWhisperTranscription::Parameters() const
@@ -271,9 +383,9 @@ EffectOVWhisperTranscription::EffectOVWhisperTranscription()
    }
 
    mSupportedLanguages.push_back("auto");
-   for (auto e : g_lang)
+   for (auto e : g_lang_entries)
    {
-      mSupportedLanguages.push_back(e.second.second);
+      mSupportedLanguages.push_back(e.lang_full_string);
    }
 
    for (auto l : mSupportedLanguages)
@@ -532,13 +644,8 @@ bool EffectOVWhisperTranscription::ProcessWhisper(WaveTrack* mono, LabelTrack* l
 
 bool EffectOVWhisperTranscription::UpdateProgress(double perc)
 {
-   // This returns true if user clicks 'cancel'
-   if (TotalProgress(perc / 100.0))
-   {
-      std::lock_guard<std::mutex> guard(mMutex);
-      mIsCancelled = true;
-      return false;
-   }
+   std::lock_guard<std::mutex> guard(mMutex);
+   mProgressFrac = perc / 100.0;
 
    return true;
 }
@@ -800,14 +907,21 @@ bool EffectOVWhisperTranscription::Whisper(std::vector<float>& mono_samples, Lab
    }
    else
    {
+      bool bFound = false;
       params.detect_language = false;
-      for (auto e : g_lang)
+      for (auto e : g_lang_entries)
       {
-         if (slang == e.second.second)
+         if (slang == e.lang_full_string)
          {
-            params.language = e.first;
+            bFound = true;
+            params.language = e.lang_code_string;
             break;
          }
+      }
+
+      if (!bFound)
+      {
+         throw std::runtime_error("Invalid language selection!");
       }
    }
 
@@ -818,7 +932,7 @@ bool EffectOVWhisperTranscription::Whisper(std::vector<float>& mono_samples, Lab
 
    if (m_deviceSelectionChoice >= mSupportedDevices.size())
    {
-      std::cout << "Invalid device choice id: " << m_deviceSelectionChoice << std::endl;
+      throw std::runtime_error("Invalid device choice id!");
       return false;
    }
 
@@ -829,7 +943,7 @@ bool EffectOVWhisperTranscription::Whisper(std::vector<float>& mono_samples, Lab
       float total_time = 0.f;
 
       auto init_whisper_fut = std::async(std::launch::async, [&whisper_model_path, &device_name, &cache_path]() {
-         struct whisper_context_params params;
+         struct whisper_context_params params = whisper_context_default_params();
          params.use_gpu = false;
          auto w_ctx = whisper_init_from_file_with_params(whisper_model_path.c_str(), params);
          if (w_ctx)
@@ -957,13 +1071,40 @@ bool EffectOVWhisperTranscription::Whisper(std::vector<float>& mono_samples, Lab
       wparams.encoder_begin_callback = whisper_encoder_callback;
       wparams.encoder_begin_callback_user_data = this;
 
-      if (whisper_full_parallel(ctx, wparams, mono_samples.data(), mono_samples.size(), params.n_processors) != 0) {
-         whisper_free(ctx);
+      mProgressFrac = 0.0;
+      mProgMessage = "Running Whisper Transcription using OpenVINO";
+
+      auto whisper_parallel_run_future = std::async(std::launch::async,
+         [this, &ctx, &wparams, &mono_samples, &params]
+         {
+            return whisper_full_parallel(ctx, wparams, mono_samples.data(), mono_samples.size(), params.n_processors);
+         }
+      );
+
+      std::future_status status;
+      do {
+         using namespace std::chrono_literals;
+         status = whisper_parallel_run_future.wait_for(0.5s);
+         {
+            std::lock_guard<std::mutex> guard(mMutex);
+            mProgress->SetMessage(TranslatableString{ wxString(mProgMessage), {} });
+            if (TotalProgress(mProgressFrac))
+            {
+               mIsCancelled = true;
+            }
+         }
+
+      } while (status != std::future_status::ready);
+
+      auto whisper_full_parallel_ret = whisper_parallel_run_future.get();
+
+      whisper_free(ctx);
+
+      if (whisper_full_parallel_ret != 0) {
          throw std::runtime_error("whisper_full_parallel failed.");
       }
    }
 
-   whisper_free(ctx);
    return ret;
 }
 
