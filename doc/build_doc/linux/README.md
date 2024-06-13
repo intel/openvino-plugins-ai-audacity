@@ -201,7 +201,7 @@ Once you change to 'Enabled', close Audacity and re-open it. When it comes back 
 And we're done, at least with the module build. To actually use these modules, we need to generate / populate ```/usr/local/lib/``` with the OpenVINO models that the plugins will look for. At runtime, the plugins will look for these models in a openvino-models directory.
 Here are the commands that you can use to create this directory, and populate it with the required models.
 
-:warning: **These models that these commands will download are very large (many GB's). So beware of this if you're on a metered connection.**
+:warning: **The models that these commands will download are very large (many GB's). So beware of this if you're on a metered connection.**
 
 ```
 # Create an empty 'openvino-models' directory to start with
