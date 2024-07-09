@@ -556,21 +556,17 @@ bool EffectOVWhisperTranscription::ProcessStereoToMono(sampleCount& curTime, sam
    tracks.emplace_back(
       track.SharedPointer<const SampleTrack>(), GetEffectStages(track));
 
-   Mixer mixer(move(tracks),
-      true,                // Throw to abort mix-and-render if read fails:
-      Mixer::WarpOptions{ inputTracks()->GetOwner() },
-      start,
-      end,
-      1,
+   Mixer mixer(
+      move(tracks), std::nullopt,
+      true, // Throw to abort mix-and-render if read fails:
+      Mixer::WarpOptions{ inputTracks()->GetOwner() }, start, end, 1,
       idealBlockLen,
-      false,               // Not interleaved
-      track.GetRate(),
-      floatSample);
+      false, // Not interleaved
+      track.GetRate(), floatSample);
 
-   // Always make mono output; don't use WideEmptyCopy
-   auto outTrack = track.EmptyCopy();
-   auto tempList = TrackList::Temporary(nullptr, outTrack, nullptr);
-   assert(outTrack->IsLeader());
+   // Always make mono output; don't use EmptyCopy
+   auto outTrack = track.EmptyCopy(1);
+   auto tempList = TrackList::Temporary(nullptr, outTrack);
    outTrack->ConvertToSampleFormat(floatSample);
 
    double denominator = track.GetChannelGain(0) + track.GetChannelGain(1);
@@ -583,7 +579,8 @@ bool EffectOVWhisperTranscription::ProcessStereoToMono(sampleCount& curTime, sam
       // (for example), and no gains or envelopes, still there should be
       // dithering because of the averaging above, which may introduce samples
       // lying between the quantization levels.  So use widestSampleFormat.
-      outTrack->Append(buffer, floatSample, blockLen, 1, widestSampleFormat);
+      outTrack->Append(0,
+         buffer, floatSample, blockLen, 1, widestSampleFormat);
 
       curTime += blockLen;
       if (TotalProgress(curTime.as_double() / totalTime.as_double()))
@@ -624,7 +621,9 @@ bool EffectOVWhisperTranscription::ProcessWhisper(WaveTrack* mono, LabelTrack* l
       size_t total_samples = (end - start).as_size_t();
       std::vector<float> mono_samples;
       mono_samples.resize(total_samples);
-      bool bOkay = mono->GetFloats(mono_samples.data(), start, total_samples);
+
+      float* buf[1] = { mono_samples.data() };
+      bool bOkay = mono->GetFloats(0, 1, buf, start, total_samples);
       if (!bOkay)
       {
          throw std::runtime_error("unable to get all mono samples. GetFloats() failed for " +

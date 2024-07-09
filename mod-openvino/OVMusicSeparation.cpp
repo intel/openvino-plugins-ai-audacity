@@ -314,7 +314,7 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
       }
 
       
-      std::vector< TrackListHolder > tracks_to_process;
+      std::vector< WaveTrack::Holder > tracks_to_process;
       std::vector< int > orig_rates;
 
       //Create resampled copies of the selected portion of tracks. 
@@ -344,9 +344,8 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
          Floats entire_input{ total_samples };
 
          // create a temporary track list to append samples to
-         auto tmp_tracklist = track->WideEmptyCopy();
+         auto pTmpTrack = track->EmptyCopy();
 
-         auto pTmpTrack = *tmp_tracklist->Any<WaveTrack>().begin();
 
          bool bOkay = left->GetFloats(entire_input.get(), start_s, total_samples);
          if (!bOkay)
@@ -386,12 +385,12 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
             pTmpTrack->Resample(44100, mProgress);
          }
 
-         tracks_to_process.push_back(tmp_tracklist);
+         tracks_to_process.push_back(pTmpTrack);
       }
 
       for (size_t ti = 0; ti < tracks_to_process.size(); ti++)
       {
-         auto pTrack = *(tracks_to_process[ti])->Any<WaveTrack>().begin();
+         auto pTrack = tracks_to_process[ti];
 
          auto pLeftChannel = pTrack->GetChannel(0);
          auto pRightChannel = pLeftChannel;
@@ -490,12 +489,11 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
                pTrack->SetName(orig_track_name + wxString("-" + sourceLabels[i]));
 
                //Create new output track from input track.
-               auto newOutputTrackList = pTrack->WideEmptyCopy();
+               auto newOutputTrack = pTrack->EmptyCopy();
 
                // create a temporary track list to append samples to
-               auto tmp_tracklist = pTrack->WideEmptyCopy();
-               auto iter =
-                  (*tmp_tracklist->Any<WaveTrack>().begin())->Channels().begin();
+               auto pTmpTrack = pTrack->EmptyCopy();
+               auto iter = pTmpTrack->Channels().begin();
 
                //append output samples to L & R channels.
                auto& tmpLeft = **iter++;
@@ -508,14 +506,11 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
                }
 
                //flush it
-               auto pTmpTrack = *tmp_tracklist->Any<WaveTrack>().begin();
                pTmpTrack->Flush();
-
-               auto newOutputTrack = *newOutputTrackList->Any<WaveTrack>().begin();
 
                // Clear & Paste into new output track
                newOutputTrack->ClearAndPaste(selectedRegion.t0() - pTmpTrack->GetStartTime(),
-                  selectedRegion.t1() - pTmpTrack->GetStartTime(), *tmp_tracklist);
+                  selectedRegion.t1() - pTmpTrack->GetStartTime(), *pTmpTrack);
 
                // TODO: For Audacity 3.4.X, this doesn't seem to work as expected.
                // The generated track will not have this name. Instead, it will retain
@@ -537,7 +532,7 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
                }
 
                // Add the new track list to the output.
-               outputs.AddToOutputTracks(std::move(*newOutputTrackList));
+               outputs.AddToOutputTracks(std::move(newOutputTrack));
 
                // Change name back to original. Part of workaround described above.
                pTrack->SetName(orig_track_name);

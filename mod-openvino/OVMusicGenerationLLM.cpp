@@ -39,6 +39,7 @@
 #include <future>
 
 #include "InterpolateAudio.h"
+#include "TempoChange.h"
 
 const ComponentInterfaceSymbol EffectOVMusicGenerationLLM::Symbol{ XO("OpenVINO Music Generation") };
 
@@ -211,6 +212,7 @@ bool EffectOVMusicGenerationLLM::DoEffect(
    return EffectBase::DoEffect(settings, finder, projectRate, list, factory, selectedRegion, flags, pAccess);
 }
 
+#if 0
 static void NormalizeSamples(std::shared_ptr<std::vector<float>> samples, WaveTrack* base, float target_rms)
 {
    auto tmp_tracklist = base->WideEmptyCopy();
@@ -235,6 +237,7 @@ static void NormalizeSamples(std::shared_ptr<std::vector<float>> samples, WaveTr
       }
    }
 }
+#endif
 
 bool EffectOVMusicGenerationLLM::MusicGenCallback(float perc_complete)
 {
@@ -291,6 +294,8 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
    // If they have chosen a stereo model, then most likely their intention /
    // expecation is to generate a stereo track. So, in that case we replace
    // the mono track that was added with a new stereo one.
+   //TODO: FIXME!
+
    auto selected_tracks = mTracks->Selected<WaveTrack>();
    if ((_num_selected_tracks_at_effect_start == 0) && (selected_tracks.size() == 1))
    {
@@ -303,19 +308,22 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
             auto& trackFactory = WaveTrackFactory::Get(*pProject);
             auto format = track->GetSampleFormat();
             auto rate = track->GetRate();
-            mTracks->Append(std::move(*trackFactory.Create((size_t)2, format, rate)));
+            auto tempList = TrackList::Create(pProject);
+            tempList->Add(trackFactory.Create((size_t)2, format, rate));
+            mTracks->Append(std::move(*tempList));
             (*mTracks->rbegin())->SetSelected(true);
             auto track_name = track->GetName();
             (*mTracks->rbegin())->SetName(track_name);
-            auto tempo = track->GetProjectTempo();
+            const auto tempo = GetProjectTempo(*track);
             if (tempo)
             {
-               (*mTracks->rbegin())->OnProjectTempoChange(*tempo);
+               DoProjectTempoChange(*(*mTracks->rbegin()), *tempo);
             }
             mTracks->Remove(*track);
          }
       }
    }
+
 
    EffectOutputTracks outputs{ *mTracks, GetType(), {{ mT0, mT1 }} };
 
@@ -524,9 +532,7 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
             auto left = track->GetChannel(0);
 
             // create a temporary track list to append samples to
-            auto tmp_tracklist = track->WideEmptyCopy();
-
-            auto pTmpTrack = *tmp_tracklist->Any<WaveTrack>().begin();
+            auto pTmpTrack = track->EmptyCopy();
 
             auto iter =
                pTmpTrack->Channels().begin();
@@ -584,9 +590,6 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
 
                auto& tmpLeft = **iter++;
                tmpLeft.Append((samplePtr)entire_input.get(), floatSample, audio_to_continue_samples);
-
-               //flush it
-               auto pTmpTrack = *tmp_tracklist->Any<WaveTrack>().begin();
 
                if (track->Channels().size() > 1)
                {
@@ -791,10 +794,8 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
                track->SetName(added_trackName);
 
                // create a temporary track list to append samples to
-               auto tmp_tracklist = track->WideEmptyCopy();
-
-               auto iter =
-                  (*tmp_tracklist->Any<WaveTrack>().begin())->Channels().begin();
+               auto pTmpTrack = track->EmptyCopy();
+               auto iter = pTmpTrack->Channels().begin();
 
                if (track->NChannels() > 1)
                {
@@ -839,7 +840,6 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
                }
 
                //flush it
-               auto pTmpTrack = *tmp_tracklist->Any<WaveTrack>().begin();
                pTmpTrack->Flush();
 
                // The track we just populated with samples is 32000 Hz.
@@ -847,16 +847,14 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
 
                if (_AudioContinuationAsNewTrackCheckBox->GetValue())
                {
-                  auto newOutputTrackList = track->WideEmptyCopy();
-
-                  auto newOutputTrack = *newOutputTrackList->Any<WaveTrack>().begin();
+                  auto newOutputTrack = track->EmptyCopy();
 
                   newOutputTrack->SetRate(32000);
 
                   std::cout << "Pasting " << audio_to_continue_start << " : " << audio_to_continue_start + duration << std::endl;
                   // Clear & Paste into new output track
                   newOutputTrack->ClearAndPaste(audio_to_continue_start,
-                     audio_to_continue_start + duration, *tmp_tracklist);
+                     audio_to_continue_start + duration, *pTmpTrack);
 
                   if (TracksBehaviorsSolo.ReadEnum() == SoloBehaviorSimple)
                   {
@@ -873,7 +871,7 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
 
                   //auto v = *newOutputTrackList;
                  // Add the new track to the output.
-                  outputs.AddToOutputTracks(std::move(*newOutputTrackList));
+                  outputs.AddToOutputTracks(std::move(newOutputTrack));
 
                   // audio_to_continue_start may have been moved forward a bit, so update it.
                   //mT0 = audio_to_continue_start;
@@ -900,7 +898,7 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
 
                   track->ClearAndPaste(
                      selectedRegion.t0(), selectedRegion.t1(),
-                     *tmp_tracklist, true, false, &warper);
+                     *pTmpTrack, true, false, &warper);
                }
 
                if (!bGoodResult) {
