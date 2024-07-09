@@ -1,13 +1,11 @@
-diff --git a/modules/CMakeLists.txt b/modules/CMakeLists.txt
-index 6fb4f3e..47ff042 100644
---- a/modules/CMakeLists.txt
-+++ b/modules/CMakeLists.txt
-@@ -26,6 +26,8 @@ if ( USE_LIBFLAC )
-    list( APPEND MODULES mod-flac )
+diff --git a/modules/etc/CMakeLists.txt b/modules/etc/CMakeLists.txt
+index 77a5054ea..259959164 100644
+--- a/modules/etc/CMakeLists.txt
++++ b/modules/etc/CMakeLists.txt
+@@ -14,4 +14,6 @@ if( NOT CMAKE_SYSTEM_NAME MATCHES "Windows" )
+    )
  endif()
  
-+list ( APPEND MODULES mod-openvino )
++list( APPEND MODULES mod-openvino )
 +
- if ( USE_LIBTWOLAME )
-    list ( APPEND MODULES mod-mp2)
- endif()
+ audacity_module_subdirectory("${MODULES}")

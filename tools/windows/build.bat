@@ -9,7 +9,6 @@ call env.bat
 
 echo LIBTORCH_DIR=%LIBTORCH_DIR%
 echo OPENVINO_DIR=%OPENVINO_DIR%
-echo OPENVINO_TOKENIZERS_DIR=%OPENVINO_TOKENIZERS_DIR%
 echo OPENCL_SDK_DIR=%OPENCL_SDK_DIR%
 echo WHISPER_CLONE_DIR=%WHISPER_CLONE_DIR%
 echo AUDACITY_CLONE_DIR=%AUDACITY_CLONE_DIR%
@@ -22,11 +21,6 @@ echo Path=%Path%
 :: SPDX-License-Identifier: GPL-3.0-only
 IF "%OPENVINO_DIR%"=="" (
     echo OPENVINO_DIR is not set. Exiting.
-    exit /b 1
-)
-
-IF "%OPENVINO_TOKENIZERS_DIR%"=="" (
-    echo OPENVINO_TOKENIZERS_DIR is not set. Exiting.
     exit /b 1
 )
 
@@ -67,11 +61,8 @@ IF "%WHISPER_CLONE_DIR%"=="" (
 
 
 set "bat_path=%~dp0"
-set "audacity_add_ov_mod_patch_path=%bat_path%add_ov_module.patch
-echo audacity_add_ov_mod_patch_path=%audacity_add_ov_mod_patch_path%
-
-set "audacity_no_vc_runtime_install_patch=%bat_path%audacity_no_vc_runtime_install.patch
-echo audacity_no_vc_runtime_install_patch=%audacity_no_vc_runtime_install_patch%
+set audacity_add_ov_mod_patch_path=%bat_path%add_ov_module.patch
+set audacity_no_vc_runtime_install_patch=%bat_path%audacity_no_vc_runtime_install.patch
 
 :: Set up OpenVINO build environment.
 call %OPENVINO_DIR%\setupvars.bat || exit /b 1
@@ -134,6 +125,7 @@ IF NOT EXIST %AUDACITY_CLONE_DIR% (
     echo /B 1
 )
 
+
 set current_work_dir=%cd%
 :: apply patch that adds mod-openvino to build
 cd %AUDACITY_CLONE_DIR%
@@ -160,7 +152,7 @@ IF NOT ERRORLEVEL 1 (
 cd %current_work_dir%
 set current_work_dir=
 
-xcopy %AI_PLUGIN_REPO_SOURCE_FOLDER%mod-openvino "%AUDACITY_CLONE_DIR%\modules\mod-openvino" /E /I || exit /b 1
+xcopy %AI_PLUGIN_REPO_SOURCE_FOLDER%mod-openvino "%AUDACITY_CLONE_DIR%\modules\etc\mod-openvino" /E /I || exit /b 1
 
 :: Build Audacity + our OpenVINO module
 mkdir audacity-build
