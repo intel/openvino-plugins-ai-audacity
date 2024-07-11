@@ -99,10 +99,9 @@ sudo apt-get install libgtk2.0-dev libasound2-dev libjack-jackd2-dev uuid-dev
 # clone Audacity
 git clone https://github.com/audacity/audacity.git
 
-# Optional: You may want to check out specific tag here, such as Audacity-3.4.2
-# If so, replace <Audacity_Tag> in following command with tag.
+# It is recommended to check out specific tag / branch here, such as release-3.6.0
 cd audacity
-git checkout <Audacity_Tag>
+git checkout release-3.6.0
 cd ..
 
 # Create build directory
@@ -129,12 +128,6 @@ First, clone the following repo. This is where the actual Audacity module code l
 ```
 :: clone it
 git clone https://github.com/intel/openvino-plugins-ai-audacity.git
-
-# Optional: You may want to check out specific tag here, such as v3.4.2-R1
-# If so, replace <Audacity_AI_Tag> in the following command.
-cd openvino-plugins-ai-audacity
-git checkout <Audacity_AI_Tag>
-cd ..
 ```
 
 We need to copy the ```mod-openvino``` folder into the Audacity source tree.
