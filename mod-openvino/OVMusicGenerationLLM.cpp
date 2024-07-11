@@ -294,8 +294,6 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
    // If they have chosen a stereo model, then most likely their intention /
    // expecation is to generate a stereo track. So, in that case we replace
    // the mono track that was added with a new stereo one.
-   //TODO: FIXME!
-
    auto selected_tracks = mTracks->Selected<WaveTrack>();
    if ((_num_selected_tracks_at_effect_start == 0) && (selected_tracks.size() == 1))
    {
