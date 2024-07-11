@@ -475,8 +475,6 @@ bool EffectOVNoiseSuppression::Process(EffectInstance&, EffectSettings&)
       return false;
    }
 
-   std::cout << "Going into WaveTrack Selection loop!" << std::endl;
-
    try
    {
       //mCurTrackNum = 0;
