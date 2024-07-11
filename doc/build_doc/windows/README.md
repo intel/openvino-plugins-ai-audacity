@@ -13,12 +13,12 @@ Here are some of the dependencies that you need to grab. If applicable, I'll als
 * CMake (https://cmake.org/download/)
 * Visual Studio (MS VS 2019 / 2022 Community Edition is fine)
 * python3 / pip - Audacity requires conan 2.0+ to be installed, and the recommended way to do that is through pip.  
-* OpenVINO - You can use public version from [here](https://github.com/openvinotoolkit/openvino/releases/tag/2024.0.0). Setup your cmd.exe shell environment by running setupvars.bat:  
+* OpenVINO - You can use public version from [here](https://github.com/openvinotoolkit/openvino/releases/tag/2024.2.0). Setup your cmd.exe shell environment by running setupvars.bat:  
     ```
     call "C:\path\to\w_openvino_toolkit_windows_xxxx\setupvars.bat"
     ```
 * OpenVINO Tokenizers Extension - Download package from [here](https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/). 
-   Make sure that you download the version that matches the version of OpenVINO that you are using. For example, we are using [openvino_tokenizers_windows_2024.0.0.0_x86_64.zip](https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/2024.0.0.0/openvino_tokenizers_windows_2024.0.0.0_x86_64.zip)
+   Make sure that you download the version that matches the version of OpenVINO that you are using. For example, we are using [openvino_tokenizers_windows_2024.2.0.0_x86_64.zip](https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/2024.2.0.0/openvino_tokenizers_windows_2024.2.0.0_x86_64.zipp)
    Download the zip package, and copy the DLLs into your ```w_openvino_toolkit_windows_xxxx\runtime\bin\intel64\Release``` folder.  
    
 * Libtorch (C++ distribution of pytorch)- This is a dependency for many of the pipelines that we ported from pytorch (musicgen, htdemucs, etc). We are currently using this version: [libtorch-win-shared-with-deps-2.1.1+cpu.zip](https://download.pytorch.org/libtorch/cpu/libtorch-win-shared-with-deps-2.1.1%2Bcpu.zip). After extracting the package, setup environment like this:
@@ -62,7 +62,7 @@ cd whisper-build
 
 :: Run CMake, specifying that you want to enable OpenVINO support.
 :: Note: Replace visual studio version if needed
-cmake ..\whisper.cpp -G "Visual Studio 16 2019" -A x64 -DWHISPER_OPENVINO=ON
+cmake ..\whisper.cpp -A x64 -DWHISPER_OPENVINO=ON
 
 :: Build it:
 cmake --build . --config Release
@@ -89,17 +89,16 @@ pip install conan
 :: clone Audacity
 git clone https://github.com/audacity/audacity.git
 
-:: Check out Audacity-3.4.2 tag, as this is the specific version that
-:: our modules are compatible with.
+:: Check out latest Audacity branch that our plugins are compatible with (currently, release-3.6.0)
 cd audacity
-git checkout Audacity-3.4.2
+git checkout release-3.6.0
 cd ..
 
 mkdir audacity-build
 cd audacity-build
 
 :: Run cmake (grab a coffee & a snack... this takes a while)
-cmake ..\audacity -G "Visual Studio 16 2019" -A x64 -DAUDACITY_BUILD_LEVEL=2
+cmake ..\audacity -A x64 -DAUDACITY_BUILD_LEVEL=2
 
 :: build it 
 cmake --build . --config Release
@@ -120,9 +119,6 @@ First, clone this repo. This is of course where the actual Audacity module code 
 git clone https://github.com/intel/openvino-plugins-ai-audacity.git
 
 cd openvino-plugins-ai-audacity
-
-:: Check out appropriate branch or tag 
-git checkout v3.4.2-R1
 ```
 
 We need to copy the ```mod-openvino``` folder into the Audacity source tree.
