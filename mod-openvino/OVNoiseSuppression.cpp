@@ -496,8 +496,7 @@ bool EffectOVNoiseSuppression::Process(EffectInstance&, EffectSettings&)
             //first, copy the region of interest to a new track. We do this so that if we need
             // to downsample to meet model requirements, we don't affect the area outside of the
             // selection.
-            auto copiedTrackList = pOutWaveTrack->Copy(curT0, curT1);
-            auto pCopiedTrack = *copiedTrackList->Any<WaveTrack>().begin();
+            auto pCopiedTrack = std::static_pointer_cast<WaveTrack>(pOutWaveTrack->Copy(curT0, curT1));
 
             double origRate = pCopiedTrack->GetRate();
             int model_sample_rate = ns_model->sample_rate();
@@ -506,7 +505,7 @@ bool EffectOVNoiseSuppression::Process(EffectInstance&, EffectSettings&)
                std::cout << "resampling from " << origRate << " to " << model_sample_rate << std::endl;
                pCopiedTrack->Resample(model_sample_rate);
             }
-            
+
             //Transform the marker timepoints to samples
             // Note, because of the above copy, we use start time of 0 here.
             auto start = pCopiedTrack->TimeToLongSamples(0);
@@ -537,7 +536,7 @@ bool EffectOVNoiseSuppression::Process(EffectInstance&, EffectSettings&)
             }
 
             //now, paste 'filtered' samples stored in pCopiedTrack to output WaveTrack
-            pOutWaveTrack->ClearAndPaste(curT0, curT1, *copiedTrackList);
+            pOutWaveTrack->ClearAndPaste(curT0, curT1, *pCopiedTrack);
          }
 
          wavetracki++;

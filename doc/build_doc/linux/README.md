@@ -14,26 +14,26 @@ Here are some of the dependencies that you need to grab. If applicable, I'll als
 ```
 sudo apt install build-essential
 ```
-* OpenVINO - Download appropriate version from [here](https://storage.openvinotoolkit.org/repositories/openvino/packages/2024.0/linux). For these instructions, we will use ```l_openvino_toolkit_ubuntu22_*x86_64tgz```.
+* OpenVINO - Download appropriate version from [here](https://storage.openvinotoolkit.org/repositories/openvino/packages/2024.2/linux). For these instructions, we will use ```l_openvino_toolkit_ubuntu22_2024.2.0.15519.5c0f38f83f6_x86_64.tgz```.
 ```
 # Extract it
-tar xvf l_openvino_toolkit_ubuntu22_*x86_64.tgz 
+tar xvf l_openvino_toolkit_ubuntu22_2024.2.0.15519.5c0f38f83f6_x86_64.tgz
 
 #install dependencies
-cd l_openvino_toolkit_ubuntu22_*_x86_64/install_dependencies/
+cd l_openvino_toolkit_ubuntu22_2024.2.0.15519.5c0f38f83f6_x86_64/install_dependencies/
 sudo -E ./install_openvino_dependencies.sh
 cd ..
 
 # setup env
 source setupvars.sh
 ```
-* OpenVINO Tokenizers Extension - Download package from [here](https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/2024.0.0.0/). For these instructions, we will use ```openvino_tokenizers_ubuntu22_2024.0.0.0_x86_64.tgz```.
+* OpenVINO Tokenizers Extension - Download package from [here](https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/2024.2.0.0/). For these instructions, we will use ```openvino_tokenizers_ubuntu22_2024.2.0.0_x86_64.tar.gz```.
 ```
-# extract it 
-tar xzvf openvino_tokenizers_ubuntu22_2024.0.0.0_x86_64.tgz
+# extract it (this will create and populate a 'runtime' folder)
+tar xzvf openvino_tokenizers_ubuntu22_2024.2.0.0_x86_64.tar.gz
 
 # copy extension libraries into OpenVINO lib folder:
-cp openvino_tokenizers_ubuntu22_2024.0.0.0_x86_64/* l_openvino_toolkit_ubuntu22_2024.0.0.14509.34caeefd078_x86_64/runtime/lib/intel64/
+cp runtime/lib/intel64/ l_openvino_toolkit_ubuntu22_2024.0.0.14509.34caeefd078_x86_64/runtime/lib/intel64/
 ```
 
 * Libtorch (C++ distribution of pytorch)- This is a dependency for many of the pipelines that we ported from pytorch (musicgen, htdemucs, etc). We are currently using this version: [libtorch-cxx11-abi-shared-with-deps-2.1.1+cpu.zip ](https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.1.1%2Bcpu.zip). Setup environment like this:
@@ -99,10 +99,9 @@ sudo apt-get install libgtk2.0-dev libasound2-dev libjack-jackd2-dev uuid-dev
 # clone Audacity
 git clone https://github.com/audacity/audacity.git
 
-# Optional: You may want to check out specific tag here, such as Audacity-3.4.2
-# If so, replace <Audacity_Tag> in following command with tag.
+# It is recommended to check out specific tag / branch here, such as release-3.6.0
 cd audacity
-git checkout <Audacity_Tag>
+git checkout release-3.6.0
 cd ..
 
 # Create build directory
@@ -129,12 +128,6 @@ First, clone the following repo. This is where the actual Audacity module code l
 ```
 :: clone it
 git clone https://github.com/intel/openvino-plugins-ai-audacity.git
-
-# Optional: You may want to check out specific tag here, such as v3.4.2-R1
-# If so, replace <Audacity_AI_Tag> in the following command.
-cd openvino-plugins-ai-audacity
-git checkout <Audacity_AI_Tag>
-cd ..
 ```
 
 We need to copy the ```mod-openvino``` folder into the Audacity source tree.

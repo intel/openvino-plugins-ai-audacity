@@ -11,11 +11,6 @@ IF "%OPENVINO_DIR%"=="" (
     exit /b
 )
 
-IF "%OPENVINO_TOKENIZERS_DIR%"=="" (
-    echo OPENVINO_TOKENIZERS_DIR is not set. Exiting.
-    exit /b
-)
-
 IF "%LIBTORCH_DIR%"=="" (
     echo LIBTORCH_DIR is not set. Exiting.
     exit /b
@@ -50,7 +45,6 @@ set "audacity_ai_plugins_iss_path=%bat_path%audacity_ai_plugins.iss
 iscc /O+ %audacity_ai_plugins_iss_path% ^
   /DBUILD_FOLDER=%BUILD_FOLDER% ^
   /DOPENVINO_DIR=%OPENVINO_DIR% ^
-  /DOPENVINO_TOKENIZERS_DIR=%OPENVINO_TOKENIZERS_DIR% ^
   /DLIBTORCH_DIR=%LIBTORCH_DIR% ^
   /DAUDACITY_BUILD_CONFIG=%AUDACITY_BUILD_CONFIG% ^
   /DAI_PLUGIN_VERSION=%AI_PLUGIN_VERSION% ^

@@ -71,7 +71,6 @@ Name: "music_gen\small_stereo"; Description: "Small Stereo Model"; Types: all; E
 ; OpenVINO libraries
 Source: "{#OPENVINO_DIR}\runtime\bin\intel64\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 Source: "{#OPENVINO_DIR}\runtime\3rdparty\tbb\bin\*.dll"; DestDir: "{app}"; Flags: ignoreversion 
-Source: "{#OPENVINO_TOKENIZERS_DIR}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 
 ; Libtorch
 Source: "{#LIBTORCH_DIR}\lib\*.dll"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
