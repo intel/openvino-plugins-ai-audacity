@@ -13,17 +13,17 @@ Here are some of the dependencies that you need to grab. If applicable, I'll als
 * CMake (https://cmake.org/download/)
 * Visual Studio (MS VS 2019 / 2022 Community Edition is fine)
 * python3 / pip - Audacity requires conan 2.0+ to be installed, and the recommended way to do that is through pip.  
-* OpenVINO - You can use public version from [here](https://github.com/openvinotoolkit/openvino/releases/tag/2024.2.0). Setup your cmd.exe shell environment by running setupvars.bat:  
+* OpenVINO - You can use public version from [here](https://github.com/openvinotoolkit/openvino/releases/tag/2024.3.0). Setup your cmd.exe shell environment by running setupvars.bat:  
     ```
     call "C:\path\to\w_openvino_toolkit_windows_xxxx\setupvars.bat"
     ```
 * OpenVINO Tokenizers Extension - Download package from [here](https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/). 
-   Make sure that you download the version that matches the version of OpenVINO that you are using. For example, we are using [openvino_tokenizers_windows_2024.2.0.0_x86_64.zip](https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/2024.2.0.0/openvino_tokenizers_windows_2024.2.0.0_x86_64.zipp)
+   Make sure that you download the version that matches the version of OpenVINO that you are using. For example, we are using [openvino_tokenizers_windows_2024.3.0.0_x86_64.zip](https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/2024.3.0.0/openvino_tokenizers_windows_2024.3.0.0_x86_64.zip)
    Download the zip package, and copy the DLLs into your ```w_openvino_toolkit_windows_xxxx\runtime\bin\intel64\Release``` folder.  
    
-* Libtorch (C++ distribution of pytorch)- This is a dependency for many of the pipelines that we ported from pytorch (musicgen, htdemucs, etc). We are currently using this version: [libtorch-win-shared-with-deps-2.1.1+cpu.zip](https://download.pytorch.org/libtorch/cpu/libtorch-win-shared-with-deps-2.1.1%2Bcpu.zip). After extracting the package, setup environment like this:
+* Libtorch (C++ distribution of pytorch)- This is a dependency for many of the pipelines that we ported from pytorch (musicgen, htdemucs, etc). We are currently using this version: [libtorch-win-shared-with-deps-2.4.1+cpu.zip](https://download.pytorch.org/libtorch/cpu/libtorch-win-shared-with-deps-2.4.1%2Bcpu.zip). After extracting the package, setup environment like this:
     ```
-    set LIBTORCH_ROOTDIR=C:\path\to\libtorch-shared-with-deps-2.1.1+cpu\libtorch
+    set LIBTORCH_ROOTDIR=C:\path\to\libtorch-shared-with-deps-2.4.1+cpu\libtorch
     set Path=%LIBTORCH_ROOTDIR%\lib;%Path%
     ```  
 * OpenCL - To optimize performance for GPUs, we (lightly) use OpenCL with interoperability (i.e. remote tensor) APIs for OpenVINO. So, we need to download the OpenCL SDK. You can download this version: [OpenCL-SDK-v2023.04.17-Win-x64.zip](https://github.com/KhronosGroup/OpenCL-SDK/releases/download/v2023.04.17/OpenCL-SDK-v2023.04.17-Win-x64.zip). After extracting the package, setup environment like this:
@@ -45,7 +45,7 @@ We're now going to build whisper.cpp. You should have a cmd.exe (not powershell!
     set Path=%OpenCV_DIR%\x64\vc16\bin;%Path%
 
     :: Libtorch
-    set LIBTORCH_ROOTDIR=C:\path\to\libtorch-shared-with-deps-2.1.1+cpu\libtorch
+    set LIBTORCH_ROOTDIR=C:\path\to\libtorch-shared-with-deps-2.4.1+cpu\libtorch
     set Path=%LIBTORCH_ROOTDIR%\lib;%Path%
 
 ### Whisper.cpp 
@@ -89,9 +89,9 @@ pip install conan
 :: clone Audacity
 git clone https://github.com/audacity/audacity.git
 
-:: Check out latest Audacity branch that our plugins are compatible with (currently, release-3.6.1)
+:: Check out latest Audacity branch that our plugins are compatible with (currently, release-3.6.2)
 cd audacity
-git checkout release-3.6.1
+git checkout release-3.6.2
 cd ..
 
 mkdir audacity-build
@@ -151,7 +151,7 @@ Okay, now we're going to (finally) build the module. Here's a recap of the envir
 call "C:\path\to\w_openvino_toolkit_windows_xxxx\setupvars.bat"
 
 :: Libtorch
-set LIBTORCH_ROOTDIR=C:\path\to\libtorch-shared-with-deps-2.0.1+cpu\libtorch
+set LIBTORCH_ROOTDIR=C:\path\to\libtorch-shared-with-deps-2.4.1+cpu\libtorch
 set Path=%LIBTORCH_ROOTDIR%\lib;%Path%
 
 :: Whisper.cpp 
