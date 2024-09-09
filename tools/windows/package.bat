@@ -1,6 +1,13 @@
 @echo off
 setlocal
 
+IF NOT EXIST env.bat (
+    echo env.bat is not set. Exiting.
+    exit /b 1
+)
+
+call env.bat
+
 IF "%BUILD_FOLDER%"=="" (
     echo BUILD_FOLDER is not set. Exiting.
     exit /b
@@ -52,6 +59,14 @@ iscc /O+ %audacity_ai_plugins_iss_path% ^
   /DOPENCL_SDK_DIR=%OPENCL_SDK_DIR% ^
   /O%BUILD_FOLDER% ^
   /Faudacity-win-%AI_PLUGIN_VERSION%-64bit-OpenVINO-AI-Plugins
-  
+
+:: Get date and time in YYYYMMDD_HHMMSS format
+set "datestamp=%DATE:~-4%%DATE:~4,2%%DATE:~7,2%"
+set "timestamp=%TIME:~0,2%%TIME:~3,2%%TIME:~6,2%"
+set "timestamp=%timestamp: =0%"
+
+rename audacity-win-%AI_PLUGIN_VERSION%-64bit-OpenVINO-AI-Plugins.exe audacity-win-%AI_PLUGIN_VERSION%-64bit-OpenVINO-AI-Plugins-%datestamp%_%timestamp%.exe
+
+echo Done! Generated %cd%\audacity-win-%AI_PLUGIN_VERSION%-64bit-OpenVINO-AI-Plugins-%datestamp%_%timestamp%.exe
 
 endlocal
