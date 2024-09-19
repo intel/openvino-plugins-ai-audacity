@@ -99,9 +99,9 @@ sudo apt-get install libgtk2.0-dev libasound2-dev libjack-jackd2-dev uuid-dev
 # clone Audacity
 git clone https://github.com/audacity/audacity.git
 
-# It is recommended to check out specific tag / branch here, such as release-3.6.2
+# It is recommended to check out specific tag / branch here, such as release-3.6.4
 cd audacity
-git checkout release-3.6.2
+git checkout release-3.6.4
 cd ..
 
 # Create build directory
