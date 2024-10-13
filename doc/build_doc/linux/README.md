@@ -15,6 +15,9 @@ Here are some of the dependencies that you need to grab. If applicable, I'll als
 sudo apt install build-essential
 ```
 * OpenVINO - Download appropriate version from [here](https://storage.openvinotoolkit.org/repositories/openvino/packages/2024.3/linux). For these instructions, we will use ```l_openvino_toolkit_ubuntu22_2024.3.0.16041.1e3b88e4e3f_x86_64.tgz```.
+Alternatively, if you want to keep things in the terminal as much as possible, you can wget the file into a given directory with: `
+wget https://storage.openvinotoolkit.org/repositories/openvino/packages/2024.3/linux/l_openvino_toolkit_ubuntu22_2024.3.0.16041.1e3b88e4e3f_x86_64.tgz
+`
 ```
 # Extract it
 tar xvf l_openvino_toolkit_ubuntu22_2024.3.0.16041.1e3b88e4e3f_x86_64.tgz
@@ -28,15 +31,26 @@ cd ..
 source setupvars.sh
 ```
 * OpenVINO Tokenizers Extension - Download package from [here](https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/2024.3.0.0/). For these instructions, we will use ```openvino_tokenizers_ubuntu22_2024.3.0.0_x86_64.tar.gz```.
+Again, if don't want to click through a bunch of links and keep things on the commandline/terminal, you can use wget:
+`wget https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/2024.3.0.0/openvino_tokenizers_ubuntu22_2024.3.0.0_x86_64.tar.gz`
 ```
 # extract it (this will create and populate a 'runtime' folder)
 tar xzvf openvino_tokenizers_ubuntu22_2024.3.0.0_x86_64.tar.gz
 
-# copy extension libraries into OpenVINO lib folder:
-cp runtime/lib/intel64/ _openvino_toolkit_ubuntu22_2024.3.0.16041.1e3b88e4e3f_x86_64/runtime/lib/intel64/
-```
+# To copy `libcore_tokenizers.so` && `libopenvino_tokenizers.so` to the openvino toolkit directory:
+`
+cp -r ~/audacity-openvino/openvino_tokenizers/runtime/lib/intel64/* ~/audacity-openvino/openvino_toolkit/l_openvino_toolkit_ubuntu22_2024.3.0.16041.1e3b88e4e3f_x86_64/runtime/lib/intel64
+`
 
-* Libtorch (C++ distribution of pytorch)- This is a dependency for many of the pipelines that we ported from pytorch (musicgen, htdemucs, etc). We are currently using this version: [libtorch-cxx11-abi-shared-with-deps-2.4.1+cpu.zip ](https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.4.1%2Bcpu.zip). Setup environment like this:
+* Libtorch (C++ distribution of pytorch)- This is a dependency for many of the pipelines that we ported from pytorch (musicgen, htdemucs, etc). We are currently using this version: [libtorch-cxx11-abi-shared-with-deps-2.4.1+cpu.zip ](https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.4.1%2Bcpu.zip). If you're keeping things in the terminal/on the commandline, you can use:
+
+`wget https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.4.1%2Bcpu.zip`
+
+   * Download the libtorch file to the working audacity-openvino directory, then just unzip it.
+   * It will make a 'libtorch' directory by itself, no need to make one, or else you'll end up with `~/audacity-openvino/libtorch/libtorch`
+
+
+Setup environment like this:
 ```
 unzip libtorch-cxx11-abi-shared-with-deps-2.4.1+cpu.zip
 export LIBTORCH_ROOTDIR=/path/to/libtorch
@@ -50,7 +64,9 @@ sudo apt install ocl-icd-opencl-dev
 ## Sub-Component builds
 We're now going to build whisper.cpp.  
 ```
-# OpenVINO
+# OpenVINO```
+wget https://storage.openvinotoolkit.org/repositories/openvino/packages/2024.3/linux/l_openvino_toolkit_ubuntu22_2024.3.0.16041.1e3b88e4e3f_x86_64.tgz
+```
 source /path/to/l_openvino_toolkit_ubuntu22_*_x86_64/setupvars.sh
 
 # Libtorch
