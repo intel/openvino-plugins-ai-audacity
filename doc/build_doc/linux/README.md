@@ -213,6 +213,8 @@ Here are the commands that you can use to create this directory, and populate it
 
 :warning: **The models that these commands will download are very large (many GB's). So beware of this if you're on a metered connection.**
 
+:bulb: **Consider the following:** Regardless of being on a metered connection, if you have a spare storage device (usb flash drive or ssd in an enclosure larger 64GB or larger), you might want to save these model files in case you want to build this all elsewhere in the future.
+
 ```
 # Create an empty 'openvino-models' directory to start with
 mkdir openvino-models
