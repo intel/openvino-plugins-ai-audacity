@@ -147,8 +147,9 @@ git clone https://github.com/intel/openvino-plugins-ai-audacity.git
 ```
 
 We need to copy the ```mod-openvino``` folder into the Audacity source tree.
-i.e. Copy ```openvino-plugins-ai-audacity/mod-openvino``` folder to ```audacity/modules```.
+i.e. Copy ```openvino-plugins-ai-audacity/mod-openvino``` folder to ```audacity/modules```:
 
+`cp -r ~/audacity-openvino/openvino-plugins-ai-audacity/mod-openvino ~/audacity-openvino/audacity/modules/`
 
 We now need to edit ```audacity\modules\CMakeLists.txt``` to add mod-openvino as a build target. You just need to add a ```add_subdirectory(mod-openvino)``` someplace in the file. For example:
 
