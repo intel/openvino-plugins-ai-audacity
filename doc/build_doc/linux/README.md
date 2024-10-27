@@ -8,6 +8,9 @@ Before I get into the specifics, at a high-level we will be doing the following:
 * Cloning & building Audacity without modifications (just to make sure 'vanilla' build works fine)
 * Adding our OpenVINO module src's to the Audacity source tree, and re-building it.
 
+## 👥👥 Heads Up! 👥👥
+Throughout the documentation, `~/audacity-openvino/` is used as the default working directory, where packages, components will be downloaeded and the project is built. Feel free to use this structure, or, if you prefer, set up a directory elsewhere on your system with names that work best for you. Just make sure to adjust any commands accordingly.
+
 ## Dependencies
 Here are some of the dependencies that you need to grab. If applicable, I'll also give the cmd's to set up your environment here.
 * Build Essentials (GCC & CMake)
