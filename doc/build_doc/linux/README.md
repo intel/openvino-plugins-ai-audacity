@@ -8,6 +8,9 @@ Before I get into the specifics, at a high-level we will be doing the following:
 * Cloning & building Audacity without modifications (just to make sure 'vanilla' build works fine)
 * Adding our OpenVINO module src's to the Audacity source tree, and re-building it.
 
+## 👥👥 Heads Up! 👥👥
+Throughout the documentation, `~/audacity-openvino/` is used as the default working directory, where packages, components will be downloaeded and the project is built. Feel free to use this structure, or, if you prefer, set up a directory elsewhere on your system with names that work best for you. Just make sure to adjust any commands accordingly.
+
 ## Dependencies
 Here are some of the dependencies that you need to grab. If applicable, I'll also give the cmd's to set up your environment here.
 * Build Essentials (GCC & CMake)
@@ -15,6 +18,9 @@ Here are some of the dependencies that you need to grab. If applicable, I'll als
 sudo apt install build-essential
 ```
 * OpenVINO - Download appropriate version from [here](https://storage.openvinotoolkit.org/repositories/openvino/packages/2024.3/linux). For these instructions, we will use ```l_openvino_toolkit_ubuntu22_2024.3.0.16041.1e3b88e4e3f_x86_64.tgz```.
+Alternatively, if you want to keep things in the terminal as much as possible, you can wget the file into a given directory with: `
+wget https://storage.openvinotoolkit.org/repositories/openvino/packages/2024.3/linux/l_openvino_toolkit_ubuntu22_2024.3.0.16041.1e3b88e4e3f_x86_64.tgz
+`
 ```
 # Extract it
 tar xvf l_openvino_toolkit_ubuntu22_2024.3.0.16041.1e3b88e4e3f_x86_64.tgz
@@ -28,15 +34,26 @@ cd ..
 source setupvars.sh
 ```
 * OpenVINO Tokenizers Extension - Download package from [here](https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/2024.3.0.0/). For these instructions, we will use ```openvino_tokenizers_ubuntu22_2024.3.0.0_x86_64.tar.gz```.
+Again, if don't want to click through a bunch of links and keep things on the commandline/terminal, you can use wget:
+`wget https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/2024.3.0.0/openvino_tokenizers_ubuntu22_2024.3.0.0_x86_64.tar.gz`
 ```
 # extract it (this will create and populate a 'runtime' folder)
 tar xzvf openvino_tokenizers_ubuntu22_2024.3.0.0_x86_64.tar.gz
 
-# copy extension libraries into OpenVINO lib folder:
-cp runtime/lib/intel64/ _openvino_toolkit_ubuntu22_2024.3.0.16041.1e3b88e4e3f_x86_64/runtime/lib/intel64/
-```
+# To copy `libcore_tokenizers.so` && `libopenvino_tokenizers.so` to the openvino toolkit directory:
+`
+cp -r ~/audacity-openvino/openvino_tokenizers/runtime/lib/intel64/* ~/audacity-openvino/openvino_toolkit/l_openvino_toolkit_ubuntu22_2024.3.0.16041.1e3b88e4e3f_x86_64/runtime/lib/intel64
+`
 
-* Libtorch (C++ distribution of pytorch)- This is a dependency for many of the pipelines that we ported from pytorch (musicgen, htdemucs, etc). We are currently using this version: [libtorch-cxx11-abi-shared-with-deps-2.4.1+cpu.zip ](https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.4.1%2Bcpu.zip). Setup environment like this:
+* Libtorch (C++ distribution of pytorch)- This is a dependency for many of the pipelines that we ported from pytorch (musicgen, htdemucs, etc). We are currently using this version: [libtorch-cxx11-abi-shared-with-deps-2.4.1+cpu.zip ](https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.4.1%2Bcpu.zip). If you're keeping things in the terminal/on the commandline, you can use:
+
+`wget https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.4.1%2Bcpu.zip`
+
+   * Download the libtorch file to the working audacity-openvino directory, then just unzip it.
+   * It will make a 'libtorch' directory by itself, no need to make one, or else you'll end up with `~/audacity-openvino/libtorch/libtorch`
+
+
+Setup environment like this:
 ```
 unzip libtorch-cxx11-abi-shared-with-deps-2.4.1+cpu.zip
 export LIBTORCH_ROOTDIR=/path/to/libtorch
@@ -50,7 +67,9 @@ sudo apt install ocl-icd-opencl-dev
 ## Sub-Component builds
 We're now going to build whisper.cpp.  
 ```
-# OpenVINO
+# OpenVINO```
+wget https://storage.openvinotoolkit.org/repositories/openvino/packages/2024.3/linux/l_openvino_toolkit_ubuntu22_2024.3.0.16041.1e3b88e4e3f_x86_64.tgz
+```
 source /path/to/l_openvino_toolkit_ubuntu22_*_x86_64/setupvars.sh
 
 # Libtorch
@@ -131,8 +150,9 @@ git clone https://github.com/intel/openvino-plugins-ai-audacity.git
 ```
 
 We need to copy the ```mod-openvino``` folder into the Audacity source tree.
-i.e. Copy ```openvino-plugins-ai-audacity/mod-openvino``` folder to ```audacity/modules```.
+i.e. Copy ```openvino-plugins-ai-audacity/mod-openvino``` folder to ```audacity/modules```:
 
+`cp -r ~/audacity-openvino/openvino-plugins-ai-audacity/mod-openvino ~/audacity-openvino/audacity/modules/`
 
 We now need to edit ```audacity\modules\CMakeLists.txt``` to add mod-openvino as a build target. You just need to add a ```add_subdirectory(mod-openvino)``` someplace in the file. For example:
 
@@ -195,6 +215,8 @@ And we're done, at least with the module build. To actually use these modules, w
 Here are the commands that you can use to create this directory, and populate it with the required models.
 
 :warning: **The models that these commands will download are very large (many GB's). So beware of this if you're on a metered connection.**
+
+:bulb: **Consider the following:** Regardless of being on a metered connection, if you have a spare storage device (usb flash drive or ssd in an enclosure larger 64GB or larger), you might want to save these model files in case you want to build this all elsewhere in the future.
 
 ```
 # Create an empty 'openvino-models' directory to start with
@@ -271,6 +293,115 @@ wget https://storage.openvinotoolkit.org/repositories/open_model_zoo/2023.0/mode
 wget https://storage.openvinotoolkit.org/repositories/open_model_zoo/2023.0/models_bin/1/noise-suppression-denseunet-ll-0001/FP16/noise-suppression-denseunet-ll-0001.bin
 cd ..
 ```
+
+
+After all of this, a functioning structure of the openvino-models directory looks like this:
+```
+user@system:/usr/local/lib/openvino-models$ tree -d
+.
+├── deepfilternet-openvino
+├── musicgen
+│   ├── mono
+│   └── stereo
+└── openvino-models
+    ├── deepfilternet2
+    └── deepfilternet3
+
+7 directories
+```
+
+The file layout within the above directory tree:
+```
+user@system:/usr/local/lib/openvino-models$ tree -h
+[4.0K]  .
+├── [4.0K]  deepfilternet-openvino
+│   ├── [8.2M]  deepfilternet2.zip
+│   ├── [7.6M]  deepfilternet3.zip
+│   └── [2.1K]  README.md
+├── [4.0K]  musicgen
+│   ├── [1.9M]  attention_mask_from_prepare_4d_causal_10s.raw
+│   ├── [492K]  attention_mask_from_prepare_4d_causal_5s.raw
+│   ├── [258K]  encodec_20s.xml
+│   ├── [258K]  encodec_5s.xml
+│   ├── [ 56M]  encodec_combined_weights.bin
+│   ├── [441K]  encodec_encoder_10s.xml
+│   ├── [441K]  encodec_encoder_5s.xml
+│   ├── [ 56M]  encodec_encoder_combined_weights.bin
+│   ├── [4.0K]  mono
+│   │   ├── [ 16M]  embed_tokens.bin
+│   │   ├── [ 14K]  embed_tokens.xml
+│   │   ├── [3.0M]  enc_to_dec_proj.bin
+│   │   ├── [2.7K]  enc_to_dec_proj.xml
+│   │   ├── [ 96M]  initial_cross_attn_kv_producer.bin
+│   │   ├── [173K]  initial_cross_attn_kv_producer.xml
+│   │   ├── [ 16M]  lm_heads.bin
+│   │   ├── [ 11K]  lm_heads.xml
+│   │   ├── [672M]  musicgen_decoder_combined_weights.bin
+│   │   ├── [337M]  musicgen_decoder_combined_weights_int8.bin
+│   │   ├── [2.5M]  musicgen_decoder_static0_10s.xml
+│   │   ├── [2.5M]  musicgen_decoder_static0_5s.xml
+│   │   ├── [3.0M]  musicgen_decoder_static_batch1_int8.xml
+│   │   ├── [2.5M]  musicgen_decoder_static_batch1.xml
+│   │   ├── [3.0M]  musicgen_decoder_static_int8.xml
+│   │   ├── [2.5M]  musicgen_decoder_static.xml
+│   │   └── [8.0M]  sinusoidal_positional_embedding_weights_2048_1024.raw
+│   ├── [775K]  musicgen-small-tokenizer.bin
+│   ├── [5.7K]  musicgen-small-tokenizer.xml
+│   ├── [4.0K]  stereo
+│   │   ├── [ 32M]  embed_tokens.bin
+│   │   ├── [ 28K]  embed_tokens.xml
+│   │   ├── [3.0M]  enc_to_dec_proj.bin
+│   │   ├── [2.7K]  enc_to_dec_proj.xml
+│   │   ├── [192M]  initial_cross_attn_kv_producer.bin
+│   │   ├── [145K]  initial_cross_attn_kv_producer.xml
+│   │   ├── [ 32M]  lm_heads.bin
+│   │   ├── [ 21K]  lm_heads.xml
+│   │   ├── [672M]  musicgen_decoder_combined_weights.bin
+│   │   ├── [337M]  musicgen_decoder_combined_weights_int8.bin
+│   │   ├── [2.5M]  musicgen_decoder_static0_10s.xml
+│   │   ├── [2.5M]  musicgen_decoder_static0_5s.xml
+│   │   ├── [3.0M]  musicgen_decoder_static_batch1_int8.xml
+│   │   ├── [2.5M]  musicgen_decoder_static_batch1.xml
+│   │   ├── [3.0M]  musicgen_decoder_static_int8.xml
+│   │   ├── [2.5M]  musicgen_decoder_static.xml
+│   │   └── [8.0M]  sinusoidal_positional_embedding_weights_2048_1024.raw
+│   ├── [209M]  t5.bin
+│   └── [550K]  t5.xml
+└── [4.0K]  openvino-models
+    ├── [4.0K]  deepfilternet2
+    │   ├── [3.2M]  df_dec.bin
+    │   ├── [112K]  df_dec.xml
+    │   ├── [2.5M]  enc.bin
+    │   ├── [175K]  enc.xml
+    │   ├── [3.2M]  erb_dec.bin
+    │   └── [181K]  erb_dec.xml
+    ├── [4.0K]  deepfilternet3
+    │   ├── [3.2M]  df_dec.bin
+    │   ├── [123K]  df_dec.xml
+    │   ├── [1.8M]  enc.bin
+    │   ├── [186K]  enc.xml
+    │   ├── [3.1M]  erb_dec.bin
+    │   └── [185K]  erb_dec.xml
+    ├── [141M]  ggml-base.bin
+    ├── [ 39M]  ggml-base-encoder-openvino.bin
+    ├── [281K]  ggml-base-encoder-openvino.xml
+    ├── [465M]  ggml-small.bin
+    ├── [168M]  ggml-small-encoder-openvino.bin
+    ├── [804K]  ggml-small-encoder-openvino.xml
+    ├── [465M]  ggml-small.en-tdrz.bin
+    ├── [168M]  ggml-small.en-tdrz-encoder-openvino.bin
+    ├── [512K]  ggml-small.en-tdrz-encoder-openvino.xml
+    ├── [ 96M]  htdemucs_v4.bin
+    ├── [1.8M]  htdemucs_v4.xml
+    ├── [8.2M]  noise-suppression-denseunet-ll-0001.bin
+    └── [674K]  noise-suppression-denseunet-ll-0001.xml
+
+
+
+7 directories, 74 files
+```
+
+
 After the above sequence of commands you should have a single ```openvino-models``` folder, which you can copy to /usr/local/lib like this:
 ```
 sudo cp -R openvino-models /usr/local/lib/
