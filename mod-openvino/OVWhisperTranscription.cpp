@@ -21,7 +21,7 @@
 #include <wx/textctrl.h>
 #include <wx/sizer.h>
 
-#include "effects/AnalysisTracks.h"
+#include "AnalysisTracks.h"
 #include "ShuttleGui.h"
 #include "widgets/valnum.h"
 
@@ -569,7 +569,7 @@ bool EffectOVWhisperTranscription::ProcessStereoToMono(sampleCount& curTime, sam
    auto tempList = TrackList::Temporary(nullptr, outTrack);
    outTrack->ConvertToSampleFormat(floatSample);
 
-   double denominator = track.GetChannelGain(0) + track.GetChannelGain(1);
+   double denominator = track.GetChannelVolume(0) + track.GetChannelVolume(1);
    while (auto blockLen = mixer.Process()) {
       auto buffer = mixer.GetBuffer();
       for (auto i = 0; i < blockLen; i++)

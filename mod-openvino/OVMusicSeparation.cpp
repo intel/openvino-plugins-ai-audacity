@@ -467,7 +467,7 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
                // mix together drums, bass, and 'other instruments'.
                for (size_t i = 0; i < total_samples * 2; i++)
                {
-                  pOut[0][i] = (pOut[0][i] + pOut[1][i] + pOut[2][i]) * pLeftChannel->GetChannelGain(0);
+                  pOut[0][i] = (pOut[0][i] + pOut[1][i] + pOut[2][i]) * pLeftChannel->GetChannelVolume(0);
                }
 
                // replace output index 1 with index 3 (vocals), so that we use proper channel

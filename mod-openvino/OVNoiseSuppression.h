@@ -3,7 +3,8 @@
 
 #pragma once
 
-#include "effects/StatefulEffect.h"
+#include "StatefulEffect.h"
+#include "effects/StatefulEffectUIServices.h"
 #include <wx/weakref.h>
 
 class WaveTrack;
@@ -17,7 +18,7 @@ namespace ov
    class CompiledModel;
 }
 
-class EffectOVNoiseSuppression final : public StatefulEffect
+class EffectOVNoiseSuppression final : public StatefulEffect, public StatefulEffectUIServices
 {
 public:
 

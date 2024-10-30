@@ -16,7 +16,7 @@ set AUDACITY_BUILD_LEVEL=2
 set AUDACITY_BUILD_CONFIG=RelWithDebInfo
 
 :: The version that we will pass to inno setup as the app version.
-set AI_PLUGIN_VERSION=v3.6.4-R3.4
+set AI_PLUGIN_VERSION=v3.7.0-R4.0
 
 set AI_PLUGIN_REPO_SOURCE_FOLDER=%bat_path%\..\..\
 echo AI_PLUGIN_REPO_SOURCE_FOLDER=%AI_PLUGIN_REPO_SOURCE_FOLDER%
