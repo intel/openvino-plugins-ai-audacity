@@ -3,7 +3,8 @@
 
 #pragma once
 #include <mutex>
-#include "effects/StatefulEffect.h"
+#include "StatefulEffect.h"
+#include "effects/StatefulEffectUIServices.h"
 #include "ShuttleAutomation.h"
 
 class wxString;
@@ -16,7 +17,7 @@ class wxSizer;
 #include <wx/weakref.h>
 
 
-class EffectOVWhisperTranscription final : public StatefulEffect
+class EffectOVWhisperTranscription final : public StatefulEffect, public StatefulEffectUIServices
 {
 public:
    //static inline EffectOVWhisperTranscription*

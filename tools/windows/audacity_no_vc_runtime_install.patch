@@ -1,8 +1,8 @@
 diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
-index c8a134e..65d4558 100644
+index 91bc0a0..3b2dc36 100644
 --- a/src/CMakeLists.txt
 +++ b/src/CMakeLists.txt
-@@ -1115,13 +1115,13 @@ if( CMAKE_SYSTEM_NAME MATCHES "Windows" )
+@@ -1050,13 +1050,13 @@ if( CMAKE_SYSTEM_NAME MATCHES "Windows" )
     )
  
     # Copy the VC runtime libraries as well

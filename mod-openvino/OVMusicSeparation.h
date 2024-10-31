@@ -3,7 +3,8 @@
 
 #pragma once
 
-#include "effects/StatefulEffect.h"
+#include "StatefulEffect.h"
+#include "effects/StatefulEffectUIServices.h"
 #include <wx/weakref.h>
 
 class WaveTrack;
@@ -12,7 +13,7 @@ class wxCheckBox;
 class wxTextCtrl;
 class wxSizer;
 
-class EffectOVMusicSeparation final : public StatefulEffect
+class EffectOVMusicSeparation final : public StatefulEffect, public StatefulEffectUIServices
 {
    public:
 

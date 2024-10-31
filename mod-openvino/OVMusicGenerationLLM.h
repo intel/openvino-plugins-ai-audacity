@@ -13,14 +13,15 @@ class wxWindow;
 class NumericTextCtrl;
 class wxButton;
 
-#include "effects/StatefulEffect.h"
+#include "StatefulEffect.h"
+#include "effects/StatefulEffectUIServices.h"
 #include "ShuttleAutomation.h"
 #include <wx/event.h>
 #include <wx/choice.h>
 #include <wx/weakref.h>
 #include "musicgen/musicgen.h"
 
-class EffectOVMusicGenerationLLM final : public StatefulEffect
+class EffectOVMusicGenerationLLM final : public StatefulEffect, public StatefulEffectUIServices
 {
 public:
    static inline EffectOVMusicGenerationLLM*

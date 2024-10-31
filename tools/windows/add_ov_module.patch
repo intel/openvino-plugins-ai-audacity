@@ -1,5 +1,5 @@
 diff --git a/modules/etc/CMakeLists.txt b/modules/etc/CMakeLists.txt
-index 77a5054ea..259959164 100644
+index 77a5054..2599591 100644
 --- a/modules/etc/CMakeLists.txt
 +++ b/modules/etc/CMakeLists.txt
 @@ -14,4 +14,6 @@ if( NOT CMAKE_SYSTEM_NAME MATCHES "Windows" )
