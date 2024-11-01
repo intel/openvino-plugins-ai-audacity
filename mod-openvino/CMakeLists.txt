@@ -49,8 +49,28 @@ set( NOISE_SUPPRESSION_SOURCES
 include_directories(noise_suppression)
 include_directories(noise_suppression/deepfilternet)
 
+set( AUDIO_SR_SOURCES 
+     OVAudioSR.cpp
+     OVAudioSR.h
+     audio_sr/audiosr_common.h
+     audio_sr/autoencoder.cpp
+     audio_sr/autoencoder.h
+     audio_sr/ddim_sampler.cpp
+     audio_sr/ddim_sampler.h
+     audio_sr/ddpm_latent_diffusion.cpp
+     audio_sr/ddpm_latent_diffusion.h
+     audio_sr/distributions.h
+     audio_sr/audio_sr.h
+     audio_sr/audio_sr.cpp
+     audio_sr/biquad.h
+     audio_sr/biquad.cpp
+)
+
+include_directories(audio_sr)
+
 set( SOURCES
       ${NOISE_SUPPRESSION_SOURCES}
+      ${AUDIO_SR_SOURCES}
       OVMusicSeparation.cpp
       OVMusicSeparation.h
       OVMusicGenerationLLM.cpp
