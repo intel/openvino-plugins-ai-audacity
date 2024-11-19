@@ -14,7 +14,10 @@ class wxCheckBox;
 class wxTextCtrl;
 class wxSizer;
 
-class AudioSR;
+namespace ov_audiosr
+{
+   class AudioSR;
+}
 class EffectOVAudioSR final : public StatefulEffect, public StatefulEffectUIServices
 {
 public:
@@ -96,7 +99,7 @@ private:
 
    std::vector<std::pair<std::string, std::string>> m_simple_to_full_device_map;
 
-   std::shared_ptr< AudioSR > _audioSR;
+   std::shared_ptr< ov_audiosr::AudioSR > _audioSR;
 
    int _ddim_steps_complete = 0;
    int _total_ddim_steps = 0;

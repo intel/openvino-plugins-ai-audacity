@@ -24,7 +24,7 @@ Max Maisel
 #define safenew new
 #endif
 
-namespace ovaudiosr
+namespace ov_audiosr
 {
     template<typename X>
     class ArrayOf : public std::unique_ptr<X[]>

@@ -312,7 +312,7 @@ static inline std::shared_ptr<std::vector<float>> sos_lowpass_filter(float *pIn,
 
    double nyquist = fs / 2.0;
 
-   auto biquad = ovaudiosr::Biquad::CalcButterworthFilter(order, nyquist, cutoff, ovaudiosr::Biquad::kLowPass);
+   auto biquad = ov_audiosr::Biquad::CalcButterworthFilter(order, nyquist, cutoff, ov_audiosr::Biquad::kLowPass);
 
    for (int iPair = 0; iPair < ((order + 1) / 2); iPair++)
    {
@@ -371,7 +371,7 @@ static inline double calc_rms( float *pSamples, size_t nsamples )
    return rms;
 }
 
-static inline std::shared_ptr< std::vector<float> > normalize_pad_lowpass(float* pInput, size_t nsamples, WaveTrack::Holder pTrack, std::shared_ptr<AudioSR> audioSR, Batch& batch)
+static inline std::shared_ptr< std::vector<float> > normalize_pad_lowpass(float* pInput, size_t nsamples, WaveTrack::Holder pTrack, std::shared_ptr<ov_audiosr::AudioSR> audioSR, ov_audiosr::Batch& batch)
 {
    audioSR->normalize_and_pad(pInput, nsamples, batch);
 
@@ -423,19 +423,19 @@ struct OVAudioSRIntermediate
    //stage 1
    double input_rms;
 
-   Batch batch;
+   ov_audiosr::Batch batch;
    std::shared_ptr< std::vector<float> > lowpass_filtered;
 
-   std::shared_ptr<AudioSR> audioSR;
+   std::shared_ptr<ov_audiosr::AudioSR> audioSR;
 
-   std::shared_ptr< AudioSR::AudioSRIntermediate > intermediate;
+   std::shared_ptr< ov_audiosr::AudioSR::AudioSRIntermediate > intermediate;
 
    int64_t seed;
 
    
 };
 
-static std::shared_ptr< OVAudioSRIntermediate > run_audiosr_stage1(float* pInput, size_t nsamples, WaveTrack::Holder pTrack, std::shared_ptr<AudioSR> audioSR, int64_t seed)
+static std::shared_ptr< OVAudioSRIntermediate > run_audiosr_stage1(float* pInput, size_t nsamples, WaveTrack::Holder pTrack, std::shared_ptr<ov_audiosr::AudioSR> audioSR, int64_t seed)
 {
    try
    {
@@ -454,18 +454,18 @@ static std::shared_ptr< OVAudioSRIntermediate > run_audiosr_stage1(float* pInput
    }
 }
 
-static std::future< std::shared_ptr< OVAudioSRIntermediate >> run_audiosr_stage1_async(float* pInput, size_t nsamples, WaveTrack::Holder pTrack, std::shared_ptr<AudioSR> audioSR, int64_t seed)
+static std::future< std::shared_ptr< OVAudioSRIntermediate >> run_audiosr_stage1_async(float* pInput, size_t nsamples, WaveTrack::Holder pTrack, std::shared_ptr<ov_audiosr::AudioSR> audioSR, int64_t seed)
 {
    return std::async(std::launch::async, run_audiosr_stage1, pInput, nsamples, pTrack, audioSR, seed);
 }
 
-static std::shared_ptr< OVAudioSRIntermediate > run_audiosr_stage2(std::shared_ptr< OVAudioSRIntermediate > intermediate, double unconditional_guidance_scale = 3.5, int ddim_steps = 50, std::optional< CallbackParams > callback_params = {})
+static std::shared_ptr< OVAudioSRIntermediate > run_audiosr_stage2(std::shared_ptr< OVAudioSRIntermediate > intermediate, double unconditional_guidance_scale = 3.5, int ddim_steps = 50, std::optional< ov_audiosr::CallbackParams > callback_params = {})
 {
    intermediate->intermediate = intermediate->audioSR->run_audio_sr_stage2(intermediate->intermediate, unconditional_guidance_scale, ddim_steps, intermediate->seed, callback_params);
    return intermediate;
 }
 
-static std::future< std::shared_ptr< OVAudioSRIntermediate >> run_audiosr_stage2_async(std::shared_ptr< OVAudioSRIntermediate > intermediate, double unconditional_guidance_scale = 3.5, int ddim_steps = 50, std::optional< CallbackParams > callback_params = {})
+static std::future< std::shared_ptr< OVAudioSRIntermediate >> run_audiosr_stage2_async(std::shared_ptr< OVAudioSRIntermediate > intermediate, double unconditional_guidance_scale = 3.5, int ddim_steps = 50, std::optional< ov_audiosr::CallbackParams > callback_params = {})
 {
    return std::async(std::launch::async, run_audiosr_stage2, intermediate, unconditional_guidance_scale, ddim_steps, callback_params);
 }
@@ -536,12 +536,12 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
          std::cout << "ddpm_device = " << ddpm_device << std::endl;
          std::cout << "decoder_device = " << decoder_device << std::endl;
 
-         AudioSR_Config config;
+         ov_audiosr::AudioSR_Config config;
          config.first_stage_encoder_device = encoder_device;
          config.vae_feature_extract_device = encoder_device;
          config.ddpm__device = ddpm_device;
          config.vocoder_device = decoder_device;
-         config.model_selection = m_modelSelectionChoice == 0 ? AudioSRModel::BASIC : AudioSRModel::SPEECH;
+         config.model_selection = m_modelSelectionChoice == 0 ? ov_audiosr::AudioSRModel::BASIC : ov_audiosr::AudioSRModel::SPEECH;
 
 
          bool bNeedsInit = true;
@@ -574,7 +574,7 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
                }
                else
                {
-                  _audioSR = std::make_shared< AudioSR >(model_folder,
+                  _audioSR = std::make_shared< ov_audiosr::AudioSR >(model_folder,
                      config.first_stage_encoder_device, config.vae_feature_extract_device, config.ddpm__device, config.vocoder_device, config.model_selection, cache_path);
                }
             });
@@ -796,7 +796,7 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
                         }
                      }
 
-                     CallbackParams callback_params;
+                     ov_audiosr::CallbackParams callback_params;
                      callback_params.callback = AudioSRCallback;
                      callback_params.user = this;
 
