@@ -44,22 +44,24 @@ public:
       ShuttleGui& S, EffectInstance& instance,
       EffectSettingsAccess& access, const EffectOutputs* pOutputs) override;
    bool TransferDataToWindow(const EffectSettings& settings) override;
+   bool TransferDataFromWindow(EffectSettings& settings) override;
 
    void OnAdvancedCheckboxChanged(wxCommandEvent& evt);
    void OnDeviceInfoButtonClicked(wxCommandEvent& evt);
 
-protected:
-
-   wxChoice* mTypeChoiceDeviceCtrl;
-   int m_deviceSelectionChoice = 0;
 
 private:
 
    enum control
    {
-      ID_Type = 10000,
+      ID_Type_ModelType = 10000,
+      ID_Type_DDPMDevice,
+      ID_Type_EncoderDevice,
+      ID_Type_DecoderDevice,
       ID_Type_AdvancedCheckbox,
-      ID_Type_DeviceInfoButton
+      ID_Type_DeviceInfoButton,
+      ID_Type_Seed,
+      ID_Type_NormalizeRMSCheckbox
    };
 
    std::vector< std::string > mSupportedDevices;
@@ -69,12 +71,24 @@ private:
    int m_modelSelectionChoice = 0;
    std::vector< EnumValueSymbol > mGuiModelSelections;
 
+   wxChoice* mTypeChoiceDeviceCtrl_Encoder;
+   int m_encoderDeviceSelectionChoice = 0;
+   wxChoice* mTypeChoiceDeviceCtrl_DDPM;
+   int m_ddpmDeviceSelectionChoice = 0;
+   wxChoice* mTypeChoiceDeviceCtrl_Decoder;
+   int m_decoderDeviceSelectionChoice = 0;
+
    wxWeakRef<wxWindow> mUIParent{};
 
    wxCheckBox* mShowAdvancedOptionsCheckbox;
 
-   int mNumberOfShifts = 1;
-   wxTextCtrl* mNumberOfShiftsCtrl = nullptr;
+   wxCheckBox* mNormalizeOutputRMSCheckBox;
+   bool mbNormalizeOutputRMS = true;
+
+   int mNumSteps = 50;
+   wxTextCtrl* mNumberOfStepsCtrl = nullptr;
+
+   float mGuidanceScale = 3.5f;
 
    void show_or_hide_advanced_options();
    wxSizer* advancedSizer = nullptr;
@@ -86,6 +100,9 @@ private:
 
    int _ddim_steps_complete = 0;
    int _total_ddim_steps = 0;
+
+   wxTextCtrl* mSeed;
+   std::string _seed_str = "";
 
    std::mutex mProgMutex;
    float mProgressFrac = 0.f;

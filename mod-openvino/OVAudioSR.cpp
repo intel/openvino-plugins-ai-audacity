@@ -104,13 +104,11 @@ std::unique_ptr<EffectEditor> EffectOVAudioSR::PopulateOrExchange(
 {
    mUIParent = S.GetParent();
 
-   S.AddSpace(0, 5);
-   S.StartVerticalLay();
+   S.StartVerticalLay(wxLEFT);
    {
       S.StartMultiColumn(2, wxLEFT);
       {
-         //m_deviceSelectionChoice
-         mTypeChoiceModelCtrl = S.Id(ID_Type)
+         mTypeChoiceModelCtrl = S.Id(ID_Type_ModelType)
             .MinSize({ -1, -1 })
             .Validator<wxGenericValidator>(&m_modelSelectionChoice)
             .AddChoice(XXO("Model:"),
@@ -120,6 +118,7 @@ std::unique_ptr<EffectEditor> EffectOVAudioSR::PopulateOrExchange(
 
       S.StartStatic(XO(""), wxLEFT);
       {
+#if 0
          S.StartMultiColumn(4, wxEXPAND);
          {
             mTypeChoiceDeviceCtrl = S.Id(ID_Type)
@@ -134,8 +133,46 @@ std::unique_ptr<EffectEditor> EffectOVAudioSR::PopulateOrExchange(
             S.SetStretchyCol(2);
          }
          S.EndMultiColumn();
+#else
+         S.StartMultiColumn(4, wxEXPAND);
+         {
+            mTypeChoiceDeviceCtrl_Encoder = S.Id(ID_Type_EncoderDevice)
+               .MinSize({ -1, -1 })
+               .Validator<wxGenericValidator>(&m_encoderDeviceSelectionChoice)
+               .AddChoice(XXO("Encoder Device:"),
+                  Msgids(mGuiDeviceSelections.data(), mGuiDeviceSelections.size()));
+            S.AddVariableText(XO(""));
+            S.AddVariableText(XO(""));
+
+            mTypeChoiceDeviceCtrl_DDPM = S.Id(ID_Type_DDPMDevice)
+               .MinSize({ -1, -1 })
+               .Validator<wxGenericValidator>(&m_ddpmDeviceSelectionChoice)
+               .AddChoice(XXO("DDPM Device:"),
+                  Msgids(mGuiDeviceSelections.data(), mGuiDeviceSelections.size()));
+            S.AddVariableText(XO(""));
+            S.AddVariableText(XO(""));
+
+            mTypeChoiceDeviceCtrl_Decoder = S.Id(ID_Type_DecoderDevice)
+               .MinSize({ -1, -1 })
+               .Validator<wxGenericValidator>(&m_decoderDeviceSelectionChoice)
+               .AddChoice(XXO("Decoder Device:"),
+                  Msgids(mGuiDeviceSelections.data(), mGuiDeviceSelections.size()));
+            S.AddVariableText(XO(""));
+
+            auto device_info_button = S.Id(ID_Type_DeviceInfoButton).AddButton(XO("Device Details..."));
+
+            S.SetStretchyCol(2);
+         }
+         S.EndMultiColumn();
+#endif
       }
       S.EndStatic();
+
+      S.StartMultiColumn(2, wxLEFT);
+      {
+         mNormalizeOutputRMSCheckBox = S.Id(ID_Type_NormalizeRMSCheckbox).AddCheckBox(XXO("Normalize Output RMS"), mbNormalizeOutputRMS);
+      }
+      S.EndMultiColumn();
 
       //advanced options
       S.StartMultiColumn(2, wxLEFT);
@@ -146,14 +183,26 @@ std::unique_ptr<EffectEditor> EffectOVAudioSR::PopulateOrExchange(
 
       S.StartMultiColumn(2, wxLEFT);
       {
-         mNumberOfShiftsCtrl = S.Name(XO("Shifts"))
-            .Validator<IntegerValidator<int>>(&mNumberOfShifts,
+         mSeed = S.Id(ID_Type_Seed)
+            .Style(wxTE_LEFT)
+            .AddNumericTextBox(XXO("Seed:"), wxString(_seed_str), 10);
+
+         mNumberOfStepsCtrl = S.Name(XO("Steps"))
+            .Validator<IntegerValidator<int>>(&mNumSteps,
                NumValidatorStyle::DEFAULT,
                1,
-               8)
-            .AddTextBox(XO("Shifts"), L"", 12);
+               100)
+            .AddTextBox(XO("Steps"), L"", 12);
 
-         advancedSizer = mNumberOfShiftsCtrl->GetContainingSizer();
+         auto t0 = S.Name(XO("Guidance Scale"))
+            .Validator<FloatingPointValidator<float>>(
+               6, &mGuidanceScale,
+               NumValidatorStyle::NO_TRAILING_ZEROES,
+               1.0f,
+               10.0f)
+            .AddTextBox(XO("Guidance Scale"), L"", 12);
+
+         advancedSizer = mNumberOfStepsCtrl->GetContainingSizer();
       }
       S.EndMultiColumn();
 
@@ -450,31 +499,50 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
 
       std::cout << "model_folder = " << model_folder << std::endl;
       std::cout << "cache_path = " << cache_path << std::endl;
-      std::cout << "number of shifts = " << mNumberOfShifts << std::endl;
 
-      if (m_deviceSelectionChoice >= mSupportedDevices.size())
+      if (m_encoderDeviceSelectionChoice >= mSupportedDevices.size())
       {
-         throw std::runtime_error("Invalid device choice id:  " +
-            std::to_string(m_deviceSelectionChoice));
+         throw std::runtime_error("Invalid encoder device choice id:  " +
+            std::to_string(m_encoderDeviceSelectionChoice));
+      }
+
+      if (m_ddpmDeviceSelectionChoice >= mSupportedDevices.size())
+      {
+         throw std::runtime_error("Invalid DDPM device choice id:  " +
+            std::to_string(m_ddpmDeviceSelectionChoice));
+      }
+
+      if (m_decoderDeviceSelectionChoice >= mSupportedDevices.size())
+      {
+         throw std::runtime_error("Invalid decoder device choice id:  " +
+            std::to_string(m_decoderDeviceSelectionChoice));
       }
 
       EffectOutputTracks outputs{ *mTracks, GetType(), {{ mT0, mT1 }} };
 
       bool bGoodResult = true;
 
-      std::cout << "Creating OpenVINO-based AudioSR object that will run on " << mSupportedDevices[m_deviceSelectionChoice] << std::endl;
+      std::cout << "Creating OpenVINO-based AudioSR object that will run on " << mSupportedDevices[m_ddpmDeviceSelectionChoice] << std::endl;
 
       TotalProgress(0.01, XO("Compiling AI Model..."));
 
 #if 1
       {
-         auto device = mSupportedDevices[m_deviceSelectionChoice];
+         auto encoder_device = mSupportedDevices[m_encoderDeviceSelectionChoice];
+         auto ddpm_device = mSupportedDevices[m_ddpmDeviceSelectionChoice];
+         auto decoder_device = mSupportedDevices[m_decoderDeviceSelectionChoice];
+
+         std::cout << "encoder_device = " << encoder_device << std::endl;
+         std::cout << "ddpm_device = " << ddpm_device << std::endl;
+         std::cout << "decoder_device = " << decoder_device << std::endl;
+
          AudioSR_Config config;
-         config.first_stage_encoder_device = "GPU";
-         config.vae_feature_extract_device = "GPU";
-         config.ddpm__device = device;
-         config.vocoder_device = "GPU";
+         config.first_stage_encoder_device = encoder_device;
+         config.vae_feature_extract_device = encoder_device;
+         config.ddpm__device = ddpm_device;
+         config.vocoder_device = decoder_device;
          config.model_selection = m_modelSelectionChoice == 0 ? AudioSRModel::BASIC : AudioSRModel::SPEECH;
+
 
          bool bNeedsInit = true;
          if (_audioSR)
@@ -496,7 +564,7 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
 
          if (bNeedsInit)
          {
-            auto create_audio_sr_fut = std::async(std::launch::async, [this, &model_folder, &device, &config, &cache_path]()
+            auto create_audio_sr_fut = std::async(std::launch::async, [this, &model_folder, &config, &cache_path]()
             {
                // WA for OpenVINO locale caching issue (https://github.com/openvinotoolkit/openvino/issues/24370)
                OVLocaleWorkaround wa;
@@ -517,7 +585,7 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
                using namespace std::chrono_literals;
                status = create_audio_sr_fut.wait_for(0.5s);
                {
-                  std::string message = "Loading Audio Super Resolution AI Model to " + device + "...";
+                  std::string message = "Loading Audio Super Resolution AI Models ...";
                   if (total_time > 10)
                   {
                      message += " (This could take a while if this is the first time running this feature with this device)";
@@ -536,11 +604,30 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
 
 
       std::vector< WaveTrack::Holder > tracks_to_process;
+      std::string seed_str = audacity::ToUTF8(mSeed->GetLineText(0));
+      _seed_str = seed_str;
 
-      //TODO: Hook these up to the UI
-      int ddim_steps = 50;
       int64_t seed = 42;
-      double unconditional_guidance_scale = 3.5;
+      if (!seed_str.empty() && seed_str != "")
+      {
+         seed = std::stoul(seed_str);
+      }
+      else
+      {
+         //seed is not set.. set it to time.
+         time_t t;
+         seed = (unsigned)time(&t);
+      }
+
+      std::cout << "seed = " << seed << std::endl;
+
+      int ddim_steps = mNumSteps;
+
+      std::cout << "ddim_steps = " << ddim_steps << std::endl;
+
+      double unconditional_guidance_scale = mGuidanceScale;
+
+      std::cout << "unconditional_guidance_scale = " << unconditional_guidance_scale << std::endl;
 
       //Create resampled copies of the selected portion of tracks. 
       // This prevents the Resample operation to modify the user's
@@ -822,8 +909,11 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
 
                            float ratio = input_rms / output_rms;
 
-                           //normalize loudness back to original RMS
+                           //TODO: move to another function
+                           mbNormalizeOutputRMS = mNormalizeOutputRMSCheckBox->GetValue();
+                           if(mbNormalizeOutputRMS)
                            {
+                              //normalize loudness back to original RMS
                               float* pSamples = (float*)waveform_sr.data_ptr();
                               for (size_t si = 0; si < nsamples; si++)
                               {
@@ -1045,6 +1135,18 @@ bool EffectOVAudioSR::TransferDataToWindow(const EffectSettings&)
    }
 
    EffectEditor::EnablePreview(mUIParent, false);
+
+   return true;
+}
+
+bool EffectOVAudioSR::TransferDataFromWindow(EffectSettings&)
+{
+   if (!mUIParent || !mUIParent->Validate() || !mUIParent->TransferDataFromWindow())
+   {
+      return false;
+   }
+
+   mbNormalizeOutputRMS = mNormalizeOutputRMSCheckBox->GetValue();
 
    return true;
 }
