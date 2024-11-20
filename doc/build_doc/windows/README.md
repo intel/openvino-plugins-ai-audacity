@@ -13,12 +13,12 @@ Here are some of the dependencies that you need to grab. If applicable, I'll als
 * CMake (https://cmake.org/download/)
 * Visual Studio (MS VS 2019 / 2022 Community Edition is fine)
 * python3 / pip - Audacity requires conan 2.0+ to be installed, and the recommended way to do that is through pip.  
-* OpenVINO - You can use public version from [here](https://github.com/openvinotoolkit/openvino/releases/tag/2024.3.0). Setup your cmd.exe shell environment by running setupvars.bat:  
+* OpenVINO - You can use public version from [here](https://github.com/openvinotoolkit/openvino/releases/tag/2024.5.0). Setup your cmd.exe shell environment by running setupvars.bat:  
     ```
     call "C:\path\to\w_openvino_toolkit_windows_xxxx\setupvars.bat"
     ```
 * OpenVINO Tokenizers Extension - Download package from [here](https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/). 
-   Make sure that you download the version that matches the version of OpenVINO that you are using. For example, we are using [openvino_tokenizers_windows_2024.3.0.0_x86_64.zip](https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/2024.3.0.0/openvino_tokenizers_windows_2024.3.0.0_x86_64.zip)
+   Make sure that you download the version that matches the version of OpenVINO that you are using. For example, we are using [openvino_tokenizers_windows_2024.5.0.0_x86_64.zip](https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/2024.5.0.0/openvino_tokenizers_windows_2024.5.0.0_x86_64.zip)
    Download the zip package, and copy the DLLs into your ```w_openvino_toolkit_windows_xxxx\runtime\bin\intel64\Release``` folder.  
    
 * Libtorch (C++ distribution of pytorch)- This is a dependency for many of the pipelines that we ported from pytorch (musicgen, htdemucs, etc). We are currently using this version: [libtorch-win-shared-with-deps-2.4.1+cpu.zip](https://download.pytorch.org/libtorch/cpu/libtorch-win-shared-with-deps-2.4.1%2Bcpu.zip). After extracting the package, setup environment like this:
