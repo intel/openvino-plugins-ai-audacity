@@ -27,6 +27,11 @@ namespace ov_audiosr
       SPEECH
    };
 
+   enum class AudioSRModelChunkSize {
+      FIVE_SEC,
+      TEN_SEC
+   };
+
    struct AudioSR_Config
    {
       std::string model_folder;
@@ -36,6 +41,7 @@ namespace ov_audiosr
       std::string vocoder_device = "CPU";
 
       AudioSRModel model_selection;
+      AudioSRModelChunkSize chunk_size;
 
       ov::Core core;
    };

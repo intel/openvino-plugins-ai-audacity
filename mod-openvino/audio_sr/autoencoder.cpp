@@ -12,6 +12,12 @@ namespace ov_audiosr
 
       auto modelpath = FullPath(_config->model_folder, "audiosr_encoder" MODEL_FILE_EXT);
       std::shared_ptr<ov::Model> model = core.read_model(modelpath);
+
+      if (_config->chunk_size == AudioSRModelChunkSize::FIVE_SEC)
+      {
+         model->reshape({ 1,1,512,256 });
+      }
+
       logBasicModelInfo(model);
       auto compiledModel = core.compile_model(model, _config->first_stage_encoder_device);
       _encoder_infer = compiledModel.create_infer_request();
@@ -23,6 +29,12 @@ namespace ov_audiosr
 
       auto modelpath = FullPath(_config->model_folder, "quant_conv" MODEL_FILE_EXT);
       std::shared_ptr<ov::Model> model = core.read_model(modelpath);
+
+      if (_config->chunk_size == AudioSRModelChunkSize::FIVE_SEC)
+      {
+         model->reshape({ 1,32,64,32 });
+      }
+
       logBasicModelInfo(model);
       auto compiledModel = core.compile_model(model, _config->first_stage_encoder_device);
       _quant_conv_infer = compiledModel.create_infer_request();
@@ -37,6 +49,12 @@ namespace ov_audiosr
 
       auto modelpath = FullPath(_config->model_folder, "post_quant_conv" MODEL_FILE_EXT);
       std::shared_ptr<ov::Model> model = core.read_model(modelpath);
+
+      if (_config->chunk_size == AudioSRModelChunkSize::FIVE_SEC)
+      {
+         model->reshape({ 1,16,64,32 });
+      }
+
       logBasicModelInfo(model);
       auto compiledModel = core.compile_model(model, _config->first_stage_encoder_device);
       _post_quant_conv = compiledModel.create_infer_request();
@@ -47,7 +65,13 @@ namespace ov_audiosr
       auto& core = _config->core;
 
       auto modelpath = FullPath(_config->model_folder, "audiosr_decoder" MODEL_FILE_EXT);
+      if (_config->chunk_size == AudioSRModelChunkSize::FIVE_SEC)
+      {
+         modelpath = FullPath(_config->model_folder, "audiosr_decoder_5sec" MODEL_FILE_EXT);
+      }
+
       std::shared_ptr<ov::Model> model = core.read_model(modelpath);
+
       logBasicModelInfo(model);
       auto compiledModel = core.compile_model(model, _config->first_stage_encoder_device);
       _decoder_infer = compiledModel.create_infer_request();

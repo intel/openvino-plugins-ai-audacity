@@ -14,6 +14,12 @@ namespace ov_audiosr
 
       auto modelpath = FullPath(_config->model_folder, "vae_feature_extract" MODEL_FILE_EXT);
       std::shared_ptr<ov::Model> model = core.read_model(modelpath);
+
+      if (_config->chunk_size == AudioSRModelChunkSize::FIVE_SEC)
+      {
+         model->reshape({ 1,512,256 });
+      }
+
       logBasicModelInfo(model);
       auto compiledModel = core.compile_model(model, _config->vae_feature_extract_device);
       _vae_feature_extract_infer = compiledModel.create_infer_request();
@@ -25,10 +31,17 @@ namespace ov_audiosr
 
       std::string subfolder = _config->model_selection == AudioSRModel::BASIC ? "basic" : "speech";
       auto model_folder = FullPath(_config->model_folder, subfolder);
-      auto modelpath = FullPath(model_folder, "ddpm" MODEL_FILE_EXT);
+      auto xml_name = FullPath(model_folder, "ddpm_10sec.xml");
+      if (_config->chunk_size == AudioSRModelChunkSize::FIVE_SEC)
+      {
+         xml_name = FullPath(model_folder, "ddpm_5sec.xml");
+      }
 
-      std::cout << "Reading DDPM Model: " << modelpath << std::endl;
-      std::shared_ptr<ov::Model> model = core.read_model(modelpath);
+      auto binpath = FullPath(model_folder, "ddpm.bin");
+
+      std::cout << "Reading DDPM Model: " << xml_name << ", " << binpath << std::endl;
+      std::shared_ptr<ov::Model> model = core.read_model(xml_name, binpath);
+
       logBasicModelInfo(model);
       auto compiledModel = core.compile_model(model, _config->ddpm__device);
       _ddpm_infer = compiledModel.create_infer_request();
@@ -40,6 +53,12 @@ namespace ov_audiosr
 
       auto modelpath = FullPath(_config->model_folder, "vocoder" MODEL_FILE_EXT);
       std::shared_ptr<ov::Model> model = core.read_model(modelpath);
+
+      if (_config->chunk_size == AudioSRModelChunkSize::FIVE_SEC)
+      {
+         model->reshape({ 1,256,512 });
+      }
+
       logBasicModelInfo(model);
       auto compiledModel = core.compile_model(model, _config->vocoder_device);
       _vocoder_infer = compiledModel.create_infer_request();

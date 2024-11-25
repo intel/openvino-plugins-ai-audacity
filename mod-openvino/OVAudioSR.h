@@ -64,7 +64,8 @@ private:
       ID_Type_AdvancedCheckbox,
       ID_Type_DeviceInfoButton,
       ID_Type_Seed,
-      ID_Type_NormalizeRMSCheckbox
+      ID_Type_NormalizeRMSCheckbox,
+      ID_Type_ChunkSize
    };
 
    std::vector< std::string > mSupportedDevices;
@@ -73,6 +74,10 @@ private:
    wxChoice* mTypeChoiceModelCtrl;
    int m_modelSelectionChoice = 0;
    std::vector< EnumValueSymbol > mGuiModelSelections;
+
+   wxChoice* mTypeChoiceChunkSizeCtrl;
+   int m_ChunkSizeSelectionChoice = 0;
+   std::vector< EnumValueSymbol > mGuiChunkSizeSelections;
 
    wxChoice* mTypeChoiceDeviceCtrl_Encoder;
    int m_encoderDeviceSelectionChoice = 0;

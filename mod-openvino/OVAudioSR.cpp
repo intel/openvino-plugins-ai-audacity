@@ -58,6 +58,9 @@ EffectOVAudioSR::EffectOVAudioSR()
 
    mGuiModelSelections.push_back({ TranslatableString{ wxString("Basic (General)"), {}} });
    mGuiModelSelections.push_back({ TranslatableString{ wxString("Speech"), {}} });
+
+   mGuiChunkSizeSelections.push_back({ TranslatableString{ wxString("10.24 Seconds"), {}} });
+   mGuiChunkSizeSelections.push_back({ TranslatableString{ wxString("5.12 Seconds"), {}} });
 }
 
 EffectOVAudioSR::~EffectOVAudioSR()
@@ -183,6 +186,12 @@ std::unique_ptr<EffectEditor> EffectOVAudioSR::PopulateOrExchange(
 
       S.StartMultiColumn(2, wxLEFT);
       {
+         mTypeChoiceChunkSizeCtrl = S.Id(ID_Type_ChunkSize)
+            .MinSize({ -1, -1 })
+            .Validator<wxGenericValidator>(&m_ChunkSizeSelectionChoice)
+            .AddChoice(XXO("Chunk Size:"),
+               Msgids(mGuiChunkSizeSelections.data(), mGuiChunkSizeSelections.size()));
+
          mSeed = S.Id(ID_Type_Seed)
             .Style(wxTE_LEFT)
             .AddNumericTextBox(XXO("Seed:"), wxString(_seed_str), 10);
@@ -381,6 +390,11 @@ static inline std::shared_ptr< std::vector<float> > normalize_pad_lowpass(float*
 
    int64_t npadded_samples = batch.waveform.size(-1);
 
+   // uncomment following 3 lines for certain kinds of testing where we don't want to actually apply lowpass routine.
+   //std::shared_ptr<std::vector<float>> orig_waveform = std::make_shared< std::vector<float> >(npadded_samples);
+   //std::memcpy(orig_waveform->data(), pNormalizedWaveform, npadded_samples * sizeof(float));
+   //return orig_waveform;
+
    // We need to apply a lowpass filter to the normalized.
    auto filtered = sos_lowpass_filter(pNormalizedWaveform, npadded_samples, batch.cutoff_freq, 48000.0);
 
@@ -526,12 +540,12 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
 
       TotalProgress(0.01, XO("Compiling AI Model..."));
 
+      auto encoder_device = mSupportedDevices[m_encoderDeviceSelectionChoice];
+      auto ddpm_device = mSupportedDevices[m_ddpmDeviceSelectionChoice];
+      auto decoder_device = mSupportedDevices[m_decoderDeviceSelectionChoice];
+
 #if 1
       {
-         auto encoder_device = mSupportedDevices[m_encoderDeviceSelectionChoice];
-         auto ddpm_device = mSupportedDevices[m_ddpmDeviceSelectionChoice];
-         auto decoder_device = mSupportedDevices[m_decoderDeviceSelectionChoice];
-
          std::cout << "encoder_device = " << encoder_device << std::endl;
          std::cout << "ddpm_device = " << ddpm_device << std::endl;
          std::cout << "decoder_device = " << decoder_device << std::endl;
@@ -542,7 +556,7 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
          config.ddpm__device = ddpm_device;
          config.vocoder_device = decoder_device;
          config.model_selection = m_modelSelectionChoice == 0 ? ov_audiosr::AudioSRModel::BASIC : ov_audiosr::AudioSRModel::SPEECH;
-
+         config.chunk_size = m_ChunkSizeSelectionChoice == 0 ? ov_audiosr::AudioSRModelChunkSize::TEN_SEC : ov_audiosr::AudioSRModelChunkSize::FIVE_SEC;
 
          bool bNeedsInit = true;
          if (_audioSR)
@@ -560,6 +574,14 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
             {
                bNeedsInit = true;
             }
+
+            //kind of a special case. When the chunk size changes, all models need to get recompiled...
+            // so might as well just destroy _audioSR 
+            if (current_config.chunk_size != config.chunk_size)
+            {
+               bNeedsInit = true;
+               _audioSR = {};
+            }
          }
 
          if (bNeedsInit)
@@ -575,7 +597,7 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
                else
                {
                   _audioSR = std::make_shared< ov_audiosr::AudioSR >(model_folder,
-                     config.first_stage_encoder_device, config.vae_feature_extract_device, config.ddpm__device, config.vocoder_device, config.model_selection, cache_path);
+                     config.first_stage_encoder_device, config.vae_feature_extract_device, config.ddpm__device, config.vocoder_device, config.model_selection, config.chunk_size, cache_path);
                }
             });
 
@@ -629,6 +651,40 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
 
       std::cout << "unconditional_guidance_scale = " << unconditional_guidance_scale << std::endl;
 
+      mbNormalizeOutputRMS = mNormalizeOutputRMSCheckBox->GetValue();
+
+      std::string descriptor_str = "(";
+      if (m_modelSelectionChoice == 0)
+      {
+         descriptor_str += " M: basic";
+      }
+      else
+      {
+         descriptor_str += " M: speech";
+      }
+
+      if (m_ChunkSizeSelectionChoice == 0)
+      {
+         descriptor_str += ", CS: 10.24";
+      }
+      else
+      {
+         descriptor_str += ", CS: 5.12";
+      }
+
+      descriptor_str += ", steps: " + std::to_string(mNumSteps);
+      descriptor_str += ", GS: " + std::to_string(unconditional_guidance_scale);
+      descriptor_str += ", S: " + std::to_string(seed);
+      if (mbNormalizeOutputRMS)
+      {
+         descriptor_str += ", RMS_N: 1";
+      }
+      else
+      {
+         descriptor_str += ", RMS_N: 0";
+      }
+      descriptor_str += ", D=[" + encoder_device + "," + ddpm_device + "," + decoder_device + "]";
+      descriptor_str += ")";
       //Create resampled copies of the selected portion of tracks. 
       // This prevents the Resample operation to modify the user's
       // original track.
@@ -909,8 +965,6 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
 
                            float ratio = input_rms / output_rms;
 
-                           //TODO: move to another function
-                           mbNormalizeOutputRMS = mNormalizeOutputRMSCheckBox->GetValue();
                            if(mbNormalizeOutputRMS)
                            {
                               //normalize loudness back to original RMS
@@ -1056,7 +1110,7 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
             // retains the label of the track that it was copied from. So, we'll
             // change the name of the input track here, copy it, and then change it
             // back later.
-            pTrack->SetName(orig_track_name + wxString("-AudioSR"));
+            pTrack->SetName(orig_track_name + wxString("-AudioSR-" + descriptor_str));
 
             //Create new output track from input track.
             auto newOutputTrack = pTrack->EmptyCopy();

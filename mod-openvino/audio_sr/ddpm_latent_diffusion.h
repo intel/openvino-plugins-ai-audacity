@@ -32,6 +32,16 @@ namespace ov_audiosr
       torch::Tensor generate_batch_stage3(std::shared_ptr< DDPMLatentDiffusion::DDPMLatentDiffusionIntermediate > intermediate,
          Batch& batch);
 
+      AudioSRModelChunkSize get_chunk_size()
+      {
+         if (_config)
+         {
+            return _config->chunk_size;
+         }
+
+         throw std::runtime_error("get_chunk_size: _config unexpectedly not set.");
+      }
+
 
    private:
 

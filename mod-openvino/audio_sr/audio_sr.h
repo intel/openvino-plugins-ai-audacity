@@ -16,6 +16,7 @@ namespace ov_audiosr
          std::string ddpm__device,
          std::string vocoder_device,
          AudioSRModel model_selection,
+         AudioSRModelChunkSize chunk_size,
          std::string cache_dir = "");
 
       void normalize_and_pad(float* pSamples, size_t num_samples, Batch& batch);
@@ -41,7 +42,9 @@ namespace ov_audiosr
       torch::Tensor run_audio_sr_stage3(std::shared_ptr< AudioSRIntermediate > intermediate, Batch& batch);
 
       // How many samples we apply super res pipeline to at once.
-      size_t nchunk_samples() { return 491520; }; //<- 491520 == 10.24 seconds @ 48 khz
+      // Will return 491520 (10.24 seconds @ 48 khz) if AudioSRModelChunkSize=TEN_SECONDS
+      // Will return 245760 (5.12 seconds @ 48 khz) if AudioSRModelChunkSize=FIVE_SECONDS
+      size_t nchunk_samples() { return _nchunk_samples; }; 
 
       AudioSR_Config config()
       {
@@ -67,6 +70,8 @@ namespace ov_audiosr
 
       std::shared_ptr< AudioSR_Config > _audio_sr_config;
       std::shared_ptr< DDPMLatentDiffusion > _ddpm_latent_diffusion;
+
+      size_t _nchunk_samples = 491520;
 
    };
 }

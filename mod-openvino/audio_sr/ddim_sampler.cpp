@@ -227,7 +227,19 @@ namespace ov_audiosr
    {
       _make_schedule(ddim_num_steps, 1.0);
 
-      std::vector<int64_t> shape = { 1, 16, 128, 32 };
+      std::vector<int64_t> shape;
+
+      switch (_model->get_chunk_size())
+      {
+          case AudioSRModelChunkSize::TEN_SEC:
+             shape = { 1, 16, 128, 32 };
+             break;
+
+          case AudioSRModelChunkSize::FIVE_SEC:
+             shape = { 1, 16, 64, 32 };
+             break;
+      }
+
 
       auto C = shape[1];
       auto H = shape[2];

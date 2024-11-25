@@ -10,6 +10,7 @@ namespace ov_audiosr
       std::string ddpm__device,
       std::string vocoder_device,
       AudioSRModel model_selection,
+      AudioSRModelChunkSize chunk_size,
       std::string cache_dir)
    {
       //The python version calculates this as:
@@ -26,10 +27,26 @@ namespace ov_audiosr
       _audio_sr_config->ddpm__device = ddpm__device;
       _audio_sr_config->vocoder_device = vocoder_device;
       _audio_sr_config->model_selection = model_selection;
+      _audio_sr_config->chunk_size = chunk_size;
 
       if (!cache_dir.empty())
       {
          _audio_sr_config->core.set_property(ov::cache_dir(cache_dir));
+      }
+
+      switch (chunk_size)
+      {
+         case AudioSRModelChunkSize::TEN_SEC:
+            _nchunk_samples = 491520; //10.24 * 48000
+         break;
+
+         case AudioSRModelChunkSize::FIVE_SEC:
+            _nchunk_samples = 245760; //5.12 * 48000
+         break;
+
+         default:
+            throw std::runtime_error("Invalid AudioSRModelChunkSize");
+            break;
       }
 
       _ddpm_latent_diffusion = std::make_shared< DDPMLatentDiffusion >(_audio_sr_config);
