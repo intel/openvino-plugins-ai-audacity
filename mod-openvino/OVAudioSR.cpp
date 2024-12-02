@@ -425,7 +425,11 @@ static inline std::shared_ptr< std::vector<float> > normalize_pad_lowpass(float*
 
    auto pChannel = pTmpTrack->GetChannel(0);
 
-   pChannel->GetFloats(filtered->data(), 0, npadded_samples);
+   if (!pChannel->GetFloats(filtered->data(), 0, npadded_samples))
+   {
+      throw std::runtime_error("normalize_pad_lowpass: GetFloats() failed for " +
+         std::to_string(npadded_samples) + " samples");
+   }
 
    auto filtered_again = sos_lowpass_filter(filtered->data(), npadded_samples, batch.cutoff_freq, 48000.0);
 
