@@ -9,6 +9,7 @@
 #include <math.h>
 #include <iostream>
 #include <wx/log.h>
+#include <wx/button.h>
 
 #include "BasicUI.h"
 #include "ViewInfo.h"
@@ -41,6 +42,7 @@ namespace { BuiltinEffectsModule::Registration< EffectOVAudioSR > reg; }
 BEGIN_EVENT_TABLE(EffectOVAudioSR, wxEvtHandler)
 EVT_CHECKBOX(ID_Type_AdvancedCheckbox, EffectOVAudioSR::OnAdvancedCheckboxChanged)
 EVT_BUTTON(ID_Type_DeviceInfoButton, EffectOVAudioSR::OnDeviceInfoButtonClicked)
+EVT_BUTTON(ID_Type_UnloadModelsButton, EffectOVAudioSR::OnUnloadModelsButtonClicked)
 END_EVENT_TABLE()
 
 EffectOVAudioSR::EffectOVAudioSR()
@@ -101,6 +103,16 @@ bool EffectOVAudioSR::IsInteractive() const
    return true;
 }
 
+void EffectOVAudioSR::OnUnloadModelsButtonClicked(wxCommandEvent& evt)
+{
+   _audioSR = {};
+
+   if (mUnloadModelsButton)
+   {
+      mUnloadModelsButton->Enable(false);
+   }
+}
+
 std::unique_ptr<EffectEditor> EffectOVAudioSR::PopulateOrExchange(
    ShuttleGui& S, EffectInstance&, EffectSettingsAccess&,
    const EffectOutputs*)
@@ -109,6 +121,17 @@ std::unique_ptr<EffectEditor> EffectOVAudioSR::PopulateOrExchange(
 
    S.StartVerticalLay(wxLEFT);
    {
+      S.StartMultiColumn(3, wxLEFT);
+      {
+         mUnloadModelsButton = S.Id(ID_Type_UnloadModelsButton).AddButton(XO("Unload Models"));
+
+         if (!_audioSR)
+         {
+            mUnloadModelsButton->Enable(false);
+         }
+      }
+      S.EndMultiColumn();
+
       S.StartMultiColumn(2, wxLEFT);
       {
          mTypeChoiceModelCtrl = S.Id(ID_Type_ModelType)

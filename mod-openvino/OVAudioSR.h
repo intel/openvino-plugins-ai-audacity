@@ -13,6 +13,7 @@ class wxChoice;
 class wxCheckBox;
 class wxTextCtrl;
 class wxSizer;
+class wxButton;
 
 namespace ov_audiosr
 {
@@ -65,8 +66,12 @@ private:
       ID_Type_DeviceInfoButton,
       ID_Type_Seed,
       ID_Type_NormalizeRMSCheckbox,
-      ID_Type_ChunkSize
+      ID_Type_ChunkSize,
+      ID_Type_UnloadModelsButton,
    };
+
+   void OnUnloadModelsButtonClicked(wxCommandEvent& evt);
+   wxButton* mUnloadModelsButton;
 
    std::vector< std::string > mSupportedDevices;
    std::vector< EnumValueSymbol > mGuiDeviceSelections;
