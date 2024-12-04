@@ -319,7 +319,7 @@ namespace ov_audiosr
       torch::Tensor model_output;
       if (!unconditional_conditioning || unconditional_guidance_scale == 1.0)
       {
-         throw std::runtime_error("(!unconditional_conditioning || unconditional_guidance_scale == 1.0) case not implmented yet!");
+         model_output = _model->apply_model(x, t, c);
       }
       else
       {
