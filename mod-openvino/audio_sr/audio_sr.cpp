@@ -285,6 +285,10 @@ namespace ov_audiosr
       intermediate->intermediate = _ddpm_latent_diffusion->generate_batch_stage2(intermediate->intermediate,
          ddim_steps, unconditional_guidance_scale, callback_params);
 
+      // this can happen if user cancelled..
+      if (!intermediate->intermediate)
+         return {};
+
       return intermediate;
    }
 

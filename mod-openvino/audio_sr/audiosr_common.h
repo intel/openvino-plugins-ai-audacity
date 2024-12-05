@@ -48,6 +48,7 @@ namespace ov_audiosr
 
    struct CallbackParams
    {
+      //return false if you want to cancel. 
       typedef bool (*CallbackFunc)(int ddpm_ith_step_complete,
          void* user);
 

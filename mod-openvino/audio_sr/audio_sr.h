@@ -32,6 +32,7 @@ namespace ov_audiosr
       std::shared_ptr< AudioSRIntermediate > run_audio_sr_stage1(Batch& batch,
          int64_t seed = 42);
 
+      // Note: This will return {} if user cancels (via callback_params)
       std::shared_ptr< AudioSRIntermediate > run_audio_sr_stage2(std::shared_ptr< AudioSRIntermediate > intermediate,
          double unconditional_guidance_scale = 3.5,
          int ddim_steps = 50,

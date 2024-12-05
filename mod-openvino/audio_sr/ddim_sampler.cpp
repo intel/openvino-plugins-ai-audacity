@@ -267,7 +267,11 @@ namespace ov_audiosr
 
          if (callback_params && callback_params->callback)
          {
-            callback_params->callback(i, callback_params->user);
+            if (!callback_params->callback(i, callback_params->user))
+            {
+               //if cancelled, return empty tensor
+               return {};
+            }
          }
       }
 

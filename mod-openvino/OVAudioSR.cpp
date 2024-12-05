@@ -503,6 +503,13 @@ static std::future< std::shared_ptr< OVAudioSRIntermediate >> run_audiosr_stage1
 static std::shared_ptr< OVAudioSRIntermediate > run_audiosr_stage2(std::shared_ptr< OVAudioSRIntermediate > intermediate, double unconditional_guidance_scale = 3.5, int ddim_steps = 50, std::optional< ov_audiosr::CallbackParams > callback_params = {})
 {
    intermediate->intermediate = intermediate->audioSR->run_audio_sr_stage2(intermediate->intermediate, unconditional_guidance_scale, ddim_steps, intermediate->seed, callback_params);
+
+   // If user cancels, run_audio_sr_stage2 will return {}
+   if (!intermediate->intermediate)
+   {
+      return {};
+   }
+
    return intermediate;
 }
 
@@ -524,6 +531,8 @@ static std::future< torch::Tensor > run_audiosr_stage3_async(std::shared_ptr< OV
 
 bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
 {
+   mIsCancelled = false;
+
    try
    {
       //okay, let's try to find openvino model
@@ -571,7 +580,6 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
       auto ddpm_device = mSupportedDevices[m_ddpmDeviceSelectionChoice];
       auto decoder_device = mSupportedDevices[m_decoderDeviceSelectionChoice];
 
-#if 1
       {
          std::cout << "encoder_device = " << encoder_device << std::endl;
          std::cout << "ddpm_device = " << ddpm_device << std::endl;
@@ -639,7 +647,10 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
                   {
                      message += " (This could take a while if this is the first time running this feature with this device)";
                   }
-                  TotalProgress(0.01, TranslatableString{ wxString(message), {} });
+                  if (TotalProgress(0.01, TranslatableString{ wxString(message), {} }))
+                  {
+                     mIsCancelled = true;
+                  }
                }
 
                total_time += 0.5;
@@ -649,8 +660,17 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
             create_audio_sr_fut.get();
          }
       }
-#endif
 
+      if (mIsCancelled)
+      {
+         return false;
+      }
+
+      if (!_audioSR)
+      {
+         wxLogError("Super Resolution pipeline could not be created.");
+         return false;
+      }
 
       std::vector< WaveTrack::Holder > tracks_to_process;
       std::string seed_str = audacity::ToUTF8(mSeed->GetLineText(0));
@@ -886,7 +906,6 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
                      _ddim_steps_complete = 0;
                      _total_ddim_steps = ddim_steps * segments.size();
 
-#if 1
                      if (segments.size() > 0)
                      {
                         std::future< std::shared_ptr< OVAudioSRIntermediate >> intermediate_fut[3];
@@ -907,9 +926,6 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
                         //kick off stage 2 for 0
                         intermediate_fut[0] = run_audiosr_stage2_async(intermediate[0], unconditional_guidance_scale, ddim_steps, callback_params);
 
-                        //hack -- commenting this causes corruption for the first 10 seconds.
-                        //intermediate_fut[0].wait();
-
                         //kick off stage 1 for 1
                         if (segments.size() > 1)
                         {
@@ -927,6 +943,12 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
                            intermediate[1] = intermediate_fut[1].get();
                         }
 
+                        // This can happen if user cancelled.
+                        if (!intermediate[0])
+                        {
+                           return std::shared_ptr< std::vector<float> >{};
+                        }
+
                         //loop should start here...
                         for (size_t segmenti = 0; segmenti < segments.size(); segmenti++)
                         {
@@ -937,16 +959,10 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
                            //run stage 3
                            auto stage_3_fut = run_audiosr_stage3_async(intermediate[stage_3_index]);
 
-                           //hack
-                           //stage_3_fut.wait();
-
                            //run stage 2
                            if (intermediate[stage_2_index])
                            {
                               intermediate_fut[stage_2_index] = run_audiosr_stage2_async(intermediate[stage_2_index], unconditional_guidance_scale, ddim_steps, callback_params);
-
-                              //hack
-                              //intermediate_fut[stage_2_index].wait();
                            }
 
                            //run stage 1
@@ -957,9 +973,6 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
 
                               float* pInput = entire_input.get() + offset;
                               intermediate_fut[stage_1_index] = run_audiosr_stage1_async(pInput, nsamples, pTrack, _audioSR, seed);
-
-                              //hack
-                              //intermediate_fut[stage_1_index].wait();
                            }
 
                            //wait for all to complete
@@ -967,16 +980,22 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
                            //stage 3
                            auto waveform_sr = stage_3_fut.get();
 
-                           //stage 2
-                           if (intermediate_fut[stage_2_index].valid())
-                           {
-                              intermediate[stage_2_index] = intermediate_fut[stage_2_index].get();
-                           }
-
                            //stage 1
                            if (intermediate_fut[stage_1_index].valid())
                            {
                               intermediate[stage_1_index] = intermediate_fut[stage_1_index].get();
+                           }
+
+                           //stage 2 
+                           if (intermediate_fut[stage_2_index].valid())
+                           {
+                              intermediate[stage_2_index] = intermediate_fut[stage_2_index].get();
+
+                              // This can happen if user cancelled.
+                              if (!intermediate[stage_2_index])
+                              {
+                                 return std::shared_ptr< std::vector<float> >{};
+                              }
                            }
 
                            auto input_rms = intermediate[stage_3_index]->input_rms;
@@ -1034,75 +1053,6 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
                         } 
                      }
 
-#else
-                     for (size_t segmenti = 0; segmenti < segments.size(); segmenti++)
-                     {
-                        size_t offset = segments[segmenti].first;
-                        size_t nsamples = segments[segmenti].second;
-
-#if 1
-                        float* pInput = entire_input.get() + offset;
-                        std::cout << "pInput should be " << (void*)(pInput) << std::endl;
-                        auto stage1_fut = run_audiosr_stage1_async(pInput, nsamples, pTrack, _audioSR, seed);
-                        auto intermediate = stage1_fut.get();
-
-                        auto stage2_fut = run_audiosr_stage2_async(intermediate, unconditional_guidance_scale, ddim_steps, callback_params);
-                        intermediate = stage2_fut.get();
-
-                        auto stage3_fut = run_audiosr_stage3_async(intermediate);
-                        auto waveform_sr = stage3_fut.get();
-#else
-                        auto intermediate = run_audiosr_stage1(entire_input.get() + offset, nsamples, pTrack, _audioSR, seed);
-                        intermediate = run_audiosr_stage2(intermediate, unconditional_guidance_scale, ddim_steps, callback_params);
-                        auto waveform_sr = run_audiosr_stage3(intermediate);
-#endif
-                        auto input_rms = intermediate->input_rms;
-
-                        auto output_rms = calc_rms((float*)waveform_sr.data_ptr(), nsamples);
-
-                        float ratio = input_rms / output_rms;
-
-                        //normalize loudness back to original RMS
-                        {
-                           float* pSamples = (float*)waveform_sr.data_ptr();
-                           for (size_t si = 0; si < nsamples; si++)
-                           {
-                              pSamples[si] *= ratio;
-                           }
-                        }
-
-                        //first (or only) segment. No crossfade for this one.
-                        if (segmenti == 0)
-                        {
-                           std::memcpy(out->data() + offset, waveform_sr.data_ptr(), nsamples * sizeof(float));
-                        }
-                        else
-                        {
-                           float* pOutputCrossfadeStart = out->data() + offset;
-                           float* pNewWaveform = (float*)waveform_sr.data_ptr();
-
-                           auto crossfade_samples = std::min(overlap_samples, nsamples);
-                           std::cout << "cross-fading " << crossfade_samples << " samples..." << std::endl;
-
-                           float fade_step = 1.f / (float)(overlap_samples);
-                           size_t outputi;
-                           for (outputi = 0; (outputi < crossfade_samples); outputi++)
-                           {
-                              float fade = pOutputCrossfadeStart[outputi] * (1 - outputi * fade_step) +
-                                 pNewWaveform[outputi] * (outputi * fade_step);
-
-                              pOutputCrossfadeStart[outputi] = fade;
-                           }
-
-                           size_t samples_left = nsamples - outputi;
-                           if (samples_left)
-                           {
-                              std::memcpy(pOutputCrossfadeStart + outputi, pNewWaveform + outputi, samples_left * sizeof(float));
-                           }
-                        }
-                     }
-#endif
-
                      return out;
                   }
                );
@@ -1124,6 +1074,10 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
                } while (status != std::future_status::ready);
 
                auto out = audio_sr_channel_run_future.get();
+
+               //This can happen if user cancelled.
+               if (!out || mIsCancelled)
+                  return false;
 
                output_channels.push_back(out);
             }

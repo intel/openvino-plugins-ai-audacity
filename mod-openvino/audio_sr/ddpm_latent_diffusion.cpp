@@ -298,6 +298,12 @@ namespace ov_audiosr
 
       intermediate->samples = _sampler->sample(ddim_steps, c, unconditional_guidance_scale, intermediate->gen, unconditional_cond, callback_params);
 
+      // this can happen if user cancelled..
+      if (!intermediate->samples.defined())
+      {
+         return {};
+      }
+
       return intermediate;
    }
 
