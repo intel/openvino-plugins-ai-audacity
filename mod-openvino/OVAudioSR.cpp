@@ -45,6 +45,89 @@ EVT_BUTTON(ID_Type_DeviceInfoButton, EffectOVAudioSR::OnDeviceInfoButtonClicked)
 EVT_BUTTON(ID_Type_UnloadModelsButton, EffectOVAudioSR::OnUnloadModelsButtonClicked)
 END_EVENT_TABLE()
 
+#define BASIC_MODEL_STRING "Basic (General)"
+#define SPEECH_MODEL_STRING "Speech"
+
+static std::vector<std::string> FindAvailableModels()
+{
+   std::vector<std::string> available_models;
+
+   auto model_folder = wxFileName(FileNames::BaseDir(), wxT("openvino-models")).GetFullPath();
+   model_folder = wxFileName(model_folder, wxT("audiosr")).GetFullPath();
+
+   //make sure that all of the 'base' models are present
+   // If any of these aren't found, then just return an empty list.. we can't
+   // support anything without these 'base' files.
+   {
+      auto dec = wxFileName(model_folder, wxString("audiosr_decoder.xml"));
+      if (!dec.FileExists())
+      {
+         return {};
+      }
+
+      dec = wxFileName(model_folder, wxString("audiosr_decoder_5sec.xml"));
+      if (!dec.FileExists())
+      {
+         return {};
+      }
+
+      auto enc = wxFileName(model_folder, wxString("audiosr_encoder.xml"));
+      if (!enc.FileExists())
+      {
+         return {};
+      }
+
+      auto mel_raw = wxFileName(model_folder, wxString("mel_24000_cpu.raw"));
+      if (!mel_raw.FileExists())
+      {
+         return {};
+      }
+
+      auto post_quant_conv = wxFileName(model_folder, wxString("post_quant_conv.xml"));
+      if (!post_quant_conv.FileExists())
+      {
+         return {};
+      }
+
+      auto vocoder = wxFileName(model_folder, wxString("vocoder.xml"));
+      if (!vocoder.FileExists())
+      {
+         return {};
+      }
+
+      auto vae_feature_extract = wxFileName(model_folder, wxString("vae_feature_extract.xml"));
+      if (!vae_feature_extract.FileExists())
+      {
+         return {};
+      }
+   }
+
+   //basic
+   {
+      auto basic_model_folder = wxFileName(model_folder, wxT("basic")).GetFullPath();
+      auto ddpm_5sec = wxFileName(basic_model_folder, wxString("ddpm_5sec.xml"));
+      auto ddpm_10sec = wxFileName(basic_model_folder, wxString("ddpm_10sec.xml"));
+      if (ddpm_5sec.FileExists() && ddpm_10sec.FileExists())
+      {
+         available_models.push_back(BASIC_MODEL_STRING);
+      }
+   }
+
+   //speech
+   {
+      auto speech_model_folder = wxFileName(model_folder, wxT("speech")).GetFullPath();
+      auto ddpm_5sec = wxFileName(speech_model_folder, wxString("ddpm_5sec.xml"));
+      auto ddpm_10sec = wxFileName(speech_model_folder, wxString("ddpm_10sec.xml"));
+      if (ddpm_5sec.FileExists() && ddpm_10sec.FileExists())
+      {
+         available_models.push_back(SPEECH_MODEL_STRING);
+      }
+   }
+
+   return available_models;
+}
+
+
 EffectOVAudioSR::EffectOVAudioSR()
 {
    ov::Core core;
@@ -58,8 +141,11 @@ EffectOVAudioSR::EffectOVAudioSR()
       m_simple_to_full_device_map.push_back({ d, core.get_property(d, "FULL_DEVICE_NAME").as<std::string>() });
    }
 
-   mGuiModelSelections.push_back({ TranslatableString{ wxString("Basic (General)"), {}} });
-   mGuiModelSelections.push_back({ TranslatableString{ wxString("Speech"), {}} });
+   mModelSelections = FindAvailableModels();
+   for (auto m : mModelSelections)
+   {
+      mGuiModelSelections.push_back({ TranslatableString{ wxString(m), {}} });
+   }
 
    mGuiChunkSizeSelections.push_back({ TranslatableString{ wxString("10.24 Seconds"), {}} });
    mGuiChunkSizeSelections.push_back({ TranslatableString{ wxString("5.12 Seconds"), {}} });
@@ -580,17 +666,36 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
       auto ddpm_device = mSupportedDevices[m_ddpmDeviceSelectionChoice];
       auto decoder_device = mSupportedDevices[m_decoderDeviceSelectionChoice];
 
+      ov_audiosr::AudioSR_Config config;
       {
          std::cout << "encoder_device = " << encoder_device << std::endl;
          std::cout << "ddpm_device = " << ddpm_device << std::endl;
          std::cout << "decoder_device = " << decoder_device << std::endl;
 
-         ov_audiosr::AudioSR_Config config;
          config.first_stage_encoder_device = encoder_device;
          config.vae_feature_extract_device = encoder_device;
          config.ddpm__device = ddpm_device;
          config.vocoder_device = decoder_device;
-         config.model_selection = m_modelSelectionChoice == 0 ? ov_audiosr::AudioSRModel::BASIC : ov_audiosr::AudioSRModel::SPEECH;
+
+         if (m_modelSelectionChoice < 0 || m_modelSelectionChoice >= mModelSelections.size())
+         {
+            throw std::runtime_error("invalid m_modelSelectionChoice value");
+         }
+
+         std::string chosen_model = mModelSelections[m_modelSelectionChoice];
+         if (chosen_model == BASIC_MODEL_STRING)
+         {
+            config.model_selection = ov_audiosr::AudioSRModel::BASIC;
+         }
+         else if (chosen_model == SPEECH_MODEL_STRING)
+         {
+            config.model_selection = ov_audiosr::AudioSRModel::SPEECH;
+         }
+         else
+         {
+            throw std::runtime_error("Invalid model selection string");
+         }
+
          config.chunk_size = m_ChunkSizeSelectionChoice == 0 ? ov_audiosr::AudioSRModelChunkSize::TEN_SEC : ov_audiosr::AudioSRModelChunkSize::FIVE_SEC;
 
          bool bNeedsInit = true;
@@ -701,7 +806,7 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
       mbNormalizeOutputRMS = mNormalizeOutputRMSCheckBox->GetValue();
 
       std::string descriptor_str = "(";
-      if (m_modelSelectionChoice == 0)
+      if (config.model_selection == ov_audiosr::AudioSRModel::BASIC)
       {
          descriptor_str += " M: basic";
       }
@@ -1170,6 +1275,12 @@ bool EffectOVAudioSR::TransferDataToWindow(const EffectSettings&)
    }
 
    EffectEditor::EnablePreview(mUIParent, false);
+
+   if (mModelSelections.empty())
+   {
+      wxLogInfo("OpenVINO Super Resolution has no models installed.");
+      EffectEditor::EnableApply(mUIParent, false);
+   }
 
    return true;
 }

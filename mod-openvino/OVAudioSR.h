@@ -79,6 +79,7 @@ private:
    wxChoice* mTypeChoiceModelCtrl;
    int m_modelSelectionChoice = 0;
    std::vector< EnumValueSymbol > mGuiModelSelections;
+   std::vector< std::string > mModelSelections;
 
    wxChoice* mTypeChoiceChunkSizeCtrl;
    int m_ChunkSizeSelectionChoice = 0;
