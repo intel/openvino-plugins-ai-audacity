@@ -21,6 +21,12 @@ static inline std::string wstring_to_string(const std::wstring& wstr) {
    return wstring_decoder.to_bytes(wstr);
 }
 
+static inline std::wstring ToWString(const std::string& str)
+{
+   return std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(str);
+}
+
+
 // WA for OpenVINO locale caching issue (https://github.com/openvinotoolkit/openvino/issues/24370)
 // RAII-based method for performing the following
 // 1. Upon instantiation, changes global numeric locale to "C".

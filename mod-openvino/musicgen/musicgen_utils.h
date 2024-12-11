@@ -10,6 +10,7 @@
 #include <fstream>
 #include <codecvt>
 #include <locale>
+#include "OVStringUtils.h"
 
 static void dump_tensor(torch::Tensor z, std::string fname)
 {
@@ -32,22 +33,6 @@ static inline void save_tensor_to_disk(ov::Tensor& t, std::string filename)
    void* pTData = t.data();
    wf.write((char*)pTData, total_bytes);
    wf.close();
-}
-
-#ifdef WIN32
-#define OS_SEP "\\"
-#else
-#define OS_SEP "/"
-#endif
-
-static inline std::string FullPath(std::string base_dir, std::string filename)
-{
-   return base_dir + OS_SEP + filename;
-}
-
-static inline std::wstring ToWString(const std::string& str)
-{
-   return std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(str);
 }
 
 static ov::Tensor wrap_torch_tensor_as_ov(torch::Tensor tensor_torch)
