@@ -31,16 +31,19 @@ namespace ov_audiosr
 
       std::string subfolder = _config->model_selection == AudioSRModel::BASIC ? "basic" : "speech";
       auto model_folder = FullPath(_config->model_folder, subfolder);
-      auto xml_name = FullPath(model_folder, "ddpm_10sec.xml");
+
+      auto xml_name = FullPath(model_folder, "ddpm.xml");
+      std::cout << "Reading DDPM Model: " << xml_name  << std::endl;
+      std::shared_ptr<ov::Model> model = core.read_model(xml_name);
+
       if (_config->chunk_size == AudioSRModelChunkSize::FIVE_SEC)
       {
-         xml_name = FullPath(model_folder, "ddpm_5sec.xml");
+         std::map<ov::Output<ov::Node>, ov::PartialShape> port_to_shape;
+         port_to_shape[model->input("x_noisy")] = { 1,16,64,32 };
+         port_to_shape[model->input("t")] = { 1 };
+         port_to_shape[model->input("cond")] = { 1,16,64,32 };
+         model->reshape(port_to_shape);
       }
-
-      auto binpath = FullPath(model_folder, "ddpm.bin");
-
-      std::cout << "Reading DDPM Model: " << xml_name << ", " << binpath << std::endl;
-      std::shared_ptr<ov::Model> model = core.read_model(xml_name, binpath);
 
       logBasicModelInfo(model);
       auto compiledModel = core.compile_model(model, _config->ddpm__device);

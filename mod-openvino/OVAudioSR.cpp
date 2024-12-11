@@ -105,9 +105,8 @@ static std::vector<std::string> FindAvailableModels()
    //basic
    {
       auto basic_model_folder = wxFileName(model_folder, wxT("basic")).GetFullPath();
-      auto ddpm_5sec = wxFileName(basic_model_folder, wxString("ddpm_5sec.xml"));
-      auto ddpm_10sec = wxFileName(basic_model_folder, wxString("ddpm_10sec.xml"));
-      if (ddpm_5sec.FileExists() && ddpm_10sec.FileExists())
+      auto ddpm = wxFileName(basic_model_folder, wxString("ddpm.xml"));
+      if (ddpm.FileExists() )
       {
          available_models.push_back(BASIC_MODEL_STRING);
       }
@@ -116,9 +115,8 @@ static std::vector<std::string> FindAvailableModels()
    //speech
    {
       auto speech_model_folder = wxFileName(model_folder, wxT("speech")).GetFullPath();
-      auto ddpm_5sec = wxFileName(speech_model_folder, wxString("ddpm_5sec.xml"));
-      auto ddpm_10sec = wxFileName(speech_model_folder, wxString("ddpm_10sec.xml"));
-      if (ddpm_5sec.FileExists() && ddpm_10sec.FileExists())
+      auto ddpm = wxFileName(speech_model_folder, wxString("ddpm.xml"));
+      if (ddpm.FileExists())
       {
          available_models.push_back(SPEECH_MODEL_STRING);
       }
