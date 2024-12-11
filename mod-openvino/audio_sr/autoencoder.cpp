@@ -65,12 +65,15 @@ namespace ov_audiosr
       auto& core = _config->core;
 
       auto modelpath = FullPath(_config->model_folder, "audiosr_decoder" MODEL_FILE_EXT);
-      if (_config->chunk_size == AudioSRModelChunkSize::FIVE_SEC)
-      {
-         modelpath = FullPath(_config->model_folder, "audiosr_decoder_5sec" MODEL_FILE_EXT);
-      }
 
       std::shared_ptr<ov::Model> model = core.read_model(modelpath);
+
+      if (_config->chunk_size == AudioSRModelChunkSize::FIVE_SEC)
+      {
+         std::map<ov::Output<ov::Node>, ov::PartialShape> port_to_shape;
+         port_to_shape[model->input("z")] = { 1,16,64,32 };
+         model->reshape(port_to_shape);
+      }
 
       logBasicModelInfo(model);
       auto compiledModel = core.compile_model(model, _config->first_stage_encoder_device);

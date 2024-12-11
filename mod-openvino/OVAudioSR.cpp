@@ -65,12 +65,6 @@ static std::vector<std::string> FindAvailableModels()
          return {};
       }
 
-      dec = wxFileName(model_folder, wxString("audiosr_decoder_5sec.xml"));
-      if (!dec.FileExists())
-      {
-         return {};
-      }
-
       auto enc = wxFileName(model_folder, wxString("audiosr_encoder.xml"));
       if (!enc.FileExists())
       {
