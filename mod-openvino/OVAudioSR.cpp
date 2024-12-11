@@ -131,6 +131,13 @@ EffectOVAudioSR::EffectOVAudioSR()
       mGuiDeviceSelections.push_back({ TranslatableString{ wxString(d), {}} });
 
       m_simple_to_full_device_map.push_back({ d, core.get_property(d, "FULL_DEVICE_NAME").as<std::string>() });
+
+      //NPU is not supported (yet) as a device to use for decoder / vocoder
+      if (d == "NPU")
+         continue;
+
+      mSupportedNonNPUDevices.push_back(d);
+      mGuiDeviceNonNPUSelections.push_back({ TranslatableString{ wxString(d), {}} });
    }
 
    mModelSelections = FindAvailableModels();
@@ -222,29 +229,13 @@ std::unique_ptr<EffectEditor> EffectOVAudioSR::PopulateOrExchange(
 
       S.StartStatic(XO(""), wxLEFT);
       {
-#if 0
-         S.StartMultiColumn(4, wxEXPAND);
-         {
-            mTypeChoiceDeviceCtrl = S.Id(ID_Type)
-               .MinSize({ -1, -1 })
-               .Validator<wxGenericValidator>(&m_deviceSelectionChoice)
-               .AddChoice(XXO("OpenVINO Inference Device:"),
-                  Msgids(mGuiDeviceSelections.data(), mGuiDeviceSelections.size()));
-            S.AddVariableText(XO(""));
-
-            auto device_info_button = S.Id(ID_Type_DeviceInfoButton).AddButton(XO("Device Details..."));
-
-            S.SetStretchyCol(2);
-         }
-         S.EndMultiColumn();
-#else
          S.StartMultiColumn(4, wxEXPAND);
          {
             mTypeChoiceDeviceCtrl_Encoder = S.Id(ID_Type_EncoderDevice)
                .MinSize({ -1, -1 })
                .Validator<wxGenericValidator>(&m_encoderDeviceSelectionChoice)
                .AddChoice(XXO("Encoder Device:"),
-                  Msgids(mGuiDeviceSelections.data(), mGuiDeviceSelections.size()));
+                  Msgids(mGuiDeviceNonNPUSelections.data(), mGuiDeviceNonNPUSelections.size()));
             S.AddVariableText(XO(""));
             S.AddVariableText(XO(""));
 
@@ -260,7 +251,7 @@ std::unique_ptr<EffectEditor> EffectOVAudioSR::PopulateOrExchange(
                .MinSize({ -1, -1 })
                .Validator<wxGenericValidator>(&m_decoderDeviceSelectionChoice)
                .AddChoice(XXO("Decoder Device:"),
-                  Msgids(mGuiDeviceSelections.data(), mGuiDeviceSelections.size()));
+                  Msgids(mGuiDeviceNonNPUSelections.data(), mGuiDeviceNonNPUSelections.size()));
             S.AddVariableText(XO(""));
 
             auto device_info_button = S.Id(ID_Type_DeviceInfoButton).AddButton(XO("Device Details..."));
@@ -268,7 +259,6 @@ std::unique_ptr<EffectEditor> EffectOVAudioSR::PopulateOrExchange(
             S.SetStretchyCol(2);
          }
          S.EndMultiColumn();
-#endif
       }
       S.EndStatic();
 
@@ -628,7 +618,7 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
       std::cout << "model_folder = " << model_folder << std::endl;
       std::cout << "cache_path = " << cache_path << std::endl;
 
-      if (m_encoderDeviceSelectionChoice >= mSupportedDevices.size())
+      if (m_encoderDeviceSelectionChoice >= mSupportedNonNPUDevices.size())
       {
          throw std::runtime_error("Invalid encoder device choice id:  " +
             std::to_string(m_encoderDeviceSelectionChoice));
@@ -640,7 +630,7 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
             std::to_string(m_ddpmDeviceSelectionChoice));
       }
 
-      if (m_decoderDeviceSelectionChoice >= mSupportedDevices.size())
+      if (m_decoderDeviceSelectionChoice >= mSupportedNonNPUDevices.size())
       {
          throw std::runtime_error("Invalid decoder device choice id:  " +
             std::to_string(m_decoderDeviceSelectionChoice));
@@ -654,9 +644,9 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
 
       TotalProgress(0.01, XO("Compiling AI Model..."));
 
-      auto encoder_device = mSupportedDevices[m_encoderDeviceSelectionChoice];
+      auto encoder_device = mSupportedNonNPUDevices[m_encoderDeviceSelectionChoice];
       auto ddpm_device = mSupportedDevices[m_ddpmDeviceSelectionChoice];
-      auto decoder_device = mSupportedDevices[m_decoderDeviceSelectionChoice];
+      auto decoder_device = mSupportedNonNPUDevices[m_decoderDeviceSelectionChoice];
 
       ov_audiosr::AudioSR_Config config;
       {

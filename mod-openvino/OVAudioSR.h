@@ -76,6 +76,9 @@ private:
    std::vector< std::string > mSupportedDevices;
    std::vector< EnumValueSymbol > mGuiDeviceSelections;
 
+   std::vector< std::string > mSupportedNonNPUDevices;
+   std::vector< EnumValueSymbol > mGuiDeviceNonNPUSelections;
+
    wxChoice* mTypeChoiceModelCtrl;
    int m_modelSelectionChoice = 0;
    std::vector< EnumValueSymbol > mGuiModelSelections;
