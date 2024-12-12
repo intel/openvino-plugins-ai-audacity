@@ -89,9 +89,9 @@ pip install conan
 :: clone Audacity
 git clone https://github.com/audacity/audacity.git
 
-:: Check out latest Audacity branch that our plugins are compatible with (currently, release-3.7.0)
+:: Check out latest Audacity branch that our plugins are compatible with (currently, release-3.7.1)
 cd audacity
-git checkout release-3.7.0
+git checkout release-3.7.1
 cd ..
 
 mkdir audacity-build
