@@ -13,10 +13,10 @@ if "%~5"=="" goto error
 
 :: Build Level 0=alpha, 1=beta, 2=release
 set AUDACITY_BUILD_LEVEL=2
-set AUDACITY_BUILD_CONFIG=RelWithDebInfo
+set AUDACITY_BUILD_CONFIG=Release
 
 :: The version that we will pass to inno setup as the app version.
-set AI_PLUGIN_VERSION=v3.7.0-R4.0
+set AI_PLUGIN_VERSION=v3.7.1-R4.1
 
 set AI_PLUGIN_REPO_SOURCE_FOLDER=%bat_path%\..\..\
 echo AI_PLUGIN_REPO_SOURCE_FOLDER=%AI_PLUGIN_REPO_SOURCE_FOLDER%
