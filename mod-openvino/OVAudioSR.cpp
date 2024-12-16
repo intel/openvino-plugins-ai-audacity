@@ -17,7 +17,7 @@
 #include "LoadEffects.h"
 #include "audio_sr.h"
 
-#include "biquad.h"
+#include "Biquad.h"
 
 #include <wx/intl.h>
 #include <wx/valgen.h>
@@ -412,7 +412,7 @@ static inline std::shared_ptr<std::vector<float>> sos_lowpass_filter(float *pIn,
 
    const double nyquist = fs / 2.0;
 
-   auto biquad = ov_audiosr::Biquad::CalcButterworthFilter(order, nyquist, cutoff, ov_audiosr::Biquad::kLowPass);
+   auto biquad = Biquad::CalcButterworthFilter(order, nyquist, cutoff, Biquad::kLowPass);
 
    for (int iPair = 0; iPair < ((order + 1) / 2); iPair++)
    {

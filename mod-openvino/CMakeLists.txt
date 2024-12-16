@@ -62,8 +62,6 @@ set( AUDIO_SR_SOURCES
      audio_sr/distributions.h
      audio_sr/audio_sr.h
      audio_sr/audio_sr.cpp
-     audio_sr/biquad.h
-     audio_sr/biquad.cpp
 )
 
 include_directories(audio_sr)
