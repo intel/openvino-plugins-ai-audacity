@@ -408,9 +408,9 @@ static inline std::shared_ptr<std::vector<float>> sos_lowpass_filter(float *pIn,
 {
    std::cout << "sos_lowpass_filter called with cutoff=" << cutoff << std::endl;
 
-   int order = 8;
+   const int order = 8;
 
-   double nyquist = fs / 2.0;
+   const double nyquist = fs / 2.0;
 
    auto biquad = ov_audiosr::Biquad::CalcButterworthFilter(order, nyquist, cutoff, ov_audiosr::Biquad::kLowPass);
 
@@ -501,7 +501,7 @@ static inline std::shared_ptr< std::vector<float> > normalize_pad_lowpass(float*
    pTmpTrack->Flush();
 
    //apply a hard lowpass filter.
-   double nyquist = 48000.0 / 2.0;
+   const double nyquist = 48000.0 / 2.0;
    double lowpass_ratio = batch.cutoff_freq / nyquist;
 
    int fs_down = int(lowpass_ratio * 48000.0);
@@ -962,9 +962,11 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
 
                      // we overlap processed segments by 0.1 seconds, and then crossfade between them
                      // to suppress transition artifacts.
-                     double crossfade_overlap_seconds = 0.1;
+                     // This could potentially be exposed as a settable parameter, but there doesn't appear to be any
+                     // noticeable artifacts with 0.1, so just hard code it right now.
+                     const double crossfade_overlap_seconds = 0.1;
 
-                     size_t overlap_samples = (size_t)(48000.0 * crossfade_overlap_seconds);
+                     const size_t overlap_samples = (size_t)(48000.0 * crossfade_overlap_seconds);
                      std::vector< std::pair<size_t, size_t> > segments;
 
                      {

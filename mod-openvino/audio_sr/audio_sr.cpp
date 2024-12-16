@@ -15,10 +15,15 @@ namespace ov_audiosr
    {
       //The python version calculates this as:
       // from librosa.filters import mel as librosa_mel_fn
+      // sampling_rate = 48000;
+      // filter_length = 2048;
+      // n_mel = 256;
+      // mel_fmin = 20;
+      // mel_fmax = 24000;
       // mel = librosa_mel_fn(sr=sampling_rate, n_fft=filter_length, n_mels=n_mel, fmin=mel_fmin, fmax=mel_fmax)
-      // But as this seems to just be a constant, we'll just pre-compute it and read it from disk.
+      // Since this is a constant, rather than porting all of the librosa logic needed to compute it, we dumped
+      // it to disk as 'mel_24000_cpu.raw', and read it back in here.
       _mel_basis = read_tensor(FullPath(model_folder, "mel_24000_cpu.raw"), { 256, 1025 });
-
 
       _audio_sr_config = std::make_shared< AudioSR_Config >();
       _audio_sr_config->model_folder = model_folder;
@@ -84,14 +89,9 @@ namespace ov_audiosr
 
    std::pair< torch::Tensor, torch::Tensor> AudioSR::_mel_spectrogram_train(torch::Tensor y)
    {
-      int64_t sampling_rate = 48000;
-      int64_t filter_length = 2048;
-      int64_t hop_length = 480;
-      int64_t win_length = 2048;
-      int64_t n_mel = 256;
-      int64_t mel_fmin = 20;
-      int64_t mel_fmax = 24000;
-
+      const int64_t filter_length = 2048;
+      const int64_t hop_length = 480;
+      const int64_t win_length = 2048;
 
       auto mel_basis = _mel_basis;
 

@@ -45,7 +45,7 @@ namespace ov_audiosr
       // How many samples we apply super res pipeline to at once.
       // Will return 491520 (10.24 seconds @ 48 khz) if AudioSRModelChunkSize=TEN_SECONDS
       // Will return 245760 (5.12 seconds @ 48 khz) if AudioSRModelChunkSize=FIVE_SECONDS
-      size_t nchunk_samples() { return _nchunk_samples; }; 
+      const size_t nchunk_samples() { return _nchunk_samples; }; 
 
       AudioSR_Config config()
       {

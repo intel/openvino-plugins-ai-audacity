@@ -59,12 +59,12 @@ namespace ov_audiosr
       //cosine_s = 0.008
       //exists(given_betas) = False
 
-      std::string beta_schedule = "cosine";
-      int64_t timesteps = 1000;
+      const std::string beta_schedule = "cosine";
+      const int64_t timesteps = 1000;
       _num_timesteps = timesteps;
-      double linear_start = 0.0015;
-      double linear_end = 0.0195;
-      double cosine_s = 0.008;
+      const double linear_start = 0.0015;
+      const double linear_end = 0.0195;
+      const double cosine_s = 0.008;
 
       auto betas = make_beta_schedule(beta_schedule, timesteps, linear_start, linear_end, cosine_s);
       auto alphas = 1.0 - betas;
@@ -89,7 +89,7 @@ namespace ov_audiosr
       _sqrt_recipm1_alphas_cumprod = torch::sqrt(1.0 / (alphas_cumprod)-1).to(torch::kFloat32);
 
 
-      double v_posterior = 0.0;
+      const double v_posterior = 0.0;
       // calculations for posterior q(x_{t-1} | x_t, x_0)
       auto posterior_variance = (1 - v_posterior) * betas * (
          1.0 - alphas_cumprod_prev
@@ -157,13 +157,6 @@ namespace ov_audiosr
 
       // select alphas for computing the variance schedule
       auto alphas = torch::take(alphacums, ddim_timesteps);
-
-      //std::cout << "ddim_timesteps = " << std::endl;
-      //std::cout << ddim_timesteps << std::endl;
-
-      //std::cout << "alphas = " << std::endl;
-      //std::cout << alphas << std::endl;
-
 
       // alphas_prev = np.asarray([alphacums[0]] + alphacums[ddim_timesteps[:-1]].tolist())
       std::vector<double> alphas_prev_vec = { alphacums[0].item<float>() };
@@ -246,7 +239,8 @@ namespace ov_audiosr
       auto W = shape[3];
 
       //ddim_sampling starts here.
-      size_t b = 1;
+      //( we always do batch 1)
+      const size_t b = 1;
 
       auto img = torch::randn(shape, gen);
 
@@ -318,7 +312,9 @@ namespace ov_audiosr
       std::optional< torch::Tensor > unconditional_conditioning,
       std::optional< CallbackParams > callback_params)
    {
-      float temperature = 1.f;
+      //TODO: Perhaps temperature could be exposed up as a settable parameter, but
+      // for initial version just fix it at 1.0
+      const float temperature = 1.f;
 
       torch::Tensor model_output;
       if (!unconditional_conditioning || unconditional_guidance_scale == 1.0)
@@ -339,8 +335,6 @@ namespace ov_audiosr
             );
       }
 
-      //dump_tensor(model_output, "model_output_ov.raw");
-
       auto t_tensor = torch::tensor({ t }, torch::dtype(torch::kInt64));
 
       auto e_t = _predict_eps_from_z_and_v(x, t_tensor, model_output);
@@ -353,7 +347,7 @@ namespace ov_audiosr
       auto& sigmas = _ddim_sigmas;
 
       // select parameters corresponding to the currently considered timestep
-      int64_t b = 1;
+      const int64_t b = 1; // (batch 1)
       auto a_t = alphas[index];
       auto a_prev = alphas_prev[index];
       auto sigma_t = sigmas[index];
@@ -369,9 +363,6 @@ namespace ov_audiosr
       auto noise = sigma_t * torch::randn(x.sizes(), gen) * temperature;
 
       auto x_prev = a_prev.sqrt() * pred_x0 + dir_xt + noise;
-
-      //dump_tensor(x_prev, "x_prev_ov.raw");
-      //dump_tensor(pred_x0, "pred_x0_ov.raw");
 
       return { x_prev, pred_x0 };
    }
