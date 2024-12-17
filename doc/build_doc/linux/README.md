@@ -300,13 +300,13 @@ cd ..
 git clone https://huggingface.co/Intel/versatile_audio_super_resolution_openvino
 
 # unzip the 'base' set of models into audiosr
-unzip versatile_audio_super_resolution_openvino\versatile_audio_sr_base_openvino_models.zip -d openvino-models\audiosr
+unzip versatile_audio_super_resolution_openvino/versatile_audio_sr_base_openvino_models.zip -d openvino-models/audiosr
 
 # unzip the basic ddpm model
-unzip versatile_audio_super_resolution_openvino\versatile_audio_sr_ddpm_basic_openvino_models.zip -d openvino-models\audiosr
+unzip versatile_audio_super_resolution_openvino/versatile_audio_sr_ddpm_basic_openvino_models.zip -d openvino-models/audiosr
 
 # unzip the speech ddpm model
-unzip versatile_audio_super_resolution_openvino\versatile_audio_sr_ddpm_speech_openvino_models.zip -d openvino-models\audiosr
+unzip versatile_audio_super_resolution_openvino/versatile_audio_sr_ddpm_speech_openvino_models.zip -d openvino-models/audiosr
 
 # Now that the required models are extracted, feel free to delete the cloned 'versatile_audio_super_resolution_openvino' directory.
 rm -rf versatile_audio_super_resolution_openvino 
