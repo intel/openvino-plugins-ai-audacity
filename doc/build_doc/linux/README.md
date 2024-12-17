@@ -291,115 +291,26 @@ cd openvino-models
 wget https://storage.openvinotoolkit.org/repositories/open_model_zoo/2023.0/models_bin/1/noise-suppression-denseunet-ll-0001/FP16/noise-suppression-denseunet-ll-0001.xml
 wget https://storage.openvinotoolkit.org/repositories/open_model_zoo/2023.0/models_bin/1/noise-suppression-denseunet-ll-0001/FP16/noise-suppression-denseunet-ll-0001.bin
 cd ..
+
+#*********************
+#* Super Resolution *
+#*********************
+
+# clone the HF repo
+git clone https://huggingface.co/Intel/versatile_audio_super_resolution_openvino
+
+# unzip the 'base' set of models into audiosr
+unzip versatile_audio_super_resolution_openvino/versatile_audio_sr_base_openvino_models.zip -d openvino-models/audiosr
+
+# unzip the basic ddpm model
+unzip versatile_audio_super_resolution_openvino/versatile_audio_sr_ddpm_basic_openvino_models.zip -d openvino-models/audiosr
+
+# unzip the speech ddpm model
+unzip versatile_audio_super_resolution_openvino/versatile_audio_sr_ddpm_speech_openvino_models.zip -d openvino-models/audiosr
+
+# Now that the required models are extracted, feel free to delete the cloned 'versatile_audio_super_resolution_openvino' directory.
+rm -rf versatile_audio_super_resolution_openvino 
 ```
-
-
-After all of this, a functioning structure of the openvino-models directory looks like this:
-```
-user@system:/usr/local/lib/openvino-models$ tree -d
-.
-├── deepfilternet-openvino
-├── musicgen
-│   ├── mono
-│   └── stereo
-└── openvino-models
-    ├── deepfilternet2
-    └── deepfilternet3
-
-7 directories
-```
-
-The file layout within the above directory tree:
-```
-user@system:/usr/local/lib/openvino-models$ tree -h
-[4.0K]  .
-├── [4.0K]  deepfilternet-openvino
-│   ├── [8.2M]  deepfilternet2.zip
-│   ├── [7.6M]  deepfilternet3.zip
-│   └── [2.1K]  README.md
-├── [4.0K]  musicgen
-│   ├── [1.9M]  attention_mask_from_prepare_4d_causal_10s.raw
-│   ├── [492K]  attention_mask_from_prepare_4d_causal_5s.raw
-│   ├── [258K]  encodec_20s.xml
-│   ├── [258K]  encodec_5s.xml
-│   ├── [ 56M]  encodec_combined_weights.bin
-│   ├── [441K]  encodec_encoder_10s.xml
-│   ├── [441K]  encodec_encoder_5s.xml
-│   ├── [ 56M]  encodec_encoder_combined_weights.bin
-│   ├── [4.0K]  mono
-│   │   ├── [ 16M]  embed_tokens.bin
-│   │   ├── [ 14K]  embed_tokens.xml
-│   │   ├── [3.0M]  enc_to_dec_proj.bin
-│   │   ├── [2.7K]  enc_to_dec_proj.xml
-│   │   ├── [ 96M]  initial_cross_attn_kv_producer.bin
-│   │   ├── [173K]  initial_cross_attn_kv_producer.xml
-│   │   ├── [ 16M]  lm_heads.bin
-│   │   ├── [ 11K]  lm_heads.xml
-│   │   ├── [672M]  musicgen_decoder_combined_weights.bin
-│   │   ├── [337M]  musicgen_decoder_combined_weights_int8.bin
-│   │   ├── [2.5M]  musicgen_decoder_static0_10s.xml
-│   │   ├── [2.5M]  musicgen_decoder_static0_5s.xml
-│   │   ├── [3.0M]  musicgen_decoder_static_batch1_int8.xml
-│   │   ├── [2.5M]  musicgen_decoder_static_batch1.xml
-│   │   ├── [3.0M]  musicgen_decoder_static_int8.xml
-│   │   ├── [2.5M]  musicgen_decoder_static.xml
-│   │   └── [8.0M]  sinusoidal_positional_embedding_weights_2048_1024.raw
-│   ├── [775K]  musicgen-small-tokenizer.bin
-│   ├── [5.7K]  musicgen-small-tokenizer.xml
-│   ├── [4.0K]  stereo
-│   │   ├── [ 32M]  embed_tokens.bin
-│   │   ├── [ 28K]  embed_tokens.xml
-│   │   ├── [3.0M]  enc_to_dec_proj.bin
-│   │   ├── [2.7K]  enc_to_dec_proj.xml
-│   │   ├── [192M]  initial_cross_attn_kv_producer.bin
-│   │   ├── [145K]  initial_cross_attn_kv_producer.xml
-│   │   ├── [ 32M]  lm_heads.bin
-│   │   ├── [ 21K]  lm_heads.xml
-│   │   ├── [672M]  musicgen_decoder_combined_weights.bin
-│   │   ├── [337M]  musicgen_decoder_combined_weights_int8.bin
-│   │   ├── [2.5M]  musicgen_decoder_static0_10s.xml
-│   │   ├── [2.5M]  musicgen_decoder_static0_5s.xml
-│   │   ├── [3.0M]  musicgen_decoder_static_batch1_int8.xml
-│   │   ├── [2.5M]  musicgen_decoder_static_batch1.xml
-│   │   ├── [3.0M]  musicgen_decoder_static_int8.xml
-│   │   ├── [2.5M]  musicgen_decoder_static.xml
-│   │   └── [8.0M]  sinusoidal_positional_embedding_weights_2048_1024.raw
-│   ├── [209M]  t5.bin
-│   └── [550K]  t5.xml
-└── [4.0K]  openvino-models
-    ├── [4.0K]  deepfilternet2
-    │   ├── [3.2M]  df_dec.bin
-    │   ├── [112K]  df_dec.xml
-    │   ├── [2.5M]  enc.bin
-    │   ├── [175K]  enc.xml
-    │   ├── [3.2M]  erb_dec.bin
-    │   └── [181K]  erb_dec.xml
-    ├── [4.0K]  deepfilternet3
-    │   ├── [3.2M]  df_dec.bin
-    │   ├── [123K]  df_dec.xml
-    │   ├── [1.8M]  enc.bin
-    │   ├── [186K]  enc.xml
-    │   ├── [3.1M]  erb_dec.bin
-    │   └── [185K]  erb_dec.xml
-    ├── [141M]  ggml-base.bin
-    ├── [ 39M]  ggml-base-encoder-openvino.bin
-    ├── [281K]  ggml-base-encoder-openvino.xml
-    ├── [465M]  ggml-small.bin
-    ├── [168M]  ggml-small-encoder-openvino.bin
-    ├── [804K]  ggml-small-encoder-openvino.xml
-    ├── [465M]  ggml-small.en-tdrz.bin
-    ├── [168M]  ggml-small.en-tdrz-encoder-openvino.bin
-    ├── [512K]  ggml-small.en-tdrz-encoder-openvino.xml
-    ├── [ 96M]  htdemucs_v4.bin
-    ├── [1.8M]  htdemucs_v4.xml
-    ├── [8.2M]  noise-suppression-denseunet-ll-0001.bin
-    └── [674K]  noise-suppression-denseunet-ll-0001.xml
-
-
-
-7 directories, 74 files
-```
-
 
 After the above sequence of commands you should have a single ```openvino-models``` folder, which you can copy to /usr/local/lib like this:
 ```

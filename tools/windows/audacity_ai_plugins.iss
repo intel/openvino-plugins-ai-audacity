@@ -49,6 +49,9 @@ Name: "custom"; Description: "Custom installation"; Flags: iscustom
 
 [Components]
 Name: "music_sep"; Description: "Music Separation Models"; Types: all recommended; ExtraDiskSpaceRequired: 103042178
+Name: "super_res"; Description: "Super Resolution Models"; Types: all recommended; ExtraDiskSpaceRequired: 1010172074
+Name: "super_res\basic"; Description: "Basic (General) Model"; Types: all recommended; ExtraDiskSpaceRequired: 520888752
+Name: "super_res\speech"; Description: "Speech Model"; Types: all recommended; ExtraDiskSpaceRequired: 520888752
 Name: "noise_sup"; Description: "Noise Suppression Models"; Types: all
 Name: "noise_sup\deepfilternet2"; Description: "DeepFilterNet2"; Types: all recommended; ExtraDiskSpaceRequired: 9700989
 Name: "noise_sup\deepfilternet3"; Description: "DeepFilterNet3"; Types: all recommended; ExtraDiskSpaceRequired: 9045784
@@ -65,9 +68,7 @@ Name: "music_gen"; Description: "Music Generation Models"; Types: all recommende
 Name: "music_gen\small_mono"; Description: "Small Mono Model"; Types: all recommended; ExtraDiskSpaceRequired: 1220980259
 Name: "music_gen\small_stereo"; Description: "Small Stereo Model"; Types: all; ExtraDiskSpaceRequired: 1355200757
 
-
 [Files]
-
 ; OpenVINO libraries
 Source: "{#OPENVINO_DIR}\runtime\bin\intel64\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 Source: "{#OPENVINO_DIR}\runtime\3rdparty\tbb\bin\*.dll"; DestDir: "{app}"; Flags: ignoreversion 
@@ -105,6 +106,9 @@ Source: "{tmp}\htdemucs_v4.bin"; DestDir: "{app}\openvino-models\";  Components:
 Source: "{tmp}\htdemucs_v4.xml"; DestDir: "{app}\openvino-models\";  Components: music_sep; Flags: external
 Source: "{tmp}\noise-suppression-denseunet-ll-0001.bin"; DestDir: "{app}\openvino-models\";  Components: noise_sup\denseunet; Flags: external
 Source: "{tmp}\noise-suppression-denseunet-ll-0001.xml"; DestDir: "{app}\openvino-models\";  Components: noise_sup\denseunet; Flags: external
+Source: "{tmp}\versatile_audio_sr_base_openvino_models.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\versatile_audio_sr_base_openvino_models.zip', '{app}\openvino-models\audiosr'); Components: super_res; Flags: external
+Source: "{tmp}\versatile_audio_sr_ddpm_basic_openvino_models.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\versatile_audio_sr_ddpm_basic_openvino_models.zip', '{app}\openvino-models\audiosr'); Components: super_res\basic; Flags: external
+Source: "{tmp}\versatile_audio_sr_ddpm_speech_openvino_models.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\versatile_audio_sr_ddpm_speech_openvino_models.zip', '{app}\openvino-models\audiosr'); Components: super_res\speech; Flags: external
 
 [Messages]
 WizardSelectComponents=Select Models
@@ -114,6 +118,7 @@ SelectComponentsLabel2=Select the models you want to download/install; clear the
 [Dirs]
 Name: "{app}\openvino-models"
 Name: "{app}\openvino-models\musicgen"; Components: music_gen;
+Name: "{app}\openvino-models\audiosr"; Components: super_res;
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\openvino-models"
@@ -320,6 +325,27 @@ begin
             DownloadPage.Add('https://huggingface.co/Intel/demucs-openvino/resolve/97fc578fb57650045d40b00bc84c7d156be77547/htdemucs_v4.xml?download=true',
                              'htdemucs_v4.xml',  
                              '304e24325756089d6bb6583171dd1bea2327505e87c6cb6e010afea7463d9f0a');
+        end;
+        
+        if WizardIsComponentSelected('super_res') then 
+        begin
+            DownloadPage.Add('https://huggingface.co/Intel/versatile_audio_super_resolution_openvino/resolve/9a97d7f128b22aea72e92862a3eccc310f88ac26/versatile_audio_sr_base_openvino_models.zip?download=true', 
+                             'versatile_audio_sr_base_openvino_models.zip', 
+                             'e4058862616e8eaa157a6a69d75daff49b63f997c69e59887c77a04ce6840d86');
+        end;
+        
+        if WizardIsComponentSelected('super_res\basic') then 
+        begin
+            DownloadPage.Add('https://huggingface.co/Intel/versatile_audio_super_resolution_openvino/resolve/9a97d7f128b22aea72e92862a3eccc310f88ac26/versatile_audio_sr_ddpm_basic_openvino_models.zip?download=true', 
+                             'versatile_audio_sr_ddpm_basic_openvino_models.zip', 
+                             '382e0693e35e4bbeae1a0f3223954250e13427108ae16c0fe8f786489bbe2767');
+        end;
+        
+        if WizardIsComponentSelected('super_res\speech') then 
+        begin
+            DownloadPage.Add('https://huggingface.co/Intel/versatile_audio_super_resolution_openvino/resolve/9a97d7f128b22aea72e92862a3eccc310f88ac26/versatile_audio_sr_ddpm_speech_openvino_models.zip?download=true', 
+                             'versatile_audio_sr_ddpm_speech_openvino_models.zip', 
+                             'f44ee433da9e1aa6dd948142d81523c7a58213acfa0699a4014e1f6d30e8a349');
         end;
 
         DownloadPage.Show;
