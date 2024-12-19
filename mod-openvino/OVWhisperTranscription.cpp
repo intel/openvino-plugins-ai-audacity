@@ -664,7 +664,6 @@ struct whisper_params {
    float entropy_thold = 2.40f;
    float logprob_thold = -1.00f;
 
-   bool speed_up = false;
    bool debug_mode = false;
    bool translate = false;
    bool detect_language = false;
@@ -1041,7 +1040,6 @@ bool EffectOVWhisperTranscription::Whisper(std::vector<float>& mono_samples, Lab
       wparams.max_len = params.output_wts && params.max_len == 0 ? 60 : params.max_len;
       wparams.split_on_word = params.split_on_word;
 
-      wparams.speed_up = params.speed_up;
       wparams.debug_mode = params.debug_mode;
 
       wparams.tdrz_enable = params.tinydiarize; // [TDRZ]
