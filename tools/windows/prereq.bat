@@ -9,11 +9,11 @@ set "bat_path=%~dp0"
 set LIBTORCH_PACKAGE_URL="https://download.pytorch.org/libtorch/cpu/libtorch-win-shared-with-deps-2.4.1%%%%2Bcpu.zip"
 set LIBTORCH_PACKAGE_256SUM=e7b8d0b3b958d2215f52ff5385335f93aa78e42005727e44f1043d94d5bfc5dd
 
-set OPENVINO_PACKAGE_URL=https://storage.openvinotoolkit.org/repositories/openvino/packages/2024.5/windows/w_openvino_toolkit_windows_2024.5.0.17288.7975fa5da0c_x86_64.zip
-set OPENVINO_PACKAGE_256SUM=e30c60518b6a3ca5d7f1b4fc56673c5b55caf1962a34f1b50fb6b8a6436ab0c7
+set OPENVINO_PACKAGE_URL=https://storage.openvinotoolkit.org/repositories/openvino/packages/2024.6/windows/w_openvino_toolkit_windows_2024.6.0.17404.4c0f47d2335_x86_64.zip
+set OPENVINO_PACKAGE_256SUM=45a71a1e11f3e8a8109118e56434e79b3b2bfcc828b38b0e61be55949f317a53
 
-set OPENVINO_TOKENIZERS_URL=https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/2024.5.0.0/openvino_tokenizers_windows_2024.5.0.0_x86_64.zip
-set OPENVINO_TOKENIZERS_256SUM=648dfad8fb3fb5ece7aa757d81755fed669c69550625bc59ad74e99d535bf716
+set OPENVINO_TOKENIZERS_URL=https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/2024.6.0.0/openvino_tokenizers_windows_2024.6.0.0_x86_64.zip
+set OPENVINO_TOKENIZERS_256SUM=c2b1c6d020f3536c72872321cb8eb379eed2fd3b367a840b606d27e8680d1e6b
 
 set OPENCL_SDK_URL=https://github.com/KhronosGroup/OpenCL-SDK/releases/download/v2023.04.17/OpenCL-SDK-v2023.04.17-Win-x64.zip
 set OPENCL_SDK_256SUM=11844a1d69a71f82dc14ce66382c6b9fc8a4aee5840c21a786c5accb1d69bc0a
