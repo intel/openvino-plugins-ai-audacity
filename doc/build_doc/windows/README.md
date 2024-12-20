@@ -17,7 +17,7 @@ Here are some of the dependencies that you need to grab. If applicable, I'll als
     ```
     call "C:\path\to\w_openvino_toolkit_windows_xxxx\setupvars.bat"
     ```
-* OpenVINO Tokenizers Extension - Download ZIP package from [here](https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/2024.6). 
+* OpenVINO Tokenizers Extension - Download ZIP package from [here](https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/2024.6.0.0). 
    Download the zip package, and copy the DLLs into your ```w_openvino_toolkit_windows_xxxx\runtime\bin\intel64\Release``` folder.  
    
 * Libtorch (C++ distribution of pytorch)- This is a dependency for many of the pipelines that we ported from pytorch (musicgen, htdemucs, etc). We are currently using this version: [libtorch-win-shared-with-deps-2.4.1+cpu.zip](https://download.pytorch.org/libtorch/cpu/libtorch-win-shared-with-deps-2.4.1%2Bcpu.zip). After extracting the package, setup environment like this:
