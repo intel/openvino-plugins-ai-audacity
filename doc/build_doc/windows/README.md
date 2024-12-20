@@ -5,7 +5,7 @@ Hi! The following is the process that we use when building the Audacity modules 
 ## High-Level Overview
 Before we get into the specifics, at a high-level we will be doing the following:
 * Cloning & building whisper.cpp with OpenVINO support (For transcription audacity module)
-* Cloning & building Audacity 3.4.2 without modifications (just to make sure 'vanilla' build works fine)
+* Cloning & building Audacity 3.7.1 without modifications (just to make sure 'vanilla' build works fine)
 * Adding our OpenVINO module src's to the Audacity source tree, and re-building it.
 
 ## Dependencies
@@ -13,12 +13,11 @@ Here are some of the dependencies that you need to grab. If applicable, I'll als
 * CMake (https://cmake.org/download/)
 * Visual Studio (MS VS 2019 / 2022 Community Edition is fine)
 * python3 / pip - Audacity requires conan 2.0+ to be installed, and the recommended way to do that is through pip.  
-* OpenVINO - You can use public version from [here](https://github.com/openvinotoolkit/openvino/releases/tag/2024.5.0). Setup your cmd.exe shell environment by running setupvars.bat:  
+* OpenVINO - You can use download OpenVINO 2024.6 ZIP from [here](https://storage.openvinotoolkit.org/repositories/openvino/packages/2024.6/windows/). Setup your cmd.exe shell environment by running setupvars.bat:  
     ```
     call "C:\path\to\w_openvino_toolkit_windows_xxxx\setupvars.bat"
     ```
-* OpenVINO Tokenizers Extension - Download package from [here](https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/). 
-   Make sure that you download the version that matches the version of OpenVINO that you are using. For example, we are using [openvino_tokenizers_windows_2024.5.0.0_x86_64.zip](https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/2024.5.0.0/openvino_tokenizers_windows_2024.5.0.0_x86_64.zip)
+* OpenVINO Tokenizers Extension - Download ZIP package from [here](https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/2024.6). 
    Download the zip package, and copy the DLLs into your ```w_openvino_toolkit_windows_xxxx\runtime\bin\intel64\Release``` folder.  
    
 * Libtorch (C++ distribution of pytorch)- This is a dependency for many of the pipelines that we ported from pytorch (musicgen, htdemucs, etc). We are currently using this version: [libtorch-win-shared-with-deps-2.4.1+cpu.zip](https://download.pytorch.org/libtorch/cpu/libtorch-win-shared-with-deps-2.4.1%2Bcpu.zip). After extracting the package, setup environment like this:
