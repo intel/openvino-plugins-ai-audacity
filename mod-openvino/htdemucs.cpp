@@ -310,10 +310,7 @@ namespace ovdemucs
        {
           //GNA devices are not supported
           if (d.find("GNA") != std::string::npos) continue;
-          
-          //NPU devices are not supported (yet)
-          if (d.find("NPU") != std::string::npos) continue;
-          
+
           device_list.push_back(d);
        }
 
