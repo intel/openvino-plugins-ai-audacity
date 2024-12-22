@@ -11,10 +11,14 @@ musicgen/musicgen_utils.h
 musicgen/encodec_encoder.h 
 musicgen/musicgen_model_static.h
 musicgen/musicgen_model_static.cpp
+musicgen/musicgen_decoder.h
+musicgen/musicgen_decoder.cpp
 musicgen/musicgen_for_causal_lm.h
 musicgen/musicgen_for_causal_lm.cpp
 musicgen/musicgen_for_conditional_generation.cpp
 musicgen/musicgen_for_conditional_generation.h
+musicgen/musicgen_for_conditional_generation_refactor.cpp
+musicgen/musicgen_for_conditional_generation_refactor.h
 musicgen/musicgen.cpp
 musicgen/musicgen.h
 musicgen/musicgen_config.h 

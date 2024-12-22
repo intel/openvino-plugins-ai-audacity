@@ -2,15 +2,26 @@
 // SPDX-License-Identifier: GPL-3.0-only
 #include "musicgen.h"
 #include <ittutils.h>
+
+#define USE_REFACTORED 1
+#if !USE_REFACTORED
 #include "musicgen_for_conditional_generation.h"
+#else
+#include "musicgen_for_conditional_generation_refactor.h"
+#endif
 
 namespace ov_musicgen
 {
+
    struct MusicGen::Impl
    {
       Impl(MusicGenConfig& config)
       {
+#if USE_REFACTORED
+         _gen = std::make_shared< MusicgenForConditionalGenerationRefactor >(config);
+#else
          _gen = std::make_shared< MusicgenForConditionalGeneration >(config);
+#endif
 
          ov::Core core;
 
@@ -38,7 +49,11 @@ namespace ov_musicgen
       }
 
       ov::InferRequest _tok_infer_request;
+#if USE_REFACTORED
+      std::shared_ptr< MusicgenForConditionalGenerationRefactor > _gen;
+#else
       std::shared_ptr< MusicgenForConditionalGeneration > _gen;
+#endif
    };
 
    MusicGen::MusicGen(MusicGenConfig& config)
@@ -132,8 +147,11 @@ namespace ov_musicgen
 
       // 50 samples / sec
       int64_t total_tokens_left_to_generate = (int64_t)(std::ceil(total_desired_length_seconds * 50));
-
+#if USE_REFACTORED
+      MusicgenForConditionalGenerationRefactor::CallbackTracking tracking;
+#else
       MusicgenForConditionalGeneration::CallbackTracking tracking;
+#endif
       tracking.total_tokens_generated_so_far = 0;
       tracking.total_tokens_to_generate = total_tokens_left_to_generate;
 
