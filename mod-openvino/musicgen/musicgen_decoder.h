@@ -46,6 +46,7 @@ namespace ov_musicgen
 
         ov::InferRequest _infer_request;
         ov::InferRequest _infer_request_initial;
+        ov::InferRequest _infer_request_nonkv;
 
         std::vector< ov::Tensor > past_decoder_keys;
         std::vector< ov::Tensor > past_decoder_values;
@@ -54,5 +55,8 @@ namespace ov_musicgen
 
         std::vector< ov::Tensor > present_decoder_keys;
         std::vector< ov::Tensor > present_decoder_values;
+
+        std::vector< ov::Tensor > present_decoder_keys_large_context;
+        std::vector< ov::Tensor > present_decoder_values_large_context;
     };
 }
