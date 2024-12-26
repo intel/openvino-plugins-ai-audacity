@@ -8,7 +8,37 @@
 
 namespace ov_musicgen
 {
+
+   static MusicgenDecoder::Config GenerateDecoderConfig(MusicGenConfig& config)
+   {
+      MusicgenDecoder::Config decoder_config;
+      if (config.bStereo)
+      {
+         decoder_config.num_codebooks = 8;
+      }
+      else
+      {
+         decoder_config.num_codebooks = 4;
+      }
+
+      switch (config.model_selection)
+      {
+      case MusicGenConfig::ModelSelection::MUSICGEN_SMALL_FP16:
+      case  MusicGenConfig::ModelSelection::MUSICGEN_SMALL_INT8:
+         decoder_config.num_hidden_layers = 24;
+         decoder_config.num_attention_heads = 16;
+         break;
+
+      default:
+         throw std::runtime_error("Invalid model selection");
+         break;
+      }
+
+      return decoder_config;
+   }
+
 	MusicgenDecoderStatic::MusicgenDecoderStatic(ov::Core& core, MusicGenConfig& config)
+      : _decoder_config(GenerateDecoderConfig(config))
 	{
 		auto model_folder = config.model_folder;
 
@@ -52,31 +82,29 @@ namespace ov_musicgen
             size_t max_tokens = 1004;
             std::map<ov::Output<ov::Node>, ov::PartialShape> port_to_shape;
             port_to_shape[model->input("encoder_attention_mask")] = { 2, MAX_PROMPT_TOKENS };
-            port_to_shape[model->input("decoder_input_ids")] = { 8, 1 };
+            port_to_shape[model->input("decoder_input_ids")] = { _decoder_config.num_codebooks*2, 1 };
             port_to_shape[model->input("encoder_hidden_states")] = { 2, MAX_PROMPT_TOKENS, 768 };
             port_to_shape[model->input("decoder_attention_mask")] = { 2, max_tokens + 1 };
             port_to_shape[model->input("past_key_length_tens")] = { 1 };
 
-            //TODO: Make this more robust (remove hard coded '24')
-            for (int enci = 0; enci < 24; enci++)
+            for (int enci = 0; enci < _decoder_config.num_hidden_layers; enci++)
             {
                std::string iname = "past_key_values." + std::to_string(enci) + ".encoder.";
                std::string key_name = iname + "key";
                std::string value_name = iname + "value";
 
-               port_to_shape[model->input(key_name)] = { 2, 16, MAX_PROMPT_TOKENS, 64 };
-               port_to_shape[model->input(value_name)] = { 2, 16, MAX_PROMPT_TOKENS, 64 };
+               port_to_shape[model->input(key_name)] = { 2, _decoder_config.num_attention_heads, MAX_PROMPT_TOKENS, 64 };
+               port_to_shape[model->input(value_name)] = { 2, _decoder_config.num_attention_heads, MAX_PROMPT_TOKENS, 64 };
             }
 
-            //TODO: Make this more robust (remove hard coded '24')
-            for (int deci = 0; deci < 24; deci++)
+            for (int deci = 0; deci < _decoder_config.num_hidden_layers; deci++)
             {
                std::string iname = "past_key_values." + std::to_string(deci) + ".decoder.";
                std::string key_name = iname + "key";
                std::string value_name = iname + "value";
 
-               port_to_shape[model->input(key_name)] = { 2, 16, max_tokens, 64 };
-               port_to_shape[model->input(value_name)] = { 2, 16, max_tokens, 64 };
+               port_to_shape[model->input(key_name)] = { 2, _decoder_config.num_attention_heads, max_tokens, 64 };
+               port_to_shape[model->input(value_name)] = { 2, _decoder_config.num_attention_heads, max_tokens, 64 };
             }
 
             model->reshape(port_to_shape);
@@ -85,7 +113,7 @@ namespace ov_musicgen
          //now, set desired tensor types
          {
             ov::preprocess::PrePostProcessor ppp(model);
-            for (size_t layeri = 0; layeri < 24; layeri++)
+            for (size_t layeri = 0; layeri < _decoder_config.num_hidden_layers; layeri++)
             {
                {
                   std::string past_base_name = "past_key_values." + std::to_string(layeri) + ".decoder.";
@@ -130,7 +158,7 @@ namespace ov_musicgen
          _infer_request = compiledModel.create_infer_request();
 
          //populate kv cache tensor vectors
-         for (size_t layeri = 0; layeri < 24; layeri++)
+         for (size_t layeri = 0; layeri < _decoder_config.num_hidden_layers; layeri++)
          {
             {
                std::string past_base_name = "past_key_values." + std::to_string(layeri) + ".decoder.";
@@ -170,7 +198,7 @@ namespace ov_musicgen
          model->reshape(port_to_shape);
 
          ov::preprocess::PrePostProcessor ppp(model);
-         for (size_t layeri = 0; layeri < 24; layeri++)
+         for (size_t layeri = 0; layeri < _decoder_config.num_hidden_layers; layeri++)
          {
             for (int i = 0; i < 2; i++)
             {
@@ -191,7 +219,7 @@ namespace ov_musicgen
          // share some tensors between initial kv model, and decoder model
          _infer_request_initial.set_tensor("attention_mask", _infer_request.get_tensor("encoder_attention_mask"));
 
-         for (size_t layeri = 0; layeri < 24; layeri++)
+         for (size_t layeri = 0; layeri < _decoder_config.num_hidden_layers; layeri++)
          {
             std::string tensorname_key = "new_key_value_" + std::to_string(layeri) + "_0";
             _infer_request_initial.set_tensor(tensorname_key, past_encoder_keys[layeri]);
@@ -248,18 +276,17 @@ namespace ov_musicgen
          {
             std::map<ov::Output<ov::Node>, ov::PartialShape> port_to_shape;
             port_to_shape[model->input("encoder_attention_mask")] = { 2, MAX_PROMPT_TOKENS };
-            port_to_shape[model->input("decoder_input_ids")] = { 8, num_ids };
+            port_to_shape[model->input("decoder_input_ids")] = { _decoder_config.num_codebooks * 2, num_ids };
             port_to_shape[model->input("encoder_hidden_states")] = { 2, MAX_PROMPT_TOKENS, 768 };
 
-            //TODO: Make this more robust (remove hard coded '24')
-            for (int enci = 0; enci < 24; enci++)
+            for (int enci = 0; enci < _decoder_config.num_hidden_layers; enci++)
             {
                std::string iname = "past_key_values." + std::to_string(enci) + ".encoder.";
                std::string key_name = iname + "key";
                std::string value_name = iname + "value";
 
-               port_to_shape[model->input(key_name)] = { 2, 16, MAX_PROMPT_TOKENS, 64 };
-               port_to_shape[model->input(value_name)] = { 2, 16, MAX_PROMPT_TOKENS, 64 };
+               port_to_shape[model->input(key_name)] = { 2, _decoder_config.num_attention_heads, MAX_PROMPT_TOKENS, 64 };
+               port_to_shape[model->input(value_name)] = { 2, _decoder_config.num_attention_heads, MAX_PROMPT_TOKENS, 64 };
             }
 
             model->reshape(port_to_shape);
@@ -268,7 +295,7 @@ namespace ov_musicgen
          //now, set desired tensor types
          {
             ov::preprocess::PrePostProcessor ppp(model);
-            for (size_t layeri = 0; layeri < 24; layeri++)
+            for (size_t layeri = 0; layeri < _decoder_config.num_hidden_layers; layeri++)
             {
                {
                   std::string past_base_name = "past_key_values." + std::to_string(layeri) + ".encoder.";
@@ -298,7 +325,7 @@ namespace ov_musicgen
 
          _infer_request_nonkv = compiledModel.create_infer_request();
 
-         for (size_t layeri = 0; layeri < 24; layeri++)
+         for (size_t layeri = 0; layeri < _decoder_config.num_hidden_layers; layeri++)
          {
             std::string past_base_name = "past_key_values." + std::to_string(layeri) + ".encoder.";
             std::string past_key_name = past_base_name + "key";
@@ -308,7 +335,7 @@ namespace ov_musicgen
             _infer_request_nonkv.set_tensor(past_value_name, past_encoder_values[layeri]);
          }
 
-         for (size_t layeri = 0; layeri < 24; layeri++)
+         for (size_t layeri = 0; layeri < _decoder_config.num_hidden_layers; layeri++)
          {
 
             {
@@ -417,7 +444,7 @@ namespace ov_musicgen
          _infer_request_nonkv.infer();
 
          //copy 'kv_valid_size' kv values  
-         for (int deci = 0; deci < 24; deci++)
+         for (int deci = 0; deci < _decoder_config.num_hidden_layers; deci++)
          {
             auto past_key_tensor = past_decoder_keys[deci];
             auto past_value_tensor = past_decoder_values[deci];
@@ -428,7 +455,7 @@ namespace ov_musicgen
             size_t kv_valid_size = present_key_tensor.get_shape()[2];
 
             const ov::Coordinate begin = { 0, 0, 0, 0 };
-            const ov::Coordinate end = { 2, 16, kv_valid_size, 64 };
+            const ov::Coordinate end = { 2, _decoder_config.num_attention_heads, kv_valid_size, 64 };
             auto past_key_slice = ov::Tensor(past_key_tensor, begin, end);
             auto past_value_slice = ov::Tensor(past_value_tensor, begin, end);
 
@@ -479,7 +506,7 @@ namespace ov_musicgen
 
          _infer_request.infer();
 
-         for (int deci = 0; deci < 24; deci++)
+         for (int deci = 0; deci < _decoder_config.num_hidden_layers; deci++)
          {
             std::string iname = "past_key_values." + std::to_string(deci) + ".decoder.";
             std::string key_name = iname + "key";
@@ -489,7 +516,7 @@ namespace ov_musicgen
             auto past_value_tensor = _infer_request.get_tensor(value_name);
 
             const ov::Coordinate begin = { 0, 0, (size_t)_past_length, 0 };
-            const ov::Coordinate end = { 2, 16, (size_t)_past_length + 1, 64 };
+            const ov::Coordinate end = { 2, _decoder_config.num_attention_heads, (size_t)_past_length + 1, 64 };
             auto past_key_slice = ov::Tensor(past_key_tensor, begin, end);
             auto past_value_slice = ov::Tensor(past_value_tensor, begin, end);
 

@@ -13,6 +13,13 @@ namespace ov_musicgen
     {
     public:
 
+       struct Config
+       {
+          size_t num_hidden_layers = 0;
+          size_t num_attention_heads = 0;
+          size_t num_codebooks = 0;
+       };
+
         virtual void Reset() = 0;
 
         virtual torch::Tensor run(torch::Tensor input_ids,
@@ -58,5 +65,7 @@ namespace ov_musicgen
 
         std::vector< ov::Tensor > present_decoder_keys_large_context;
         std::vector< ov::Tensor > present_decoder_values_large_context;
+
+        Config _decoder_config;
     };
 }
