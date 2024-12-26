@@ -23,6 +23,8 @@ namespace ov_musicgen
       {
          MUSICGEN_SMALL_FP16,
          MUSICGEN_SMALL_INT8,
+         MUSICGEN_MEDIUM_FP16,
+         MUSICGEN_MEDIUM_INT8,
       };
 
       ModelSelection model_selection = ModelSelection::MUSICGEN_SMALL_FP16;

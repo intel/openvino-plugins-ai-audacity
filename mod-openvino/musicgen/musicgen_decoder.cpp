@@ -24,9 +24,15 @@ namespace ov_musicgen
       switch (config.model_selection)
       {
       case MusicGenConfig::ModelSelection::MUSICGEN_SMALL_FP16:
-      case  MusicGenConfig::ModelSelection::MUSICGEN_SMALL_INT8:
+      case MusicGenConfig::ModelSelection::MUSICGEN_SMALL_INT8:
          decoder_config.num_hidden_layers = 24;
          decoder_config.num_attention_heads = 16;
+         break;
+
+      case MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_FP16:
+      case MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_INT8:
+         decoder_config.num_hidden_layers = 48;
+         decoder_config.num_attention_heads = 24;
          break;
 
       default:
@@ -46,6 +52,13 @@ namespace ov_musicgen
 
       auto tensortype = device == "CPU" ? ov::element::f32 : ov::element::f16;
 
+      //hack for now.
+      if (config.model_selection == MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_FP16 ||
+         config.model_selection == MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_INT8)
+      {
+         model_folder = FullPath(model_folder, "medium");
+      }
+
       if (config.bStereo)
       {
          model_folder = FullPath(model_folder, "stereo");
@@ -62,10 +75,12 @@ namespace ov_musicgen
          switch (config.model_selection)
          {
          case MusicGenConfig::ModelSelection::MUSICGEN_SMALL_FP16:
+         case MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_FP16:
             decoder_model_path = FullPath(model_folder, "musicgen_decoder.xml");
             break;
 
          case  MusicGenConfig::ModelSelection::MUSICGEN_SMALL_INT8:
+         case  MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_INT8:
             decoder_model_path = FullPath(model_folder, "musicgen_decoder_int8.xml");
             break;
 
@@ -238,10 +253,12 @@ namespace ov_musicgen
          switch (config.model_selection)
          {
          case MusicGenConfig::ModelSelection::MUSICGEN_SMALL_FP16:
+         case MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_FP16:
             decoder_model_path = FullPath(model_folder, "musicgen_decoder_nonkv.xml");
             break;
 
          case  MusicGenConfig::ModelSelection::MUSICGEN_SMALL_INT8:
+         case  MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_INT8:
             decoder_model_path = FullPath(model_folder, "musicgen_decoder_nonkv_int8.xml");
             break;
 
