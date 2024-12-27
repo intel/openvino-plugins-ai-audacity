@@ -129,6 +129,11 @@ static std::vector<std::string> FindAvailableModels()
       }
    }
 
+   available_models.push_back("musicgen-medium-fp16-mono");
+   available_models.push_back("musicgen-medium-int8-mono");
+   available_models.push_back("musicgen-medium-fp16-stereo");
+   available_models.push_back("musicgen-medium-int8-stereo");
+
    return available_models;
 }
 
@@ -322,16 +327,28 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
          continuation_context = ov_musicgen::MusicGenConfig::ContinuationContext::TEN_SECONDS;
       }
 
-      bool bIsModelFP16 = (model_selection_str.find("fp16") != std::string::npos);
-
+      std::cout << "model_selection_str = " << model_selection_str << std::endl;
       ov_musicgen::MusicGenConfig::ModelSelection model_selection;
-      if (bIsModelFP16)
+
+      if (model_selection_str.find("musicgen-small-fp16") != std::string::npos )
       {
          model_selection = ov_musicgen::MusicGenConfig::ModelSelection::MUSICGEN_SMALL_FP16;
       }
-      else
+      else if (model_selection_str.find("musicgen-small-int8") != std::string::npos )
       {
          model_selection = ov_musicgen::MusicGenConfig::ModelSelection::MUSICGEN_SMALL_INT8;
+      }
+      else if (model_selection_str.find("musicgen-medium-fp16") != std::string::npos)
+      {
+         model_selection = ov_musicgen::MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_FP16;
+      }
+      else if (model_selection_str.find("musicgen-medium-int8") != std::string::npos)
+      {
+         model_selection = ov_musicgen::MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_INT8;
+      }
+      else
+      {
+         throw std::runtime_error("Unknown model selection: " + model_selection_str);
       }
 
       std::cout << "encodec_device = " << encodec_device << std::endl;
@@ -882,6 +899,7 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
 
       }
       catch (const std::exception& error) {
+         std::cout << "In Music Generation V2, exception:" + std::string(error.what()) << std::endl;
          wxLogError("In Music Generation V2, exception: %s", error.what());
          EffectUIServices::DoMessageBox(*this,
             XO("Music Generation failed. See details in Help->Diagnostics->Show Log..."),
