@@ -215,11 +215,12 @@ namespace ov_musicgen
          ov::preprocess::PrePostProcessor ppp(model);
          for (size_t layeri = 0; layeri < _decoder_config.num_hidden_layers; layeri++)
          {
-            for (int i = 0; i < 2; i++)
-            {
-               std::string tensorname = "new_key_value_" + std::to_string(layeri) + "_" + std::to_string(i);
-               ppp.output(tensorname).tensor().set_element_type(tensortype);
-            }
+            std::string present_base_name = "present." + std::to_string(layeri) + ".encoder.";
+            std::string present_key_name = present_base_name + "key";
+            std::string present_value_name = present_base_name + "value";
+
+            ppp.output(present_key_name).tensor().set_element_type(tensortype);
+            ppp.output(present_value_name).tensor().set_element_type(tensortype);
          }
 
          model = ppp.build();
@@ -236,11 +237,12 @@ namespace ov_musicgen
 
          for (size_t layeri = 0; layeri < _decoder_config.num_hidden_layers; layeri++)
          {
-            std::string tensorname_key = "new_key_value_" + std::to_string(layeri) + "_0";
-            _infer_request_initial.set_tensor(tensorname_key, past_encoder_keys[layeri]);
+            std::string present_base_name = "present." + std::to_string(layeri) + ".encoder.";
+            std::string present_key_name = present_base_name + "key";
+            std::string present_value_name = present_base_name + "value";
 
-            std::string tensorname_val = "new_key_value_" + std::to_string(layeri) + "_1";
-            _infer_request_initial.set_tensor(tensorname_val, past_encoder_values[layeri]);
+            _infer_request_initial.set_tensor(present_key_name, past_encoder_keys[layeri]);
+            _infer_request_initial.set_tensor(present_value_name, past_encoder_values[layeri]);
          }
 
          _infer_request_initial.infer();
