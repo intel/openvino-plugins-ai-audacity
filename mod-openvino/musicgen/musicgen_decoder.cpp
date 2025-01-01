@@ -3,6 +3,7 @@
 #include "musicgen_decoder.h"
 #include "musicgen_utils.h"
 #include "musicgen_config.h"
+#include "static_kv_cache_manager_cl.h"
 
 #define MAX_PROMPT_TOKENS 64
 
@@ -18,11 +19,11 @@ namespace ov_musicgen
       _infer_request_initial(infer_request_initial),
       _infer_request_nonkv(infer_request_without_past)
    {
-      Init();
    }
 
    void StaticKVCacheManager::Init()
    {
+      std::cout << "StaticKVCacheManager::Init!" << std::endl;
       //populate kv cache tensor vectors
       for (size_t layeri = 0; layeri < _decoder_config.num_hidden_layers; layeri++)
       {
@@ -453,7 +454,15 @@ namespace ov_musicgen
          _infer_request_nonkv = compiledModel.create_infer_request();
       }
 
-      _kv_cache_manager = std::make_shared< StaticKVCacheManager >(_infer_request_initial, _infer_request, _infer_request_nonkv, _decoder_config);
+      if (device.find("GPU") != std::string::npos)
+      {
+         _kv_cache_manager = std::make_shared< StaticKVCacheManagerCL >(core, _infer_request_initial, _infer_request, _infer_request_nonkv, _decoder_config);
+      }
+      else
+      {
+         _kv_cache_manager = std::make_shared< StaticKVCacheManager >(_infer_request_initial, _infer_request, _infer_request_nonkv, _decoder_config);
+      }
+      _kv_cache_manager->Init();
 
       Reset();
       std::cout << "MusicgenDecoderStatic construction complete!" << std::endl;
