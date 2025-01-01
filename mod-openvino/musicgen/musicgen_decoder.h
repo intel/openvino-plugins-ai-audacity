@@ -31,6 +31,41 @@ namespace ov_musicgen
         virtual int64_t MaxNewTokens() = 0;
     };
 
+    class StaticKVCacheManager
+    {
+    public:
+
+       StaticKVCacheManager(ov::InferRequest infer_request_initial,
+          ov::InferRequest infer_request_with_past,
+          ov::InferRequest infer_request_without_past,
+          const MusicgenDecoder::Config& decoder_config);
+
+       virtual void Init();
+
+       virtual void Reset();
+
+       virtual void UpdateFromSingle(size_t position);
+       virtual void UpdateFromLargeContext();
+
+    protected:
+
+       MusicgenDecoder::Config _decoder_config;
+       ov::InferRequest _infer_request;
+       ov::InferRequest _infer_request_initial;
+       ov::InferRequest _infer_request_nonkv;
+
+       std::vector< ov::Tensor > past_decoder_keys;
+       std::vector< ov::Tensor > past_decoder_values;
+       std::vector< ov::Tensor > past_encoder_keys;
+       std::vector< ov::Tensor > past_encoder_values;
+
+       std::vector< ov::Tensor > present_decoder_keys;
+       std::vector< ov::Tensor > present_decoder_values;
+
+       std::vector< ov::Tensor > present_decoder_keys_large_context;
+       std::vector< ov::Tensor > present_decoder_values_large_context;
+    };
+
     class MusicgenDecoderStatic : public MusicgenDecoder
     {
     public:
@@ -55,17 +90,8 @@ namespace ov_musicgen
         ov::InferRequest _infer_request_initial;
         ov::InferRequest _infer_request_nonkv;
 
-        std::vector< ov::Tensor > past_decoder_keys;
-        std::vector< ov::Tensor > past_decoder_values;
-        std::vector< ov::Tensor > past_encoder_keys;
-        std::vector< ov::Tensor > past_encoder_values;
-
-        std::vector< ov::Tensor > present_decoder_keys;
-        std::vector< ov::Tensor > present_decoder_values;
-
-        std::vector< ov::Tensor > present_decoder_keys_large_context;
-        std::vector< ov::Tensor > present_decoder_values_large_context;
-
         Config _decoder_config;
+
+        std::shared_ptr< StaticKVCacheManager > _kv_cache_manager;
     };
 }

@@ -9,6 +9,153 @@
 namespace ov_musicgen
 {
 
+   StaticKVCacheManager::StaticKVCacheManager(ov::InferRequest infer_request_initial,
+      ov::InferRequest infer_request_with_past,
+      ov::InferRequest infer_request_without_past,
+      const MusicgenDecoder::Config& decoder_config)
+      : _decoder_config(decoder_config),
+      _infer_request(infer_request_with_past),
+      _infer_request_initial(infer_request_initial),
+      _infer_request_nonkv(infer_request_without_past)
+   {
+      Init();
+   }
+
+   void StaticKVCacheManager::Init()
+   {
+      //populate kv cache tensor vectors
+      for (size_t layeri = 0; layeri < _decoder_config.num_hidden_layers; layeri++)
+      {
+         {
+            std::string past_base_name = "past_key_values." + std::to_string(layeri) + ".decoder.";
+            std::string past_key_name = past_base_name + "key";
+            std::string past_value_name = past_base_name + "value";
+            past_decoder_keys.push_back(_infer_request.get_tensor(past_key_name));
+            past_decoder_values.push_back(_infer_request.get_tensor(past_value_name));
+         }
+
+         {
+            std::string past_base_name = "past_key_values." + std::to_string(layeri) + ".encoder.";
+            std::string past_key_name = past_base_name + "key";
+            std::string past_value_name = past_base_name + "value";
+            past_encoder_keys.push_back(_infer_request.get_tensor(past_key_name));
+            past_encoder_values.push_back(_infer_request.get_tensor(past_value_name));
+         }
+
+         {
+            std::string present_base_name = "present." + std::to_string(layeri) + ".decoder.";
+            std::string present_key_name = present_base_name + "key";
+            std::string present_value_name = present_base_name + "value";
+            present_decoder_keys.push_back(_infer_request.get_tensor(present_key_name));
+            present_decoder_values.push_back(_infer_request.get_tensor(present_value_name));
+         }
+      }
+
+      // share some tensors between initial kv model, and decoder model
+      _infer_request_initial.set_tensor("attention_mask", _infer_request.get_tensor("encoder_attention_mask"));
+
+      for (size_t layeri = 0; layeri < _decoder_config.num_hidden_layers; layeri++)
+      {
+         std::string present_base_name = "present." + std::to_string(layeri) + ".encoder.";
+         std::string present_key_name = present_base_name + "key";
+         std::string present_value_name = present_base_name + "value";
+
+         _infer_request_initial.set_tensor(present_key_name, past_encoder_keys[layeri]);
+         _infer_request_initial.set_tensor(present_value_name, past_encoder_values[layeri]);
+      }
+
+      
+
+      for (size_t layeri = 0; layeri < _decoder_config.num_hidden_layers; layeri++)
+      {
+         std::string past_base_name = "past_key_values." + std::to_string(layeri) + ".encoder.";
+         std::string past_key_name = past_base_name + "key";
+         std::string past_value_name = past_base_name + "value";
+
+         _infer_request_nonkv.set_tensor(past_key_name, past_encoder_keys[layeri]);
+         _infer_request_nonkv.set_tensor(past_value_name, past_encoder_values[layeri]);
+      }
+
+      for (size_t layeri = 0; layeri < _decoder_config.num_hidden_layers; layeri++)
+      {
+         {
+            std::string present_base_name = "present." + std::to_string(layeri) + ".decoder.";
+            std::string present_key_name = present_base_name + "key";
+            std::string present_value_name = present_base_name + "value";
+            present_decoder_keys_large_context.push_back(_infer_request_nonkv.get_tensor(present_key_name));
+            present_decoder_values_large_context.push_back(_infer_request_nonkv.get_tensor(present_value_name));
+         }
+      }
+
+      _infer_request.infer();
+      _infer_request_initial.infer();
+      _infer_request_nonkv.infer();
+   }
+
+   static inline void clear_tens_vec(std::vector< ov::Tensor >& t_vec)
+   {
+      for (auto& tensor : t_vec)
+      {
+         void* pData = tensor.data();
+         std::memset(pData, 0, tensor.get_byte_size());
+      }
+   }
+
+   void StaticKVCacheManager::Reset()
+   {
+      clear_tens_vec(past_decoder_keys);
+      clear_tens_vec(past_decoder_values);
+
+      clear_tens_vec(present_decoder_keys);
+      clear_tens_vec(present_decoder_values);
+
+      clear_tens_vec(present_decoder_keys_large_context);
+      clear_tens_vec(present_decoder_values_large_context);
+   }
+
+   void StaticKVCacheManager::UpdateFromSingle(size_t position)
+   {
+      for (int deci = 0; deci < _decoder_config.num_hidden_layers; deci++)
+      {
+         auto &past_key_tensor = past_decoder_keys[deci];
+         auto &past_value_tensor = past_decoder_values[deci];
+
+         const ov::Coordinate begin = { 0, 0, position, 0 };
+         const ov::Coordinate end = { 2, _decoder_config.num_attention_heads, position + 1, 64 };
+         auto past_key_slice = ov::Tensor(past_key_tensor, begin, end);
+         auto past_value_slice = ov::Tensor(past_value_tensor, begin, end);
+
+         auto &present_key_tensor = present_decoder_keys[deci];
+         auto &present_value_tensor = present_decoder_values[deci];
+
+         present_key_tensor.copy_to(past_key_slice);
+         present_value_tensor.copy_to(past_value_slice);
+      }
+   }
+
+   void StaticKVCacheManager::UpdateFromLargeContext()
+   {
+      //copy 'kv_valid_size' kv values  
+      for (int deci = 0; deci < _decoder_config.num_hidden_layers; deci++)
+      {
+         auto &past_key_tensor = past_decoder_keys[deci];
+         auto &past_value_tensor = past_decoder_values[deci];
+
+         auto &present_key_tensor = present_decoder_keys_large_context[deci];
+         auto &present_value_tensor = present_decoder_values_large_context[deci];
+
+         size_t kv_valid_size = present_key_tensor.get_shape()[2];
+
+         const ov::Coordinate begin = { 0, 0, 0, 0 };
+         const ov::Coordinate end = { 2, _decoder_config.num_attention_heads, kv_valid_size, 64 };
+         auto past_key_slice = ov::Tensor(past_key_tensor, begin, end);
+         auto past_value_slice = ov::Tensor(past_value_tensor, begin, end);
+
+         present_key_tensor.copy_to(past_key_slice);
+         present_value_tensor.copy_to(past_value_slice);
+      }
+   }
+
    static MusicgenDecoder::Config GenerateDecoderConfig(MusicGenConfig& config)
    {
       MusicgenDecoder::Config decoder_config;
@@ -42,6 +189,8 @@ namespace ov_musicgen
 
       return decoder_config;
    }
+
+   
 
 	MusicgenDecoderStatic::MusicgenDecoderStatic(ov::Core& core, MusicGenConfig& config)
       : _decoder_config(GenerateDecoderConfig(config))
@@ -160,7 +309,7 @@ namespace ov_musicgen
 
          std::cout << "REFACTORED MODEL:" << std::endl;
          logBasicModelInfo(model);
-         ov::serialize(model, "serialized_musicgen_decoder.xml");
+         //ov::serialize(model, "serialized_musicgen_decoder.xml");
 
          using namespace std::chrono;
          using Clock = std::chrono::high_resolution_clock;
@@ -171,34 +320,6 @@ namespace ov_musicgen
          std::cout << "    compile time = " << (t1 - t0) << " ms" << std::endl;
 
          _infer_request = compiledModel.create_infer_request();
-
-         //populate kv cache tensor vectors
-         for (size_t layeri = 0; layeri < _decoder_config.num_hidden_layers; layeri++)
-         {
-            {
-               std::string past_base_name = "past_key_values." + std::to_string(layeri) + ".decoder.";
-               std::string past_key_name = past_base_name + "key";
-               std::string past_value_name = past_base_name + "value";
-               past_decoder_keys.push_back(_infer_request.get_tensor(past_key_name));
-               past_decoder_values.push_back(_infer_request.get_tensor(past_value_name));
-            }
-
-            {
-               std::string past_base_name = "past_key_values." + std::to_string(layeri) + ".encoder.";
-               std::string past_key_name = past_base_name + "key";
-               std::string past_value_name = past_base_name + "value";
-               past_encoder_keys.push_back(_infer_request.get_tensor(past_key_name));
-               past_encoder_values.push_back(_infer_request.get_tensor(past_value_name));
-            }
-
-            {
-               std::string present_base_name = "present." + std::to_string(layeri) + ".decoder.";
-               std::string present_key_name = present_base_name + "key";
-               std::string present_value_name = present_base_name + "value";
-               present_decoder_keys.push_back(_infer_request.get_tensor(present_key_name));
-               present_decoder_values.push_back(_infer_request.get_tensor(present_value_name));
-            }
-         }
       }
 
       //prep cross attn kv producer model. This is the thing that generates the
@@ -207,9 +328,11 @@ namespace ov_musicgen
          auto model_path = FullPath(model_folder, "initial_cross_attn_kv_producer.xml");
          std::shared_ptr<ov::Model> model = core.read_model(model_path);
 
+         auto past_encoder_key0 = _infer_request.get_tensor("past_key_values.0.encoder.key");
+
          std::map<ov::Output<ov::Node>, ov::PartialShape> port_to_shape;
-         port_to_shape[model->input("encoder_hidden_states")] = { 2, past_encoder_keys[0].get_shape()[2], 768};
-         port_to_shape[model->input("attention_mask")] = { 2, past_encoder_keys[0].get_shape()[2] };
+         port_to_shape[model->input("encoder_hidden_states")] = { 2, past_encoder_key0.get_shape()[2], 768};
+         port_to_shape[model->input("attention_mask")] = { 2, past_encoder_key0.get_shape()[2] };
          model->reshape(port_to_shape);
 
          ov::preprocess::PrePostProcessor ppp(model);
@@ -231,21 +354,6 @@ namespace ov_musicgen
          ov::CompiledModel compiledModel = core.compile_model(model, device);
 
          _infer_request_initial = compiledModel.create_infer_request();
-
-         // share some tensors between initial kv model, and decoder model
-         _infer_request_initial.set_tensor("attention_mask", _infer_request.get_tensor("encoder_attention_mask"));
-
-         for (size_t layeri = 0; layeri < _decoder_config.num_hidden_layers; layeri++)
-         {
-            std::string present_base_name = "present." + std::to_string(layeri) + ".encoder.";
-            std::string present_key_name = present_base_name + "key";
-            std::string present_value_name = present_base_name + "value";
-
-            _infer_request_initial.set_tensor(present_key_name, past_encoder_keys[layeri]);
-            _infer_request_initial.set_tensor(present_value_name, past_encoder_values[layeri]);
-         }
-
-         _infer_request_initial.infer();
       }
 
 
@@ -338,64 +446,24 @@ namespace ov_musicgen
 
          std::cout << "REFACTORED NON-KV MODEL:" << std::endl;
          logBasicModelInfo(model);
-         ov::serialize(model, "serialized_musicgen_decoder_nonkv.xml");
+         //ov::serialize(model, "serialized_musicgen_decoder_nonkv.xml");
 
          ov::CompiledModel compiledModel = core.compile_model(model, device);
 
          _infer_request_nonkv = compiledModel.create_infer_request();
-
-         for (size_t layeri = 0; layeri < _decoder_config.num_hidden_layers; layeri++)
-         {
-            std::string past_base_name = "past_key_values." + std::to_string(layeri) + ".encoder.";
-            std::string past_key_name = past_base_name + "key";
-            std::string past_value_name = past_base_name + "value";
-
-            _infer_request_nonkv.set_tensor(past_key_name, past_encoder_keys[layeri]);
-            _infer_request_nonkv.set_tensor(past_value_name, past_encoder_values[layeri]);
-         }
-
-         for (size_t layeri = 0; layeri < _decoder_config.num_hidden_layers; layeri++)
-         {
-
-            {
-               std::string present_base_name = "present." + std::to_string(layeri) + ".decoder.";
-               std::string present_key_name = present_base_name + "key";
-               std::string present_value_name = present_base_name + "value";
-               present_decoder_keys_large_context.push_back(_infer_request_nonkv.get_tensor(present_key_name));
-               present_decoder_values_large_context.push_back(_infer_request_nonkv.get_tensor(present_value_name));
-            }
-         }
-
-         _infer_request_nonkv.infer();
       }
+
+      _kv_cache_manager = std::make_shared< StaticKVCacheManager >(_infer_request_initial, _infer_request, _infer_request_nonkv, _decoder_config);
 
       Reset();
       std::cout << "MusicgenDecoderStatic construction complete!" << std::endl;
 	}
 
-   static inline void clear_tens_vec(std::vector< ov::Tensor > &t_vec)
-   {
-      for (auto &tensor : t_vec)
-      {
-         void* pData = tensor.data();
-          std::memset(pData, 0, tensor.get_byte_size());
-      }
-   }
-
    void MusicgenDecoderStatic::Reset()
    {
       _past_length = 0;
 
-      //reset kv cache tensors to 0
-      clear_tens_vec(past_decoder_keys);
-      clear_tens_vec(past_decoder_values);
-
-
-      clear_tens_vec(present_decoder_keys);
-      clear_tens_vec(present_decoder_values);
-
-      clear_tens_vec(present_decoder_keys_large_context);
-      clear_tens_vec(present_decoder_values_large_context);
+      _kv_cache_manager->Reset();
 
       //clear initial input tensor
       {
@@ -462,25 +530,7 @@ namespace ov_musicgen
 
          _infer_request_nonkv.infer();
 
-         //copy 'kv_valid_size' kv values  
-         for (int deci = 0; deci < _decoder_config.num_hidden_layers; deci++)
-         {
-            auto past_key_tensor = past_decoder_keys[deci];
-            auto past_value_tensor = past_decoder_values[deci];
-
-            auto present_key_tensor = present_decoder_keys_large_context[deci];
-            auto present_value_tensor = present_decoder_values_large_context[deci];
-
-            size_t kv_valid_size = present_key_tensor.get_shape()[2];
-
-            const ov::Coordinate begin = { 0, 0, 0, 0 };
-            const ov::Coordinate end = { 2, _decoder_config.num_attention_heads, kv_valid_size, 64 };
-            auto past_key_slice = ov::Tensor(past_key_tensor, begin, end);
-            auto past_value_slice = ov::Tensor(past_value_tensor, begin, end);
-
-            present_key_tensor.copy_to(past_key_slice);
-            present_value_tensor.copy_to(past_value_slice);
-         }
+         _kv_cache_manager->UpdateFromLargeContext();
 
          logits = wrap_ov_tensor_as_torch(_infer_request_nonkv.get_tensor("logits"));
 
@@ -525,30 +575,7 @@ namespace ov_musicgen
 
          _infer_request.infer();
 
-         for (int deci = 0; deci < _decoder_config.num_hidden_layers; deci++)
-         {
-            std::string iname = "past_key_values." + std::to_string(deci) + ".decoder.";
-            std::string key_name = iname + "key";
-            std::string value_name = iname + "value";
-
-            auto past_key_tensor = _infer_request.get_tensor(key_name);
-            auto past_value_tensor = _infer_request.get_tensor(value_name);
-
-            const ov::Coordinate begin = { 0, 0, (size_t)_past_length, 0 };
-            const ov::Coordinate end = { 2, _decoder_config.num_attention_heads, (size_t)_past_length + 1, 64 };
-            auto past_key_slice = ov::Tensor(past_key_tensor, begin, end);
-            auto past_value_slice = ov::Tensor(past_value_tensor, begin, end);
-
-            iname = "present." + std::to_string(deci) + ".decoder.";
-            key_name = iname + "key";
-            value_name = iname + "value";
-
-            auto present_key_tensor = _infer_request.get_tensor(key_name);
-            auto present_value_tensor = _infer_request.get_tensor(value_name);
-
-            present_key_tensor.copy_to(past_key_slice);
-            present_value_tensor.copy_to(past_value_slice);
-         }
+         _kv_cache_manager->UpdateFromSingle(_past_length);
 
          logits = wrap_ov_tensor_as_torch(_infer_request.get_tensor("logits"));
 
@@ -565,6 +592,7 @@ namespace ov_musicgen
 
 	int64_t MusicgenDecoderStatic::MaxNewTokens()
 	{
-		return past_decoder_keys[0].get_shape()[2];
+      auto past_decoder_key0 = _infer_request.get_tensor("past_key_values.0.decoder.key");
+		return past_decoder_key0.get_shape()[2];
 	}
 }
