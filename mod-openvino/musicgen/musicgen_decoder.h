@@ -6,6 +6,7 @@
 #include <openvino/openvino.hpp>
 #include <optional>
 #include "musicgen_config.h"
+#include <future>
 
 namespace ov_musicgen
 {
@@ -47,6 +48,9 @@ namespace ov_musicgen
        virtual void UpdateFromSingle(size_t position);
        virtual void UpdateFromLargeContext();
 
+       void UpdateFromSingleAsync(size_t position);
+       void Wait();
+
     protected:
 
        MusicgenDecoder::Config _decoder_config;
@@ -64,6 +68,8 @@ namespace ov_musicgen
 
        std::vector< ov::Tensor > present_decoder_keys_large_context;
        std::vector< ov::Tensor > present_decoder_values_large_context;
+
+       std::future<void> _update_single_future;
     };
 
     class MusicgenDecoderStatic : public MusicgenDecoder
@@ -93,5 +99,8 @@ namespace ov_musicgen
         Config _decoder_config;
 
         std::shared_ptr< StaticKVCacheManager > _kv_cache_manager;
+
+        uint64_t _infer_time_us = 0;
+        uint64_t _kv_update_time_us = 0;
     };
 }

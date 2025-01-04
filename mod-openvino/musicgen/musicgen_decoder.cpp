@@ -5,8 +5,11 @@
 #include "musicgen_config.h"
 #include "static_kv_cache_manager_cl.h"
 
-#define MAX_PROMPT_TOKENS 64
+using namespace std::chrono;
+using Clock = std::chrono::high_resolution_clock;
 
+#define MAX_PROMPT_TOKENS 64
+#define MAX_DECODER_HISTORY_TOKENS 1004
 namespace ov_musicgen
 {
 
@@ -112,6 +115,26 @@ namespace ov_musicgen
 
       clear_tens_vec(present_decoder_keys_large_context);
       clear_tens_vec(present_decoder_values_large_context);
+   }
+
+   void StaticKVCacheManager::UpdateFromSingleAsync(size_t position)
+   {
+      if (_update_single_future.valid())
+      {
+         std::cout << "UpdateFromSingleAsync: Warning! The update single future is valid! It means it wasn't waited for..." << std::endl;
+         _update_single_future.get();
+      }
+
+      _update_single_future = std::async(std::launch::async, &StaticKVCacheManager::UpdateFromSingle, this, position);
+   }
+
+   void StaticKVCacheManager::Wait()
+   {
+      if (_update_single_future.valid())
+      {
+         _update_single_future.get();
+         _update_single_future = {};
+      }
    }
 
    void StaticKVCacheManager::UpdateFromSingle(size_t position)
@@ -222,16 +245,19 @@ namespace ov_musicgen
       model_folder = FullPath(model_folder, "refactor");
       {
          std::string decoder_model_path;
+         std::string decoder_bin_path;
          switch (config.model_selection)
          {
          case MusicGenConfig::ModelSelection::MUSICGEN_SMALL_FP16:
          case MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_FP16:
             decoder_model_path = FullPath(model_folder, "musicgen_decoder.xml");
+            decoder_bin_path = FullPath(model_folder, "musicgen_decoder_combined.bin");
             break;
 
          case  MusicGenConfig::ModelSelection::MUSICGEN_SMALL_INT8:
          case  MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_INT8:
             decoder_model_path = FullPath(model_folder, "musicgen_decoder_int8.xml");
+            decoder_bin_path = FullPath(model_folder, "musicgen_decoder_int8_combined.bin");
             break;
 
          default:
@@ -240,16 +266,16 @@ namespace ov_musicgen
          }
 
          std::cout << " Using model=" << decoder_model_path << std::endl;
-         std::shared_ptr<ov::Model> model = core.read_model(decoder_model_path);
+         std::shared_ptr<ov::Model> model = core.read_model(decoder_model_path, decoder_bin_path);
 
          //reshape to static shapes
          {
-            size_t max_tokens = 1004;
+            
             std::map<ov::Output<ov::Node>, ov::PartialShape> port_to_shape;
             port_to_shape[model->input("encoder_attention_mask")] = { 2, MAX_PROMPT_TOKENS };
             port_to_shape[model->input("decoder_input_ids")] = { _decoder_config.num_codebooks*2, 1 };
             port_to_shape[model->input("encoder_hidden_states")] = { 2, MAX_PROMPT_TOKENS, 768 };
-            port_to_shape[model->input("decoder_attention_mask")] = { 2, max_tokens + 1 };
+            port_to_shape[model->input("decoder_attention_mask")] = { 2, MAX_DECODER_HISTORY_TOKENS + 1 };
             port_to_shape[model->input("past_key_length_tens")] = { 1 };
 
             for (int enci = 0; enci < _decoder_config.num_hidden_layers; enci++)
@@ -268,8 +294,8 @@ namespace ov_musicgen
                std::string key_name = iname + "key";
                std::string value_name = iname + "value";
 
-               port_to_shape[model->input(key_name)] = { 2, _decoder_config.num_attention_heads, max_tokens, 64 };
-               port_to_shape[model->input(value_name)] = { 2, _decoder_config.num_attention_heads, max_tokens, 64 };
+               port_to_shape[model->input(key_name)] = { 2, _decoder_config.num_attention_heads, MAX_DECODER_HISTORY_TOKENS, 64 };
+               port_to_shape[model->input(value_name)] = { 2, _decoder_config.num_attention_heads, MAX_DECODER_HISTORY_TOKENS, 64 };
             }
 
             model->reshape(port_to_shape);
@@ -361,16 +387,19 @@ namespace ov_musicgen
       //prep large context model
       {
          std::string decoder_model_path;
+         std::string decoder_bin_path;
          switch (config.model_selection)
          {
          case MusicGenConfig::ModelSelection::MUSICGEN_SMALL_FP16:
          case MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_FP16:
             decoder_model_path = FullPath(model_folder, "musicgen_decoder_nonkv.xml");
+            decoder_bin_path = FullPath(model_folder, "musicgen_decoder_combined.bin");
             break;
 
          case  MusicGenConfig::ModelSelection::MUSICGEN_SMALL_INT8:
          case  MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_INT8:
             decoder_model_path = FullPath(model_folder, "musicgen_decoder_nonkv_int8.xml");
+            decoder_bin_path = FullPath(model_folder, "musicgen_decoder_int8_combined.bin");
             break;
 
          default:
@@ -378,7 +407,7 @@ namespace ov_musicgen
             break;
          }
 
-         std::shared_ptr<ov::Model> model = core.read_model(decoder_model_path);
+         std::shared_ptr<ov::Model> model = core.read_model(decoder_model_path, decoder_bin_path);
 
          size_t num_ids;
          switch (config.m_continuation_context)
@@ -470,8 +499,14 @@ namespace ov_musicgen
 
    void MusicgenDecoderStatic::Reset()
    {
+      std::cout << "Reset: Previous Infer Time = " << _infer_time_us << " us" << std::endl;
+      std::cout << "Reset: Previous KV Update Time = " << _kv_update_time_us << " us" << std::endl;
+      _infer_time_us = 0;
+      _kv_update_time_us = 0;
+
       _past_length = 0;
 
+      _kv_cache_manager->Wait();
       _kv_cache_manager->Reset();
 
       //clear initial input tensor
@@ -508,6 +543,8 @@ namespace ov_musicgen
 		std::optional<torch::Tensor> encoder_hidden_states,
 		std::optional<torch::Tensor> encoder_attention_mask)
 	{
+      _kv_cache_manager->Wait();
+
       using namespace torch::indexing;
       if (_past_length == 0 && encoder_hidden_states && encoder_attention_mask)
       {
@@ -582,9 +619,20 @@ namespace ov_musicgen
             *pPastKeyLength = _past_length;
          }
 
-         _infer_request.infer();
+         {
+            uint64_t t0 = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
+            _infer_request.infer();
+            uint64_t t1 = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
+            _infer_time_us += t1 - t0;
+         }
 
-         _kv_cache_manager->UpdateFromSingle(_past_length);
+         {
+            uint64_t t0 = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
+            //_kv_cache_manager->UpdateFromSingle(_past_length);
+            _kv_cache_manager->UpdateFromSingleAsync(_past_length);
+            uint64_t t1 = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
+            _kv_update_time_us += t1 - t0;
+         }
 
          logits = wrap_ov_tensor_as_torch(_infer_request.get_tensor("logits"));
 
