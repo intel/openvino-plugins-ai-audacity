@@ -224,4 +224,3 @@ cd ~/audacity-openvino/audacity-build
 Go to **Modules**, ensure OpenVINO is **Enabled**, and restart.
 
 🎉 **Installation is Complete!** 🚀  
-If you have any issues, feel free to ask for help!
