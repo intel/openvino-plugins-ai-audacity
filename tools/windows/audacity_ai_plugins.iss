@@ -90,25 +90,25 @@ Source: "module_preferences.bmp"; Flags: dontcopy
 
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
-Source: "{tmp}\ggml-base-models.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\ggml-base-models.zip', '{app}\openvino-models'); Components: whisper\base; Flags: external
-Source: "{tmp}\ggml-small-models.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\ggml-small-models.zip', '{app}\openvino-models'); Components: whisper\small; Flags: external
-Source: "{tmp}\ggml-small.en-tdrz-models.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\ggml-small.en-tdrz-models.zip', '{app}\openvino-models'); Components: whisper\small_en_tdrz; Flags: external
-Source: "{tmp}\ggml-medium-models.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\ggml-medium-models.zip', '{app}\openvino-models'); Components: whisper\medium; Flags: external
-Source: "{tmp}\ggml-large-v1-models.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\ggml-large-v1-models.zip', '{app}\openvino-models'); Components: whisper\large_v1; Flags: external
-Source: "{tmp}\ggml-large-v2-models.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\ggml-large-v2-models.zip', '{app}\openvino-models'); Components: whisper\large_v2; Flags: external
-Source: "{tmp}\ggml-large-v3-models.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\ggml-large-v3-models.zip', '{app}\openvino-models'); Components: whisper\large_v3; Flags: external
-Source: "{tmp}\musicgen_small_enc_dec_tok_openvino_models.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\musicgen_small_enc_dec_tok_openvino_models.zip', '{app}\openvino-models\musicgen'); Components: music_gen; Flags: external
-Source: "{tmp}\musicgen_small_stereo_openvino_models.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\musicgen_small_stereo_openvino_models.zip', '{app}\openvino-models\musicgen'); Components: music_gen\small_stereo; Flags: external
-Source: "{tmp}\musicgen_small_mono_openvino_models.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\musicgen_small_mono_openvino_models.zip', '{app}\openvino-models\musicgen'); Components: music_gen\small_mono; Flags: external
-Source: "{tmp}\deepfilternet2.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\deepfilternet2.zip', '{app}\openvino-models\'); Components: noise_sup\deepfilternet2; Flags: external
-Source: "{tmp}\deepfilternet3.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\deepfilternet3.zip', '{app}\openvino-models\'); Components: noise_sup\deepfilternet3; Flags: external
-Source: "{tmp}\htdemucs_v4.bin"; DestDir: "{app}\openvino-models\";  Components: music_sep; Flags: external
-Source: "{tmp}\htdemucs_v4.xml"; DestDir: "{app}\openvino-models\";  Components: music_sep; Flags: external
-Source: "{tmp}\noise-suppression-denseunet-ll-0001.bin"; DestDir: "{app}\openvino-models\";  Components: noise_sup\denseunet; Flags: external
-Source: "{tmp}\noise-suppression-denseunet-ll-0001.xml"; DestDir: "{app}\openvino-models\";  Components: noise_sup\denseunet; Flags: external
-Source: "{tmp}\versatile_audio_sr_base_openvino_models.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\versatile_audio_sr_base_openvino_models.zip', '{app}\openvino-models\audiosr'); Components: super_res; Flags: external
-Source: "{tmp}\versatile_audio_sr_ddpm_basic_openvino_models.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\versatile_audio_sr_ddpm_basic_openvino_models.zip', '{app}\openvino-models\audiosr'); Components: super_res\basic; Flags: external
-Source: "{tmp}\versatile_audio_sr_ddpm_speech_openvino_models.zip"; DestDir: "{tmp}"; AfterInstall: ExtractSomething('{tmp}\versatile_audio_sr_ddpm_speech_openvino_models.zip', '{app}\openvino-models\audiosr'); Components: super_res\speech; Flags: external
+Source: "{code:TmpDir}\ggml-base-models.zip"; DestDir: "{code:TmpDir}"; AfterInstall: ExtractSomething('{code:TmpDir}\ggml-base-models.zip', '{app}\openvino-models'); Components: whisper\base; Flags: external
+Source: "{code:TmpDir}\ggml-small-models.zip"; DestDir: "{code:TmpDir}"; AfterInstall: ExtractSomething('{code:TmpDir}\ggml-small-models.zip', '{app}\openvino-models'); Components: whisper\small; Flags: external
+Source: "{code:TmpDir}\ggml-small.en-tdrz-models.zip"; DestDir: "{code:TmpDir}"; AfterInstall: ExtractSomething('{code:TmpDir}\ggml-small.en-tdrz-models.zip', '{app}\openvino-models'); Components: whisper\small_en_tdrz; Flags: external
+Source: "{code:TmpDir}\ggml-medium-models.zip"; DestDir: "{code:TmpDir}"; AfterInstall: ExtractSomething('{code:TmpDir}\ggml-medium-models.zip', '{app}\openvino-models'); Components: whisper\medium; Flags: external
+Source: "{code:TmpDir}\ggml-large-v1-models.zip"; DestDir: "{code:TmpDir}"; AfterInstall: ExtractSomething('{code:TmpDir}\ggml-large-v1-models.zip', '{app}\openvino-models'); Components: whisper\large_v1; Flags: external
+Source: "{code:TmpDir}\ggml-large-v2-models.zip"; DestDir: "{code:TmpDir}"; AfterInstall: ExtractSomething('{code:TmpDir}\ggml-large-v2-models.zip', '{app}\openvino-models'); Components: whisper\large_v2; Flags: external
+Source: "{code:TmpDir}\ggml-large-v3-models.zip"; DestDir: "{code:TmpDir}"; AfterInstall: ExtractSomething('{code:TmpDir}\ggml-large-v3-models.zip', '{app}\openvino-models'); Components: whisper\large_v3; Flags: external
+Source: "{code:TmpDir}\musicgen_small_enc_dec_tok_openvino_models.zip"; DestDir: "{code:TmpDir}"; AfterInstall: ExtractSomething('{code:TmpDir}\musicgen_small_enc_dec_tok_openvino_models.zip', '{app}\openvino-models\musicgen'); Components: music_gen; Flags: external
+Source: "{code:TmpDir}\musicgen_small_stereo_openvino_models.zip"; DestDir: "{code:TmpDir}"; AfterInstall: ExtractSomething('{code:TmpDir}\musicgen_small_stereo_openvino_models.zip', '{app}\openvino-models\musicgen'); Components: music_gen\small_stereo; Flags: external
+Source: "{code:TmpDir}\musicgen_small_mono_openvino_models.zip"; DestDir: "{code:TmpDir}"; AfterInstall: ExtractSomething('{code:TmpDir}\musicgen_small_mono_openvino_models.zip', '{app}\openvino-models\musicgen'); Components: music_gen\small_mono; Flags: external
+Source: "{code:TmpDir}\deepfilternet2.zip"; DestDir: "{code:TmpDir}"; AfterInstall: ExtractSomething('{code:TmpDir}\deepfilternet2.zip', '{app}\openvino-models\'); Components: noise_sup\deepfilternet2; Flags: external
+Source: "{code:TmpDir}\deepfilternet3.zip"; DestDir: "{code:TmpDir}"; AfterInstall: ExtractSomething('{code:TmpDir}\deepfilternet3.zip', '{app}\openvino-models\'); Components: noise_sup\deepfilternet3; Flags: external
+Source: "{code:TmpDir}\htdemucs_v4.bin"; DestDir: "{app}\openvino-models\";  Components: music_sep; Flags: external
+Source: "{code:TmpDir}\htdemucs_v4.xml"; DestDir: "{app}\openvino-models\";  Components: music_sep; Flags: external
+Source: "{code:TmpDir}\noise-suppression-denseunet-ll-0001.bin"; DestDir: "{app}\openvino-models\";  Components: noise_sup\denseunet; Flags: external
+Source: "{code:TmpDir}\noise-suppression-denseunet-ll-0001.xml"; DestDir: "{app}\openvino-models\";  Components: noise_sup\denseunet; Flags: external
+Source: "{code:TmpDir}\versatile_audio_sr_base_openvino_models.zip"; DestDir: "{code:TmpDir}"; AfterInstall: ExtractSomething('{code:TmpDir}\versatile_audio_sr_base_openvino_models.zip', '{app}\openvino-models\audiosr'); Components: super_res; Flags: external
+Source: "{code:TmpDir}\versatile_audio_sr_ddpm_basic_openvino_models.zip"; DestDir: "{code:TmpDir}"; AfterInstall: ExtractSomething('{code:TmpDir}\versatile_audio_sr_ddpm_basic_openvino_models.zip', '{app}\openvino-models\audiosr'); Components: super_res\basic; Flags: external
+Source: "{code:TmpDir}\versatile_audio_sr_ddpm_speech_openvino_models.zip"; DestDir: "{code:TmpDir}"; AfterInstall: ExtractSomething('{code:TmpDir}\versatile_audio_sr_ddpm_speech_openvino_models.zip', '{app}\openvino-models\audiosr'); Components: super_res\speech; Flags: external
 
 [Messages]
 WizardSelectComponents=Select Models
@@ -140,7 +140,8 @@ var
   SupportsAVX2: Boolean;
   CustomImage: TBitmapImage;
   DocumentationLabel: TLabel;
-
+  TmpDirPage: TInputDirWizardPage;
+  
 function IsAVX2Supported(): Boolean;
 begin
    Result := SupportsAVX2;
@@ -162,7 +163,7 @@ end;
 function OnDownloadProgress(const Url, FileName: String; const Progress, ProgressMax: Int64): Boolean;
 begin
   if Progress = ProgressMax then
-    Log(Format('Successfully downloaded file to {tmp}: %s', [FileName]));
+    Log(Format('Successfully downloaded file to {code:TmpDir}: %s', [FileName]));
   Result := True;
 end;
 
@@ -182,7 +183,15 @@ begin
   DocumentationLabel := TLabel.Create(WizardForm);
   DocumentationLabel.Parent := WizardForm.FinishedPage;
   DocumentationLabel.AutoSize := True;
+  
+  TmpDirPage := CreateInputDirPage(wpSelectDir, 'Select source directory', '',  '', False, '');
+  TmpDirPage.Add('Source directory:');
 end;
+
+function TmpDir(Params: string): string;
+begin
+  Result := TmpDirPage.Values[0];
+end
 
 function FindAudacity(Param: String): String;
 var
@@ -351,7 +360,7 @@ begin
         DownloadPage.Show;
         try
           try
-            DownloadPage.Download; // This downloads the files to {tmp}
+            DownloadPage.Download; // This downloads the files to {code:TmpDir}
             Result := True;
           except
             if DownloadPage.AbortedByUser then
@@ -421,7 +430,7 @@ begin
 
     // Load the custom image
     ExtractTemporaryFile('module_preferences.bmp');
-    CustomImage.Bitmap.LoadFromFile(ExpandConstant('{tmp}\module_preferences.bmp'));
+    CustomImage.Bitmap.LoadFromFile(ExpandConstant('{code:TmpDir}\module_preferences.bmp'));
 
     CustomImage.Top := WizardForm.FinishedLabel.Top + WizardForm.FinishedLabel.Height + 10;
     CustomImage.Left := WizardForm.FinishedLabel.Left;
