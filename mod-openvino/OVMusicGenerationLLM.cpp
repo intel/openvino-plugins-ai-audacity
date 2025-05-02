@@ -193,7 +193,7 @@ VendorSymbol EffectOVMusicGenerationLLM::GetVendor() const
 // EffectDefinitionInterface implementation
 EffectType EffectOVMusicGenerationLLM::GetType() const
 {
-   return EffectTypeGenerate;
+   return EffectTypeProcess;
 }
 
 bool EffectOVMusicGenerationLLM::DoEffect(
