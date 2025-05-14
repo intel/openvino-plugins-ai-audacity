@@ -4,6 +4,7 @@
 set( TARGET mod-openvino )
 
 find_package(OpenVINO REQUIRED COMPONENTS Runtime)
+find_package(OpenVINOGenAI REQUIRED)
 
 message("ENV LIBTORCH_ROOTDIR = $ENV{LIBTORCH_ROOTDIR}")
 
@@ -75,6 +76,8 @@ set( SOURCES
       OVMusicGenerationLLM.h
       OVWhisperTranscription.cpp
       OVWhisperTranscription.h
+      OVWhisperTranscriptionGenAI.cpp
+      OVWhisperTranscriptionGenAI.h
       htdemucs.cpp
       htdemucs.h
       ${OV_MUSICGEN_SOURCES}
@@ -86,6 +89,7 @@ set( LIBRARIES
    PRIVATE
       Audacity
       openvino::runtime
+      openvino::genai
 	   OpenCL::OpenCL
       ${TORCH_LIBRARIES}
       ${whisper}
