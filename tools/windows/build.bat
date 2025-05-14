@@ -8,7 +8,7 @@ IF NOT EXIST env.bat (
 call env.bat
 
 echo LIBTORCH_DIR=%LIBTORCH_DIR%
-echo OPENVINO_DIR=%OPENVINO_DIR%
+echo OPENVINO_GENAI_DIR=%OPENVINO_GENAI_DIR%
 echo OPENCL_SDK_DIR=%OPENCL_SDK_DIR%
 echo WHISPER_CLONE_DIR=%WHISPER_CLONE_DIR%
 echo AUDACITY_CLONE_DIR=%AUDACITY_CLONE_DIR%
@@ -19,8 +19,9 @@ echo Path=%Path%
 
 :: Copyright (C) 2024 Intel Corporation
 :: SPDX-License-Identifier: GPL-3.0-only
-IF "%OPENVINO_DIR%"=="" (
-    echo OPENVINO_DIR is not set. Exiting.
+
+IF "%OPENVINO_GENAI_DIR%"=="" (
+    echo OPENVINO_GENAI_DIR is not set. Exiting.
     exit /b 1
 )
 
@@ -64,8 +65,8 @@ set "bat_path=%~dp0"
 set audacity_add_ov_mod_patch_path=%bat_path%add_ov_module.patch
 set audacity_no_vc_runtime_install_patch=%bat_path%audacity_no_vc_runtime_install.patch
 
-:: Set up OpenVINO build environment.
-call %OPENVINO_DIR%\setupvars.bat || exit /b 1
+:: Set up OpenVINO GenAI build environment.
+call %OPENVINO_GENAI_DIR%\setupvars.bat || exit /b 1
 
 :: Setup Libtorch end.
 set LIBTORCH_ROOTDIR=%LIBTORCH_DIR%
