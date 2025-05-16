@@ -4,6 +4,7 @@
 set( TARGET mod-openvino )
 
 find_package(OpenVINO REQUIRED COMPONENTS Runtime)
+find_package(OpenVINOGenAI REQUIRED)
 
 message("ENV LIBTORCH_ROOTDIR = $ENV{LIBTORCH_ROOTDIR}")
 
@@ -13,11 +14,6 @@ set(CMAKE_PREFIX_PATH "${LIBTORCH_ROOTDIR}/share/cmake/Torch")
 
 find_package(Torch REQUIRED)
 message("torch libraries = ${TORCH_LIBRARIES}")
-
-set(WHISPERCPP_ROOTDIR $ENV{WHISPERCPP_ROOTDIR})
-find_library(whisper NAMES whisper HINTS ${WHISPERCPP_ROOTDIR}/lib/static ${WHISPERCPP_ROOTDIR}/lib )
-include_directories(${WHISPERCPP_ROOTDIR}/include )
-message("whisper library = ${whisper}")
 
 #for musicgen
 #whether ITT is enabled or not, include ittutils.
@@ -73,8 +69,8 @@ set( SOURCES
       OVMusicSeparation.h
       OVMusicGenerationLLM.cpp
       OVMusicGenerationLLM.h
-      OVWhisperTranscription.cpp
-      OVWhisperTranscription.h
+      OVWhisperTranscriptionGenAI.cpp
+      OVWhisperTranscriptionGenAI.h
       htdemucs.cpp
       htdemucs.h
       ${OV_MUSICGEN_SOURCES}
@@ -86,9 +82,9 @@ set( LIBRARIES
    PRIVATE
       Audacity
       openvino::runtime
+      openvino::genai
 	   OpenCL::OpenCL
       ${TORCH_LIBRARIES}
-      ${whisper}
 )
 
 audacity_module( ${TARGET} "${SOURCES}" "${LIBRARIES}" "" "" )

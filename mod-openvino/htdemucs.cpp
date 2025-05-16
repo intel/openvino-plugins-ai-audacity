@@ -263,14 +263,14 @@ namespace ovdemucs
 
         void run_inference(torch::Tensor& x, torch::Tensor& xt)
         {
-            const ov::Tensor& x_tensor = inferRequest.get_tensor(inputsNames[0]);
-            const ov::Tensor& xt_tensor = inferRequest.get_tensor(inputsNames[1]);
+            ov::Tensor x_tensor = inferRequest.get_tensor(inputsNames[0]);
+            ov::Tensor xt_tensor = inferRequest.get_tensor(inputsNames[1]);
 
             x.contiguous();
             xt.contiguous();
 
-            float* pXTensor = x_tensor.data<float>();
-            float* pXTTensor = xt_tensor.data<float>();
+            auto pXTensor = x_tensor.data<float>();
+            auto pXTTensor = xt_tensor.data<float>();
 
             std::memcpy(pXTensor, x.data_ptr(), x.numel() * x.element_size());
             std::memcpy(pXTTensor, xt.data_ptr(), xt.numel() * xt.element_size());
@@ -278,11 +278,11 @@ namespace ovdemucs
             static int inferencei = 0;
             inferRequest.infer();
 
-            const ov::Tensor& x_out_tensor = inferRequest.get_tensor(outputsNames[0]);
-            const ov::Tensor& xt_out_tensor = inferRequest.get_tensor(outputsNames[1]);
+            ov::Tensor x_out_tensor = inferRequest.get_tensor(outputsNames[0]);
+            ov::Tensor xt_out_tensor = inferRequest.get_tensor(outputsNames[1]);
 
-            float* pXTensor_Out = x_out_tensor.data<float>();
-            float* pXTTensor_Out = xt_out_tensor.data<float>();
+            auto pXTensor_Out = x_out_tensor.data<float>();
+            auto pXTTensor_Out = xt_out_tensor.data<float>();
 
             torch::Tensor x_as_tensor = torch::from_blob(pXTensor_Out, { 1, 16, 2048, 336 });
             torch::Tensor xt_as_tensor = torch::from_blob(pXTTensor_Out, { 1, 8, 343980 });
