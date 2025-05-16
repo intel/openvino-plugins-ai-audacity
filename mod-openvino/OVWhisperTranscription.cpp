@@ -418,7 +418,7 @@ VendorSymbol EffectOVWhisperTranscription::GetVendor() const
 
 EffectType EffectOVWhisperTranscription::GetType() const
 {
-   return EffectTypeProcess;
+   return EffectTypeAnalyze;
 }
 
 bool EffectOVWhisperTranscription::Process(EffectInstance&, EffectSettings&)
