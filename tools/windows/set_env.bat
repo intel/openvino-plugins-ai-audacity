@@ -4,12 +4,11 @@ set "bat_path=%~dp0"
 
 set PATH_TO_SET=
 
-:: Check if at least 5 arguments are passed.
+:: Check if at least 4 arguments are passed.
 if "%~1"=="" goto error
 if "%~2"=="" goto error
 if "%~3"=="" goto error
 if "%~4"=="" goto error
-if "%~5"=="" goto error
 
 :: Build Level 0=alpha, 1=beta, 2=release
 set AUDACITY_BUILD_LEVEL=2
@@ -31,22 +30,17 @@ call :ConvertRelToAbsPath %3 || exit /b 1
 set OPENCL_SDK_ABS_PATH=%ABS_PATH%
 
 call :ConvertRelToAbsPath %4 || exit /b 1
-set WHISPER_CLONE_ABS_PATH=%ABS_PATH%
-
-call :ConvertRelToAbsPath %5 || exit /b 1
 set AUDACITY_CLONE_ABS_PATH=%ABS_PATH%
 
 set LIBTORCH_DIR=%LIBTORCH_ABS_PATH%
 set OPENVINO_GENAI_DIR=%OPENVINO_GENAI_ABS_PATH%
 set OPENCL_SDK_DIR=%OPENCL_SDK_ABS_PATH%
-set WHISPER_CLONE_DIR=%WHISPER_CLONE_ABS_PATH%
 set AUDACITY_CLONE_DIR=%AUDACITY_CLONE_ABS_PATH%
 
 :: print some env.
 echo LIBTORCH_DIR=%LIBTORCH_DIR%
 echo OPENVINO_GENAI_DIR=%OPENVINO_GENAI_DIR%
 echo OPENCL_SDK_DIR=%OPENCL_SDK_DIR%
-echo WHISPER_CLONE_DIR=%WHISPER_CLONE_DIR%
 echo AUDACITY_CLONE_DIR=%AUDACITY_CLONE_DIR%
 echo BUILD_FOLDER=%BUILD_FOLDER%
 
@@ -58,17 +52,16 @@ echo set AI_PLUGIN_REPO_SOURCE_FOLDER=%AI_PLUGIN_REPO_SOURCE_FOLDER%>> env.bat
 echo set LIBTORCH_DIR=%LIBTORCH_DIR%>> env.bat
 echo set OPENVINO_GENAI_DIR=%OPENVINO_GENAI_DIR%>> env.bat
 echo set OPENCL_SDK_DIR=%OPENCL_SDK_DIR%>> env.bat
-echo set WHISPER_CLONE_DIR=%WHISPER_CLONE_DIR%>> env.bat
 echo set AUDACITY_CLONE_DIR=%AUDACITY_CLONE_DIR%>> env.bat
 
 set BUILD_FOLDER=%cd%
 echo set BUILD_FOLDER=%BUILD_FOLDER%>> env.bat
 
-if "%~6"=="" (
+if "%~5"=="" (
     goto end
 )
 
-call :ConvertRelToAbsPath %6 || exit /b 1
+call :ConvertRelToAbsPath %5 || exit /b 1
 set CONAN_CACHE_ABS_PATH=%ABS_PATH%
 set CONAN_HOME=%CONAN_CACHE_ABS_PATH%
 
@@ -90,8 +83,8 @@ for %%i in ("%rel_path%") do set "ABS_PATH=%%~fi"
 goto :eof
 
 :error
-echo Error: First 5 arguments are required, last 1 -- the conan_cache_path is optional. 
-echo Usage: set_env.bat libtorch_location openvino_genai_location opencl_sdk_location whisper_clone_location audacity_clone_location [conan_cache_path]
+echo Error: First 4 arguments are required, last 1 -- the conan_cache_path is optional. 
+echo Usage: set_env.bat libtorch_location openvino_genai_location opencl_sdk_location audacity_clone_location [conan_cache_path]
 exit /b 1
 
 :end

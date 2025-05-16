@@ -21,9 +21,6 @@ set OPENCL_SDK_256SUM=11844a1d69a71f82dc14ce66382c6b9fc8a4aee5840c21a786c5accb1d
 set AUDACITY_REPO_CLONE_URL=https://github.com/audacity/audacity.git
 set AUDACITY_REPO_CHECKOUT=release-3.7.1
 
-set WHISPERCPP_REPO_CLONE_URL=https://github.com/ggerganov/whisper.cpp
-set WHISPERCPP_REPO_CHECKOUT=v1.6.0
-
 ::::::::::::::::::::::::::::::::::::::::::::::::
 :: Download, verify, and extract the packages ::
 ::::::::::::::::::::::::::::::::::::::::::::::::
@@ -56,8 +53,6 @@ exit /b
 set OPENCL_SDK_DIR=%EXTRACTED_PACKAGE_PATH%
 
 :: Clone the required repo's and check out the desired tags
-git clone --depth 1 --branch %WHISPERCPP_REPO_CHECKOUT% %WHISPERCPP_REPO_CLONE_URL%
-
 git clone --depth 1 --branch %AUDACITY_REPO_CHECKOUT% %AUDACITY_REPO_CLONE_URL%
 
 :: Create local python env, just to install conan.
@@ -69,7 +64,7 @@ call "build_env\Scripts\activate"
 echo "installing conan"
 pip install conan
 
-call %bat_path%\set_env.bat %LIBTORCH_DIR% %OPENVINO_GENAI_DIR% %OPENCL_SDK_DIR% whisper.cpp audacity %CONAN_CACHE_PATH%
+call %bat_path%\set_env.bat %LIBTORCH_DIR% %OPENVINO_GENAI_DIR% %OPENCL_SDK_DIR% audacity %CONAN_CACHE_PATH%
 
 goto :eof
 

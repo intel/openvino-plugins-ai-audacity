@@ -10,7 +10,6 @@ call env.bat
 echo LIBTORCH_DIR=%LIBTORCH_DIR%
 echo OPENVINO_GENAI_DIR=%OPENVINO_GENAI_DIR%
 echo OPENCL_SDK_DIR=%OPENCL_SDK_DIR%
-echo WHISPER_CLONE_DIR=%WHISPER_CLONE_DIR%
 echo AUDACITY_CLONE_DIR=%AUDACITY_CLONE_DIR%
 echo BUILD_FOLDER=%BUILD_FOLDER%
 echo CONAN_HOME=%CONAN_HOME%
@@ -55,12 +54,6 @@ IF "%AUDACITY_CLONE_DIR%"=="" (
     exit /b 1
 )
 
-IF "%WHISPER_CLONE_DIR%"=="" (
-    echo WHISPER_CLONE_DIR is not set. Exiting.
-    exit /b 1
-)
-
-
 set "bat_path=%~dp0"
 set audacity_add_ov_mod_patch_path=%bat_path%add_ov_module.patch
 set audacity_no_vc_runtime_install_patch=%bat_path%audacity_no_vc_runtime_install.patch
@@ -76,53 +69,11 @@ set Path=%LIBTORCH_ROOTDIR%\lib;%Path%
 set OCL_ROOT=%OPENCL_SDK_DIR%
 set Path=%OCL_ROOT%\bin;%Path%
 
-::::::::::::::::::::::::
-:: Whisper.cpp build. ::
-::::::::::::::::::::::::
-
-IF NOT EXIST %WHISPER_CLONE_DIR% (
-    echo Can't find whisper.cpp directory.
-    echo /B 1
-)
-
-:: Create build folder
-mkdir whisper-build-avx
-cd whisper-build-avx
-
-:: Run CMake, specifying that you want to enable OpenVINO support.
-cmake %WHISPER_CLONE_DIR% -A x64 -DWHISPER_OPENVINO=ON || exit /b 1
-
-:: Build it:
-cmake --build . --config Release || exit /b 1
-
-:: Install built whisper collateral into a local 'installed' directory:
-cmake --install . --config Release --prefix .\installed || exit /b 1
-
-:: Setup whisper.cpp env.
-set WHISPERCPP_ROOTDIR=%cd%\installed
-set Path=%WHISPERCPP_ROOTDIR%\bin;%Path%
-
-cd ..
-
-:: Also build the non-AVX version
-mkdir whisper-build-no-avx
-cd whisper-build-no-avx
-
-:: Run CMake, specifying that you want to enable OpenVINO support, but no AVX / AVX2 / other advanced instruction support
-cmake %WHISPER_CLONE_DIR%  -A x64 -DWHISPER_OPENVINO=ON -DWHISPER_NO_AVX=ON -DWHISPER_NO_AVX2=ON -DWHISPER_NO_FMA=ON -DWHISPER_NO_F16C=ON || exit /b 1
-
-:: Build it:
-cmake --build . --config Release || exit /b 1
-
-:: Install built whisper collateral into a local 'installed' directory:
-cmake --install . --config Release --prefix .\installed || exit /b 1
-cd ..
-
 ::::::::::::::::::::::::::::::::::::::::::::
 :: Audacity  + OpenVINO AI Plugins build. ::
 ::::::::::::::::::::::::::::::::::::::::::::
 IF NOT EXIST %AUDACITY_CLONE_DIR% (
-    echo Can't find whisper.cpp directory.
+    echo Can't find audacity source directory.
     echo /B 1
 )
 

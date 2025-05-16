@@ -15,11 +15,6 @@ set(CMAKE_PREFIX_PATH "${LIBTORCH_ROOTDIR}/share/cmake/Torch")
 find_package(Torch REQUIRED)
 message("torch libraries = ${TORCH_LIBRARIES}")
 
-set(WHISPERCPP_ROOTDIR $ENV{WHISPERCPP_ROOTDIR})
-find_library(whisper NAMES whisper HINTS ${WHISPERCPP_ROOTDIR}/lib/static ${WHISPERCPP_ROOTDIR}/lib )
-include_directories(${WHISPERCPP_ROOTDIR}/include )
-message("whisper library = ${whisper}")
-
 #for musicgen
 #whether ITT is enabled or not, include ittutils.
 # This allows the project source files to unconditionally include <ittutils.h>
@@ -74,8 +69,6 @@ set( SOURCES
       OVMusicSeparation.h
       OVMusicGenerationLLM.cpp
       OVMusicGenerationLLM.h
-      OVWhisperTranscription.cpp
-      OVWhisperTranscription.h
       OVWhisperTranscriptionGenAI.cpp
       OVWhisperTranscriptionGenAI.h
       htdemucs.cpp
@@ -92,7 +85,6 @@ set( LIBRARIES
       openvino::genai
 	   OpenCL::OpenCL
       ${TORCH_LIBRARIES}
-      ${whisper}
 )
 
 audacity_module( ${TARGET} "${SOURCES}" "${LIBRARIES}" "" "" )
