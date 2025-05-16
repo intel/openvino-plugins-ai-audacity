@@ -118,17 +118,11 @@ private:
 
    wxSizer* advancedSizer = nullptr;
 
-   int mMaxTextSegLength = 0;
-   wxTextCtrl* mMaxTextSegLengthCtrl = nullptr;
-
    std::string mInitialPrompt = "";
    wxTextCtrl* mInitialPromptCtrl = nullptr;
 
-   int mBeamSize = 1;
-   wxTextCtrl* mBeamSizeCtrl = nullptr;
-
-   int mBestOf = 1;
-   wxTextCtrl* mBestOfCtrl = nullptr;
+   std::string mHotwords = "";
+   wxTextCtrl* mHotwordsCtrl = nullptr;
 
    std::vector<std::pair<std::string, std::string>> m_simple_to_full_device_map;
 

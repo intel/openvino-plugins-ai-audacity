@@ -624,6 +624,20 @@ bool EffectOVWhisperTranscriptionGenAI::Whisper(std::vector<float>& mono_samples
       std::cout << "config.task = " << *config.task << std::endl;
    }
 
+   // Note: initial prompt is not supported for NPU yet.
+   if (!mInitialPrompt.empty() && device_name != "NPU")
+   {
+      std::cout << "Setting config.initial_prompt: " << mInitialPrompt << std::endl;
+      config.initial_prompt = mInitialPrompt;
+   }
+
+   // Note: hotwords is not supported for NPU yet.
+   if (!mHotwords.empty() && device_name != "NPU")
+   {
+      std::cout << "Setting config.hotwords: " << mHotwords << std::endl;
+      config.hotwords = mHotwords;
+   }
+
    config.return_timestamps = true;
 
    std::shared_ptr< CustomWhisperStreamer > streamer = std::make_shared< CustomWhisperStreamer>(this, mono_samples.size());
@@ -738,6 +752,7 @@ bool EffectOVWhisperTranscriptionGenAI::TransferDataFromWindow(EffectSettings&)
    }
 
    mInitialPrompt = audacity::ToUTF8(mInitialPromptCtrl->GetLineText(0));
+   mHotwords = audacity::ToUTF8(mHotwordsCtrl->GetLineText(0));
 
    return true;
 }
@@ -812,27 +827,8 @@ std::unique_ptr<EffectEditor> EffectOVWhisperTranscriptionGenAI::PopulateOrExcha
 
          advancedSizer = mInitialPromptCtrl->GetContainingSizer();
 
-         mMaxTextSegLengthCtrl = S.Name(XO("Max Segment Length"))
-            .Validator<IntegerValidator<int>>(&mMaxTextSegLength,
-               NumValidatorStyle::DEFAULT,
-               0,
-               1000)
-            .AddTextBox(XO("Max Segment Length"), L"", 12);
-
-         mBeamSizeCtrl = S.Name(XO("Beam Size"))
-            .Validator<IntegerValidator<int>>(&mBeamSize,
-               NumValidatorStyle::DEFAULT,
-               1,
-               1000)
-            .AddTextBox(XO("Beam Size"), L"", 12);
-
-         mBestOfCtrl = S.Name(XO("Best Of"))
-            .Validator<IntegerValidator<int>>(&mBestOf,
-               NumValidatorStyle::DEFAULT,
-               1,
-               1000)
-            .AddTextBox(XO("Best Of"), L"", 12);
-
+         mHotwordsCtrl = S.Style(wxTE_LEFT)
+            .AddTextBox(XXO("Hotwords:"), wxString(mHotwords), 30);
       }
       S.EndMultiColumn();
 
