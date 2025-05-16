@@ -193,12 +193,42 @@ std::vector<std::string> EffectOVWhisperTranscriptionGenAI::_FindAvailableModels
    std::vector<std::string> available_models;
 
    _process_available_model("Whisper Base (FP16)", "whisper-base-fp16-ov", available_models);
+   _process_available_model("Whisper Base (INT8)", "whisper-base-int8-ov", available_models);
+   _process_available_model("Whisper Base (INT4)", "whisper-base-int4-ov", available_models);
 
+   _process_available_model("Whisper Medium (FP16)", "whisper-medium-fp16-ov", available_models);
+   _process_available_model("Whisper Medium (INT8)", "whisper-medium-int8-ov", available_models);
    _process_available_model("Whisper Medium (INT4)", "whisper-medium-int4-ov", available_models);
 
-   _process_available_model("Distil-Whisper V3 (INT4)", "distil-whisper-large-v3-int4-ov", available_models);
+   _process_available_model("Whisper Large V2 (FP16)", "whisper-large-v2-fp16-ov", available_models);
+   _process_available_model("Whisper Large V2 (INT8)", "whisper-large-v2-int8-ov", available_models);
+   _process_available_model("Whisper Large V2 (INT4)", "whisper-large-v2-int4-ov", available_models);
 
-   
+   _process_available_model("Whisper Large V3 (FP16)", "whisper-large-v3-fp16-ov", available_models);
+   _process_available_model("Whisper Large V3 (INT8)", "whisper-large-v3-int8-ov", available_models);
+   _process_available_model("Whisper Large V3 (INT4)", "whisper-large-v3-int4-ov", available_models);
+
+   _process_available_model("Whisper Large V3 Turbo (FP16)", "whisper-large-v3-turbo-fp16-ov", available_models);
+   _process_available_model("Whisper Large V3 Turbo (INT8)", "whisper-large-v3-turbo-int8-ov", available_models);
+   _process_available_model("Whisper Large V3 Turbo (INT4)", "whisper-large-v3-turbo-int4-ov", available_models);
+
+
+   _process_available_model("Distil-Whisper Base (FP16)", "distil-whisper-base-fp16-ov", available_models);
+   _process_available_model("Distil-Whisper Base (INT8)", "distil-whisper-base-int8-ov", available_models);
+   _process_available_model("Distil-Whisper Base (INT4)", "distil-whisper-base-int4-ov", available_models);
+
+   _process_available_model("Distil-Whisper Medium (FP16)", "distil-whisper-medium-fp16-ov", available_models);
+   _process_available_model("Distil-Whisper Medium (INT8)", "distil-whisper-medium-int8-ov", available_models);
+   _process_available_model("Distil-Whisper Medium (INT4)", "distil-whisper-medium-int4-ov", available_models);
+
+   _process_available_model("Distil-Whisper Large V2 (FP16)", "distil-whisper-large-v2-fp16-ov", available_models);
+   _process_available_model("Distil-Whisper Large V2 (INT8)", "distil-whisper-large-v2-int8-ov", available_models);
+   _process_available_model("Distil-Whisper Large V2 (INT4)", "distil-whisper-large-v2-int4-ov", available_models);
+
+   _process_available_model("Distil-Whisper Large V3 (FP16)", "distil-whisper-large-v3-fp16-ov", available_models);
+   _process_available_model("Distil-Whisper Large V3 (INT8)", "distil-whisper-large-v3-int8-ov", available_models);
+   _process_available_model("Distil-Whisper Large V3 (INT4)", "distil-whisper-large-v3-int4-ov", available_models);
+
    return available_models;
 }
 
