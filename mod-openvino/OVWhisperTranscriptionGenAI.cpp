@@ -42,114 +42,112 @@
 #include <openvino/openvino.hpp>
 #include "openvino/genai/whisper_pipeline.hpp"
 
-struct whispercpp_lang_entry
+struct ovgenai_whisper_lang_entry
 {
    std::string lang_full_string;
    std::string lang_code_string;
-   int id;
 };
 
-static const std::vector< whispercpp_lang_entry > g_lang_entries =
-{
-    { "english", "en", 0, },
-    { "afrikaans", "af", 68, },
-    { "albanian", "sq", 58, },
-    { "amharic", "am", 75, },
-    { "arabic", "ar", 13, },
-    { "armenian", "hy", 53, },
-    { "assamese", "as", 91, },
-    { "azerbaijani", "az", 45, },
-    { "bashkir", "ba", 96, },
-    { "basque", "eu", 51, },
-    { "belarusian", "be", 71, },
-    { "bengali", "bn", 43, },
-    { "bosnian", "bs", 56, },
-    { "breton", "br", 50, },
-    { "bulgarian", "bg", 33, },
-    { "catalan", "ca", 11, },
-    { "chinese", "zh", 1, },
-    { "croatian", "hr", 32, },
-    { "czech", "cs", 24, },
-    { "danish", "da", 26, },
-    { "dutch", "nl", 12, },
-    { "estonian", "et", 48, },
-    { "faroese", "fo", 79, },
-    { "finnish", "fi", 18, },
-    { "french", "fr", 6, },
-    { "galician", "gl", 60, },
-    { "georgian", "ka", 70, },
-    { "german", "de", 2, },
-    { "greek", "el", 22, },
-    { "gujarati", "gu", 74, },
-    { "haitian creole", "ht", 80, },
-    { "hausa", "ha", 95, },
-    { "hawaiian", "haw", 93, },
-    { "hebrew", "he", 20, },
-    { "hindi", "hi", 17, },
-    { "hungarian", "hu", 27, },
-    { "icelandic", "is", 52, },
-    { "indonesian", "id", 16, },
-    { "italian", "it", 15, },
-    { "japanese", "ja", 7, },
-    { "javanese", "jw", 97, },
-    { "kannada", "kn", 47, },
-    { "kazakh", "kk", 57, },
-    { "khmer", "km", 64, },
-    { "korean", "ko", 5, },
-    { "lao", "lo", 77, },
-    { "latin", "la", 35, },
-    { "latvian", "lv", 42, },
-    { "lingala", "ln", 94, },
-    { "lithuanian", "lt", 34, },
-    { "luxembourgish", "lb", 86, },
-    { "macedonian", "mk", 49, },
-    { "malagasy", "mg", 90, },
-    { "malay", "ms", 23, },
-    { "malayalam", "ml", 37, },
-    { "maltese", "mt", 84, },
-    { "maori", "mi", 36, },
-    { "marathi", "mr", 61, },
-    { "mongolian", "mn", 55, },
-    { "myanmar", "my", 87, },
-    { "nepali", "ne", 54, },
-    { "norwegian", "no", 29, },
-    { "nynorsk", "nn", 83, },
-    { "occitan", "oc", 69, },
-    { "pashto", "ps", 81, },
-    { "persian", "fa", 41, },
-    { "polish", "pl", 10, },
-    { "portuguese", "pt", 8, },
-    { "punjabi", "pa", 62, },
-    { "romanian", "ro", 25, },
-    { "russian", "ru", 4, },
-    { "sanskrit", "sa", 85, },
-    { "serbian", "sr", 44, },
-    { "shona", "sn", 65, },
-    { "sindhi", "sd", 73, },
-    { "sinhala", "si", 63, },
-    { "slovak", "sk", 39, },
-    { "slovenian", "sl", 46, },
-    { "somali", "so", 67, },
-    { "spanish", "es", 3, },
-    { "sundanese", "su", 98, },
-    { "swahili", "sw", 59, },
-    { "swedish", "sv", 14, },
-    { "tagalog", "tl", 89, },
-    { "tajik", "tg", 72, },
-    { "tamil", "ta", 28, },
-    { "tatar", "tt", 92, },
-    { "telugu", "te", 40, },
-    { "thai", "th", 30, },
-    { "tibetan", "bo", 88, },
-    { "turkish", "tr", 9, },
-    { "turkmen", "tk", 82, },
-    { "ukrainian", "uk", 21, },
-    { "urdu", "ur", 31, },
-    { "uzbek", "uz", 78, },
-    { "vietnamese", "vi", 19, },
-    { "welsh", "cy", 38, },
-    { "yiddish", "yi", 76, },
-    { "yoruba", "yo", 66, },
+static const std::vector< ovgenai_whisper_lang_entry > g_lang_entries = {
+    { "english", "<|en|>" },
+    { "afrikaans", "<|af|>" },
+    { "albanian", "<|sq|>" },
+    { "amharic", "<|am|>" },
+    { "arabic", "<|ar|>" },
+    { "armenian", "<|hy|>" },
+    { "assamese", "<|as|>" },
+    { "azerbaijani", "<|az|>" },
+    { "bashkir", "<|ba|>" },
+    { "basque", "<|eu|>" },
+    { "belarusian", "<|be|>" },
+    { "bengali", "<|bn|>" },
+    { "bosnian", "<|bs|>" },
+    { "breton", "<|br|>" },
+    { "bulgarian", "<|bg|>" },
+    { "catalan", "<|ca|>" },
+    { "chinese", "<|zh|>" },
+    { "croatian", "<|hr|>" },
+    { "czech", "<|cs|>" },
+    { "danish", "<|da|>" },
+    { "dutch", "<|nl|>" },
+    { "estonian", "<|et|>" },
+    { "faroese", "<|fo|>" },
+    { "finnish", "<|fi|>" },
+    { "french", "<|fr|>" },
+    { "galician", "<|gl|>" },
+    { "georgian", "<|ka|>" },
+    { "german", "<|de|>" },
+    { "greek", "<|el|>" },
+    { "gujarati", "<|gu|>" },
+    { "haitian creole", "<|ht|>" },
+    { "hausa", "<|ha|>" },
+    { "hawaiian", "<|haw|>" },
+    { "hebrew", "<|he|>" },
+    { "hindi", "<|hi|>" },
+    { "hungarian", "<|hu|>" },
+    { "icelandic", "<|is|>" },
+    { "indonesian", "<|id|>" },
+    { "italian", "<|it|>" },
+    { "japanese", "<|ja|>" },
+    { "javanese", "<|jw|>" },
+    { "kannada", "<|kn|>" },
+    { "kazakh", "<|kk|>" },
+    { "khmer", "<|km|>" },
+    { "korean", "<|ko|>" },
+    { "lao", "<|lo|>" },
+    { "latin", "<|la|>" },
+    { "latvian", "<|lv|>" },
+    { "lingala", "<|ln|>" },
+    { "lithuanian", "<|lt|>" },
+    { "luxembourgish", "<|lb|>" },
+    { "macedonian", "<|mk|>" },
+    { "malagasy", "<|mg|>" },
+    { "malay", "<|ms|>" },
+    { "malayalam", "<|ml|>" },
+    { "maltese", "<|mt|>" },
+    { "maori", "<|mi|>" },
+    { "marathi", "<|mr|>" },
+    { "mongolian", "<|mn|>" },
+    { "myanmar", "<|my|>" },
+    { "nepali", "<|ne|>" },
+    { "norwegian", "<|no|>" },
+    { "nynorsk", "<|nn|>" },
+    { "occitan", "<|oc|>" },
+    { "pashto", "<|ps|>" },
+    { "persian", "<|fa|>" },
+    { "polish", "<|pl|>" },
+    { "portuguese", "<|pt|>" },
+    { "punjabi", "<|pa|>" },
+    { "romanian", "<|ro|>" },
+    { "russian", "<|ru|>" },
+    { "sanskrit", "<|sa|>" },
+    { "serbian", "<|sr|>" },
+    { "shona", "<|sn|>" },
+    { "sindhi", "<|sd|>" },
+    { "sinhala", "<|si|>" },
+    { "slovak", "<|sk|>" },
+    { "slovenian", "<|sl|>" },
+    { "somali", "<|so|>" },
+    { "spanish", "<|es|>" },
+    { "sundanese", "<|su|>" },
+    { "swahili", "<|sw|>" },
+    { "swedish", "<|sv|>" },
+    { "tagalog", "<|tl|>" },
+    { "tajik", "<|tg|>" },
+    { "tamil", "<|ta|>" },
+    { "tatar", "<|tt|>" },
+    { "telugu", "<|te|>" },
+    { "thai", "<|th|>" },
+    { "tibetan", "<|bo|>" },
+    { "turkish", "<|tr|>" },
+    { "turkmen", "<|tk|>" },
+    { "ukrainian", "<|uk|>" },
+    { "urdu", "<|ur|>" },
+    { "uzbek", "<|uz|>" },
+    { "vietnamese", "<|vi|>" },
+    { "welsh", "<|cy|>" },
+    { "yiddish", "<|yi|>" },
+    { "yoruba", "<|yo|>" },
 };
 
 const ComponentInterfaceSymbol EffectOVWhisperTranscriptionGenAI::Symbol
@@ -172,48 +170,36 @@ static ModifiedAnalysisTrack MyModifyAnalysisTrack(
    return{ &effect, origTrack, name };
 }
 
-//Given a whisper basename (i.e. 'base', 'small', etc.), check to make sure that all
-// of the required model files exist in the right location, and return true / false.
-// true: All the files exist!
-// false: At least one of the required files are missing.
-static bool is_whisper_model_present(std::string whisper_basename)
+void EffectOVWhisperTranscriptionGenAI::_process_available_model(const std::string& ui_name,
+   const std::string& folder_name,
+   std::vector<std::string>& available_models)
 {
-   std::cout << "is_whisper_model_present(" << whisper_basename << ")" << std::endl;
    auto model_folder = wxFileName(FileNames::BaseDir(), wxT("openvino-models")).GetFullPath();
+   auto base_whisper_folder = wxFileName(model_folder, wxT("whisper")).GetFullPath();
 
+   auto whisper_model_folder = wxFileName(base_whisper_folder, wxString(folder_name)).GetFullPath();
+   auto decoder = wxFileName(whisper_model_folder, wxString("openvino_decoder_model.xml"));
+   auto encoder = wxFileName(whisper_model_folder, wxString("openvino_encoder_model.xml"));
+   auto tokenizer = wxFileName(whisper_model_folder, wxString("openvino_tokenizer.xml"));
+   if (decoder.FileExists() && encoder.FileExists() && tokenizer.FileExists())
    {
-      std::string ggml_binname = std::string("ggml-") + whisper_basename + std::string(".bin");
-      auto whisper_ggml_model_path = wxFileName(model_folder, wxString(ggml_binname));
-      if (!whisper_ggml_model_path.FileExists())
-      {
-         std::cout << "is_whisper_model_present: returning false because " << ggml_binname << " doesn't exist." << std::endl;
-         return false;
-      }
+      _ui_name_to_model_info[ui_name] = { ui_name, audacity::ToUTF8(whisper_model_folder) };
+      available_models.push_back(ui_name);
    }
+}
 
-   auto ov_model_basename = std::string("ggml-") + whisper_basename + std::string("-encoder-openvino");
-   {
-      std::string whisper_openvino_xml_file = ov_model_basename + std::string(".xml");
-      auto whisper_openvino_model_xml_path = wxFileName(model_folder, wxString(whisper_openvino_xml_file));
-      if (!whisper_openvino_model_xml_path.FileExists())
-      {
-         std::cout << "is_whisper_model_present: returning false because " << whisper_openvino_xml_file << " doesn't exist." << std::endl;
-         return false;
-      }
-   }
+std::vector<std::string> EffectOVWhisperTranscriptionGenAI::_FindAvailableModels()
+{
+   std::vector<std::string> available_models;
 
-   {
-      std::string whisper_openvino_bin_file = ov_model_basename + std::string(".bin");
-      auto whisper_openvino_model_bin_path = wxFileName(model_folder, wxString(whisper_openvino_bin_file));
-      if (!whisper_openvino_model_bin_path.FileExists())
-      {
-         std::cout << "is_whisper_model_present: returning false because " << whisper_openvino_bin_file << " doesn't exist." << std::endl;
-         return false;
-      }
-   }
+   _process_available_model("Whisper Base (FP16)", "whisper-base-fp16-ov", available_models);
 
-   std::cout << "is_whisper_model_present: returning true" << std::endl;
-   return true;
+   _process_available_model("Whisper Medium (INT4)", "whisper-medium-int4-ov", available_models);
+
+   _process_available_model("Distil-Whisper V3 (INT4)", "distil-whisper-large-v3-int4-ov", available_models);
+
+   
+   return available_models;
 }
 
 BEGIN_EVENT_TABLE(EffectOVWhisperTranscriptionGenAI, wxEvtHandler)
@@ -241,25 +227,10 @@ EffectOVWhisperTranscriptionGenAI::EffectOVWhisperTranscriptionGenAI()
       mGuiDeviceSelections.push_back({ TranslatableString{ wxString(d), {}} });
    }
 
-   std::vector<std::string> possible_supported_models =
-   { "tiny", "tiny.en",
-      "base", "base.en",
-      "small", "small.en", "small.en-tdrz",
-      "medium", "medium.en",
-      "large-v1", "large-v2", "large-v3"
-   };
-
-   //For each possible model, check to see if the required model files
-   // (ggml bin, openvino IR's) are present in the 'openvino-models' dir.
-   // If so, then populate our drop down list with this model so that it
-   // is selectable.
-   for (auto m : possible_supported_models)
+   mSupportedModels = _FindAvailableModels();
+   for (auto &m : mSupportedModels)
    {
-      if (is_whisper_model_present(m))
-      {
-         mSupportedModels.push_back(m);
-         mGuiModelSelections.push_back({ TranslatableString{ wxString(m), {}} });
-      }
+      mGuiModelSelections.push_back({ TranslatableString{ wxString(m), {}} });
    }
 
    mSupportedModes = { "transcribe", "translate" };
@@ -270,18 +241,15 @@ EffectOVWhisperTranscriptionGenAI::EffectOVWhisperTranscriptionGenAI()
    }
 
    mSupportedLanguages.push_back("auto");
-   for (auto e : g_lang_entries)
+   for (auto &e : g_lang_entries)
    {
       mSupportedLanguages.push_back(e.lang_full_string);
    }
 
-   for (auto l : mSupportedLanguages)
+   for (auto &l : mSupportedLanguages)
    {
       mGuiLanguageSelections.push_back({ TranslatableString{ wxString(l), {}} });
    }
-
-   mBeamSize = whisper_full_default_params(WHISPER_SAMPLING_BEAM_SEARCH).beam_search.beam_size;
-   mBestOf = whisper_full_default_params(WHISPER_SAMPLING_GREEDY).greedy.best_of;
 }
 
 EffectOVWhisperTranscriptionGenAI::~EffectOVWhisperTranscriptionGenAI()
@@ -327,10 +295,6 @@ bool EffectOVWhisperTranscriptionGenAI::Process(EffectInstance&, EffectSettings&
       //  two label tracks, making the transition at each speaker turn.
       auto whisper_model_variant = mSupportedModels[m_modelSelectionChoice];
 
-      // if user has installed / enabled specific tdrz model, then we will alternate between
-      // two label tracks.
-      bool btdrz = (whisper_model_variant  == "small.en-tdrz");
-
       // Do not use mWaveTracks here.  We will possibly DELETE tracks,
       // so we must use the "real" tracklist.
       EffectOutputTracks outputs{ *mTracks, GetType(), {{ mT0, mT1 }} };
@@ -347,21 +311,9 @@ bool EffectOVWhisperTranscriptionGenAI::Process(EffectInstance&, EffectSettings&
 
       LabelTrack* lt0{};
       std::string label_track_name = "Transcription";
-      if (btdrz)
-      {
-         label_track_name = "Transcription 0";
-      }
 
       label_track_name = label_track_name + "(" + whisper_model_variant + ")";
       addedTrack0 = (MyAddAnalysisTrack(*this, label_track_name)), lt0 = addedTrack0->get();
-
-      LabelTrack* lt1{};
-      if (btdrz)
-      {
-         label_track_name = "Transcription 1 (" + whisper_model_variant + ")";
-         addedTrack1 = (MyAddAnalysisTrack(*this, label_track_name)), lt1 = addedTrack1->get();
-      }
-
 
       //resample all tracks to 16khz
       for (auto pOutWaveTrack : outputs.Get().Selected<WaveTrack>())
@@ -399,7 +351,7 @@ bool EffectOVWhisperTranscriptionGenAI::Process(EffectInstance&, EffectSettings&
       //finally, run whisper
       for (auto pOutWaveTrack : outputs.Get().Selected<WaveTrack>())
       {
-         bGoodResult = ProcessWhisper(pOutWaveTrack, lt0, lt1);
+         bGoodResult = ProcessWhisper(pOutWaveTrack, lt0);
 
          if (!bGoodResult || mIsCancelled)
             break;
@@ -481,7 +433,7 @@ bool EffectOVWhisperTranscriptionGenAI::ProcessStereoToMono(sampleCount& curTime
    return bResult;
 }
 
-bool EffectOVWhisperTranscriptionGenAI::ProcessWhisper(WaveTrack* mono, LabelTrack* lt0, LabelTrack* lt1)
+bool EffectOVWhisperTranscriptionGenAI::ProcessWhisper(WaveTrack* mono, LabelTrack* lt0)
 {
    double trackStart = mono->GetStartTime();
    double trackEnd = mono->GetEndTime();
@@ -517,7 +469,7 @@ bool EffectOVWhisperTranscriptionGenAI::ProcessWhisper(WaveTrack* mono, LabelTra
             std::to_string(total_samples) + " samples");
       }
 
-      ret = Whisper(mono_samples, lt0, lt1, label_time_offset);
+      ret = Whisper(mono_samples, lt0, label_time_offset);
    }
    else
    {
@@ -531,45 +483,66 @@ bool EffectOVWhisperTranscriptionGenAI::ProcessWhisper(WaveTrack* mono, LabelTra
 bool EffectOVWhisperTranscriptionGenAI::UpdateProgress(double perc)
 {
    std::lock_guard<std::mutex> guard(mMutex);
-   mProgressFrac = perc / 100.0;
+   mProgressFrac = perc;
 
-   return true;
+   return mIsCancelled;
 }
 
-//  500 -> 00:05.000
-// 6000 -> 01:00.000
-static std::string to_timestamp(int64_t t, bool comma = false) {
-   int64_t msec = t * 10;
-   int64_t hr = msec / (1000 * 60 * 60);
-   msec = msec - hr * (1000 * 60 * 60);
-   int64_t min = msec / (1000 * 60);
-   msec = msec - min * (1000 * 60);
-   int64_t sec = msec / 1000;
-   msec = msec - sec * 1000;
-
-   char buf[32];
-   snprintf(buf, sizeof(buf), "%02d:%02d:%02d%s%03d", (int)hr, (int)min, (int)sec, comma ? "," : ".", (int)msec);
-
-   return std::string(buf);
-}
-
-static int timestamp_to_sample(int64_t t, int n_samples) {
-   return std::max(0, std::min((int)n_samples - 1, (int)((t * WHISPER_SAMPLE_RATE) / 100)));
-}
-
-
-
-bool EffectOVWhisperTranscriptionGenAI::Whisper(std::vector<float>& mono_samples, LabelTrack* lt0, LabelTrack* lt1, double start_time)
+class CustomWhisperStreamer : public ov::genai::StreamerBase
 {
-   std::cout << "Whisper..." << std::endl;
+public: 
+   CustomWhisperStreamer(EffectOVWhisperTranscriptionGenAI *effect, size_t total_samples)
+   : _effect(effect) {
+
+      //first calculate the total time in seconds
+      size_t total_time = total_samples / 16000;
+      if ((total_time % 30) != 0)
+      {
+         total_time = ((total_time / 30) + 1) * 30;
+      }
+
+      _total_expected_callbacks = (total_time / 30) + 1;
+
+   }
+   ov::genai::StreamingStatus write(int64_t token) {
+      return ov::genai::StreamingStatus::RUNNING;
+   }
+
+   ov::genai::StreamingStatus write(const std::vector<int64_t>& tokens) {
+      _n_write_calls++;
+      double perc_complete = static_cast<double>(_n_write_calls) / static_cast<double>(_total_expected_callbacks);
+
+      if (perc_complete > 1) {
+         perc_complete = 1;
+      }
+
+      auto bCancelled = _effect->UpdateProgress(perc_complete);
+      if (bCancelled) {
+         return ov::genai::StreamingStatus::CANCEL;
+      }
+      return ov::genai::StreamingStatus::RUNNING;
+   }
+
+   virtual void end() {
+   }
+
+private:
+   EffectOVWhisperTranscriptionGenAI* _effect;
+   int _total_expected_callbacks;
+   int _n_write_calls = 0;
+
+};
+
+bool EffectOVWhisperTranscriptionGenAI::Whisper(std::vector<float>& mono_samples, LabelTrack* lt0, double start_time)
+{
    bool ret = true;
 
    std::string device_name = mSupportedDevices[m_deviceSelectionChoice];
    std::cout << "Creating ov::genai::WhisperPipeline with device = " << device_name << std::endl;
 
-   //TODO: duh.
-   auto whisper_model_path = "C:\\Users\\LNL\\Workspace\\git\\test\\ai_tabletop_adventure_assistant\\models\\whisper-base";
-
+   std::string ui_whisper_model_name = mSupportedModels[m_modelSelectionChoice];
+   auto whisper_model_path = _ui_name_to_model_info[ui_whisper_model_name].folderpath;
+   std::cout << "whisper_model_path = " << whisper_model_path << std::endl;
 
    FilePath cache_folder = FileNames::MkDir(wxFileName(FileNames::DataDir(), wxT("openvino-model-cache")).GetFullPath());
 
@@ -577,12 +550,16 @@ bool EffectOVWhisperTranscriptionGenAI::Whisper(std::vector<float>& mono_samples
    std::string cache_path = wstring_to_string(wxFileName(cache_folder).GetFullPath().ToStdWstring());
 
    std::shared_ptr< ov::genai::WhisperPipeline > pipeline;
+   std::cout << "Setting cache_dir to " << cache_path << std::endl;
+   ov::AnyMap properties = { ov::cache_dir(cache_path) };
+
    {
       std::future_status status;
       float total_time = 0.f;
 
-      auto init_whisper_fut = std::async(std::launch::async, [&whisper_model_path, &device_name, &cache_path]() {
-         return std::make_shared< ov::genai::WhisperPipeline >(whisper_model_path, device_name);
+      auto init_whisper_fut = std::async(std::launch::async, [&whisper_model_path, &device_name, &properties]() {
+         OVLocaleWorkaround wa;
+         return std::make_shared< ov::genai::WhisperPipeline >(whisper_model_path, device_name, properties);
          });
 
       do {
@@ -610,18 +587,76 @@ bool EffectOVWhisperTranscriptionGenAI::Whisper(std::vector<float>& mono_samples
    }
 
    ov::genai::WhisperGenerationConfig config = pipeline->get_generation_config();
-   config.max_new_tokens = SIZE_MAX;  // increase this based on your speech length
-   // 'task' and 'language' parameters are supported for multilingual models only
-   config.language = "<|en|>";  
-   config.task = "transcribe";
+   config.max_new_tokens = SIZE_MAX;
+
+   if (config.is_multilingual)
+   {
+      std::string slang = mSupportedLanguages[m_languageSelectionChoice];
+      if (slang == "auto")
+      {
+         config.language = std::optional<std::string>{};
+
+         std::cout << "config.language = {} (auto)" << std::endl;
+      }
+      else
+      {
+         bool bFound = false;
+         for (auto& e : g_lang_entries)
+         {
+            if (slang == e.lang_full_string)
+            {
+               bFound = true;
+               config.language = e.lang_code_string;
+               break;
+            }
+         }
+
+         if (!bFound)
+         {
+            throw std::runtime_error("Invalid language selection!");
+         }
+
+         std::cout << "config.language = " << *config.language << std::endl;
+      }
+
+      std::string smode = mSupportedModes[m_modeSelectionChoice];
+      config.task = smode;
+      std::cout << "config.task = " << *config.task << std::endl;
+   }
+
    config.return_timestamps = true;
 
-   auto result = pipeline->generate(mono_samples, config);
+   std::shared_ptr< CustomWhisperStreamer > streamer = std::make_shared< CustomWhisperStreamer>(this, mono_samples.size());
 
-   std::cout << std::fixed << std::setprecision(2);
+   mProgressFrac = 0.0;
+   mProgMessage = "Running Whisper Transcription using OpenVINO";
+
+   auto whisper_parallel_run_future = std::async(std::launch::async,
+      [this, &pipeline, &mono_samples, &config, &streamer]
+      {
+         OVLocaleWorkaround wa;
+         return pipeline->generate(mono_samples, config, streamer);
+      }
+   );
+
+   std::future_status status;
+   do {
+      using namespace std::chrono_literals;
+      status = whisper_parallel_run_future.wait_for(0.5s);
+      {
+         std::lock_guard<std::mutex> guard(mMutex);
+         mProgress->SetMessage(TranslatableString{ wxString(mProgMessage), {} });
+         if (TotalProgress(mProgressFrac))
+         {
+            mIsCancelled = true;
+         }
+      }
+
+   } while (status != std::future_status::ready);
+
+   auto result = whisper_parallel_run_future.get();
+
    for (auto& chunk : *result.chunks) {
-      //std::cout << "timestamps: [" << chunk.start_ts << ", " << chunk.end_ts << "] text: " << chunk.text << "\n";
-
       double start = chunk.start_ts + start_time;
       double end = chunk.end_ts + start_time;
       auto wxText = wxString::FromUTF8(chunk.text);
