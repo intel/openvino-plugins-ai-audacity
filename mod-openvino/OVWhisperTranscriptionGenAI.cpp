@@ -29,7 +29,6 @@
 
 #include "LabelTrack.h"
 #include "WaveTrack.h"
-#include "whisper.h"
 
 #include "Mix.h"
 #include "MixAndRender.h"
