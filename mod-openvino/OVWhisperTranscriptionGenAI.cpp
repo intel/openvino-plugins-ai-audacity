@@ -41,6 +41,8 @@
 #include <openvino/openvino.hpp>
 #include "openvino/genai/whisper_pipeline.hpp"
 
+#include "OVModelManagerUI.h"
+
 struct ovgenai_whisper_lang_entry
 {
    std::string lang_full_string;
@@ -234,6 +236,7 @@ std::vector<std::string> EffectOVWhisperTranscriptionGenAI::_FindAvailableModels
 BEGIN_EVENT_TABLE(EffectOVWhisperTranscriptionGenAI, wxEvtHandler)
     EVT_CHECKBOX(ID_Type_AdvancedCheckbox, EffectOVWhisperTranscriptionGenAI::OnAdvancedCheckboxChanged)
     EVT_BUTTON(ID_Type_DeviceInfoButton, EffectOVWhisperTranscriptionGenAI::OnDeviceInfoButtonClicked)
+    EVT_BUTTON(ID_Type_ModelManagerButton, EffectOVWhisperTranscriptionGenAI::OnModelManagerButtonClicked)
 END_EVENT_TABLE()
 
 EffectOVWhisperTranscriptionGenAI::EffectOVWhisperTranscriptionGenAI()
@@ -786,6 +789,11 @@ bool EffectOVWhisperTranscriptionGenAI::TransferDataFromWindow(EffectSettings&)
    return true;
 }
 
+void EffectOVWhisperTranscriptionGenAI::OnModelManagerButtonClicked(wxCommandEvent& evt)
+{
+   ShowModelManagerDialog();
+}
+
 std::unique_ptr<EffectEditor> EffectOVWhisperTranscriptionGenAI::PopulateOrExchange(
    ShuttleGui& S, EffectInstance&, EffectSettingsAccess& access,
    const EffectOutputs*)
@@ -813,6 +821,12 @@ std::unique_ptr<EffectEditor> EffectOVWhisperTranscriptionGenAI::PopulateOrExcha
          S.EndMultiColumn();
       }
       S.EndStatic();
+
+      S.StartMultiColumn(1, wxLEFT);
+      {
+         auto model_manager_button = S.Id(ID_Type_ModelManagerButton).AddButton(XO("Open Model Manager"));
+      }
+      S.EndMultiColumn();
 
       S.StartMultiColumn(4, wxLEFT);
       {

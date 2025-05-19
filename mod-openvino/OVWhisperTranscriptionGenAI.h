@@ -46,6 +46,7 @@ public:
 
    void OnAdvancedCheckboxChanged(wxCommandEvent& evt);
    void OnDeviceInfoButtonClicked(wxCommandEvent& evt);
+   void OnModelManagerButtonClicked(wxCommandEvent& evt);
 
 protected:
 
@@ -75,7 +76,8 @@ private:
       ID_Type_Mode = 10002,
       ID_Type_Language = 10003,
       ID_Type_AdvancedCheckbox = 10004,
-      ID_Type_DeviceInfoButton = 10005
+      ID_Type_DeviceInfoButton = 10005,
+      ID_Type_ModelManagerButton = 10006
    };
 
    wxChoice* mTypeChoiceDeviceCtrl;

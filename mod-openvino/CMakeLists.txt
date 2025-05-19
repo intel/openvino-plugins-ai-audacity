@@ -76,6 +76,8 @@ set( SOURCES
       ${OV_MUSICGEN_SOURCES}
       OpenVINO.cpp
       OVStringUtils.h
+      OVModelManagerUI.h
+      OVModelManagerUI.cpp
 )
 
 set( LIBRARIES
