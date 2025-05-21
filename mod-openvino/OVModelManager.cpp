@@ -43,6 +43,18 @@ OVModelManager::OVModelManager()
    _check_installed_models();
 }
 
+static inline std::vector<std::string> splitPath(const std::string& path, char delimiter = '/') {
+   std::vector<std::string> parts;
+   std::stringstream ss(path);
+   std::string item;
+   while (std::getline(ss, item, delimiter)) {
+      if (!item.empty()) {
+         parts.push_back(item);
+      }
+   }
+   return parts;
+}
+
 void OVModelManager::_check_installed_model(std::shared_ptr<ModelInfo> model_info)
 {
    for (auto& search_path_base : mSearchPaths)
@@ -68,9 +80,15 @@ void OVModelManager::_check_installed_model(std::shared_ptr<ModelInfo> model_inf
 
       if (all_found)
       {
-         wxFileName fullRelativePath(search_path_base, wxString(model_info->relative_path));
+         auto split_path = splitPath(model_info->relative_path);
+         auto fullInstallationPath = search_path_base;
+         for (int i = 0; i < split_path.size(); i++)
+         {
+            fullInstallationPath = wxFileName(fullInstallationPath, wxString(split_path[i])).GetFullPath();
+         }
+
          model_info->installed = true;
-         model_info->installation_path = fullRelativePath.GetFullPath().ToStdString();
+         model_info->installation_path = fullInstallationPath.ToStdString();
          std::cout << "Set installation path to " << model_info->installation_path << std::endl;
          break;
       }
@@ -87,18 +105,6 @@ void OVModelManager::_check_installed_models()
          _check_installed_model(model_info);  
       }
    }
-}
-
-static inline std::vector<std::string> splitPath(const std::string& path, char delimiter = '/') {
-   std::vector<std::string> parts;
-   std::stringstream ss(path);
-   std::string item;
-   while (std::getline(ss, item, delimiter)) {
-      if (!item.empty()) {
-         parts.push_back(item);
-      }
-   }
-   return parts;
 }
 
 static inline void mkdir_relative_paths(std::string relative_file, wxString base_path){

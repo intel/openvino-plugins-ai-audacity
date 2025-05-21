@@ -131,17 +131,5 @@ private:
    float mProgressFrac = 0.f;
    std::string mProgMessage;
 
-   struct WhisperModelInfo
-   {
-      std::string ui_name;
-      std::string folderpath;
-   };
-
-   std::unordered_map < std::string, WhisperModelInfo > _ui_name_to_model_info;
-   std::vector<std::string> _FindAvailableModels();
-   void _process_available_model(const std::string& ui_name,
-      const std::string& folder_name,
-      std::vector<std::string>& available_models);
-
    DECLARE_EVENT_TABLE()
 };

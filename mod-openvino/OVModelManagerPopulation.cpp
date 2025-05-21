@@ -58,17 +58,17 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_whisper()
       {
          "Whisper Large V2 (FP16)",
          "whisper-large-v2-fp16-ov",
-         ""
+         "" //Not yet on HF. Hopefully soon!
       },
       {
          "Whisper Large V2 (INT8)",
          "whisper-large-v2-int8-ov",
-         ""
+         "" //Not yet on HF. Hopefully soon!
       },
       {
          "Whisper Large V2 (INT4)",
          "whisper-large-v2-int4-ov",
-         ""
+         "" //Not yet on HF. Hopefully soon!
       },
       {
          "Whisper Large V3 (FP16)",
@@ -88,19 +88,63 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_whisper()
       {
          "Whisper Large V3 Turbo (FP16)",
          "whisper-large-v3-turbo-fp16-ov",
-         ""
+         "" //Not yet on HF. Hopefully soon!
       },
       {
          "Whisper Large V3 Turbo (INT8)",
          "whisper-large-v3-turbo-int8-ov",
-         ""
+         "" //Not yet on HF. Hopefully soon!
       },
       {
          "Whisper Large V3 Turbo (INT4)",
          "whisper-large-v3-turbo-int4-ov",
-         ""
+         "" //Not yet on HF. Hopefully soon!
       },
-
+      {
+         "Distil-Whisper Base (FP16)",
+         "distil-whisper-base-fp16-ov",
+         "" // Distil-Base models on HF are kind of broken... they don't include the _with_past models
+      },
+      {
+         "Distil-Whisper Base (INT8)",
+         "distil-whisper-base-int8-ov",
+         "" // Distil-Base models on HF are kind of broken... they don't include the _with_past models
+      },
+      {
+         "Distil-Whisper Base (INT4)",
+         "distil-whisper-base-int4-ov",
+         "" // Distil-Base models on HF are kind of broken... they don't include the _with_past models
+      },
+      {
+         "Distil-Whisper Medium (FP16)",
+         "distil-whisper-medium-fp16-ov",
+         "" // Distil-Medium models on HF are kind of broken... they don't include the _with_past models
+      },
+      {
+         "Distil-Whisper Medium (INT8)",
+         "distil-whisper-medium-int8-ov",
+         "" // Distil-Medium models on HF are kind of broken... they don't include the _with_past models
+      },
+      {
+         "Distil-Whisper Medium (INT4)",
+         "distil-whisper-medium-int4-ov",
+         "" // Distil-Medium models on HF are kind of broken... they don't include the _with_past models
+      },
+      {
+         "Distil-Whisper Large V3 (FP16)",
+         "distil-whisper-large-v3-fp16-ov",
+         "https://huggingface.co/OpenVINO/distil-whisper-large-v3-fp16-ov/resolve/main/"
+      },
+      {
+         "Distil-Whisper Large V3 (INT8)",
+         "distil-whisper-large-v3-int8-ov",
+         "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int8-ov/resolve/main/"
+      },
+      {
+         "Distil-Whisper Large V3 (INT4)",
+         "distil-whisper-large-v3-int4-ov",
+         "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int4-ov/resolve/main/"
+      },
    };
 
    auto whisper_collection = std::make_shared< OVModelManager::ModelCollection >();
@@ -118,14 +162,16 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_whisper()
       whisper_info->fileList =
       {
          "added_tokens.json", "config.json", "generation_config.json", "normalizer.json", "openvino_decoder_model.bin",
-         "openvino_decoder_model.xml", "openvino_decoder_with_past_model.bin", "openvino_decoder_with_past_model.xml",
-         "openvino_detokenizer.bin", "openvino_detokenizer.xml", "openvino_encoder_model.bin", "openvino_encoder_model.xml",
+         "openvino_decoder_model.xml", "openvino_detokenizer.bin", "openvino_detokenizer.xml", "openvino_encoder_model.bin", "openvino_encoder_model.xml",
          "openvino_tokenizer.bin", "openvino_tokenizer.xml", "preprocessor_config.json", "special_tokens_map.json",
          "tokenizer.json", "tokenizer_config.json", "vocab.json"
       };
 
-      whisper_collection->models.push_back(whisper_info);
+      //TODO: This should go away once HF is updated with the latest conversions from optimum-cli.
+      whisper_info->fileList.push_back("openvino_decoder_with_past_model.bin");
+      whisper_info->fileList.push_back("openvino_decoder_with_past_model.xml");
 
+      whisper_collection->models.push_back(whisper_info);
    }
 
    return whisper_collection;
