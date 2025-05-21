@@ -323,4 +323,20 @@ void OVModelManager::install_model(std::string effect, std::string model_id, Pro
 
    //re-run file check for this model.
    _check_installed_model(model_info);
+
+   if (model_info->installed) {
+      auto callback_it = mInstallCallbacks.find(effect);
+      if (callback_it != mInstallCallbacks.end())
+      {
+         callback_it->second(model_info->model_name);
+      }
+   }
+}
+
+void OVModelManager::register_installed_callback(const std::string& effect, InstalledCallback callback)
+{
+   // For the 2nd+ register call, don't insert it.
+   if (mInstallCallbacks.count(effect) == 0) {
+      mInstallCallbacks.insert({ effect, callback });
+   }
 }

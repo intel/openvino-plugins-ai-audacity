@@ -60,6 +60,9 @@ public:
    void install_model(std::string effect, std::string model_id, ProgressCallback callback = nullptr);
    size_t install_model_size(std::string effect, std::string model_id);
 
+   using InstalledCallback = std::function<void(const std::string &model_name)>;
+   void register_installed_callback(const std::string& effect, InstalledCallback callback);
+
    OVModelManager(const OVModelManager&) = delete;
    OVModelManager& operator=(const OVModelManager&) = delete;
 
@@ -71,6 +74,8 @@ private:
    std::unordered_map< std::string, std::shared_ptr<ModelCollection> > mModelCollection;
 
    std::vector< FilePath > mSearchPaths;
+
+   std::unordered_map<std::string, InstalledCallback> mInstallCallbacks;
 
    void _check_installed_model(std::shared_ptr<ModelInfo> model_info);
    void _check_installed_models();

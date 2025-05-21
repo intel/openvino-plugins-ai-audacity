@@ -588,7 +588,14 @@ bool EffectOVMusicSeparation::TransferDataToWindow(const EffectSettings&)
       return false;
    }
 
-   EffectEditor::EnablePreview(mUIParent, false);
+   OVModelManager::InstalledCallback callback =
+      [this](const std::string& model_name) {
+      wxTheApp->CallAfter([=]() {
+         EffectEditor::EnableApply(mUIParent, true);
+         EffectEditor::EnablePreview(mUIParent, false);
+         });
+      };
+   OVModelManager::instance().register_installed_callback(OVModelManager::MusicSepName(), callback);
 
    auto model_collection = OVModelManager::instance().GetModelCollection(OVModelManager::MusicSepName());
    if (!model_collection || model_collection->models.empty() || !model_collection->models[0]->installed)
@@ -599,6 +606,7 @@ bool EffectOVMusicSeparation::TransferDataToWindow(const EffectSettings&)
    {
       EffectEditor::EnableApply(mUIParent, true);
    }
+   EffectEditor::EnablePreview(mUIParent, false);
 
    return true;
 }
