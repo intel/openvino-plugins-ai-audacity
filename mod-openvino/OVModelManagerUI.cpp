@@ -1,25 +1,29 @@
 #include "OVModelManagerUI.h"
 #include <thread>
 
-ModelEntryPanel::ModelEntryPanel(wxWindow* parent, const ModelData& data, ModelManagerDialog* mgr)
-   : wxPanel(parent), model(data), manager(mgr)
+
+ModelEntryPanel::ModelEntryPanel(wxWindow* parent, const std::string peffect, std::shared_ptr<OVModelManager::ModelInfo> minfo, ModelManagerDialog* mgr)
+   : wxPanel(parent), effect(peffect), model(minfo), manager(mgr)
 {
    SetMinSize(wxSize(550, 40));
 
    wxFlexGridSizer* sizer = new wxFlexGridSizer(4, 5, 5);
    sizer->AddGrowableCol(0, 1);
 
-   wxStaticText* nameText = new wxStaticText(this, wxID_ANY, model.name);
+   wxStaticText* nameText = new wxStaticText(this, wxID_ANY, wxString(model->model_name));
    sizer->Add(nameText, 1, wxEXPAND | wxALIGN_CENTER_VERTICAL);
 
    wxButton* infoBtn = new wxButton(this, wxID_ANY, "Info");
    sizer->Add(infoBtn, 0, wxALIGN_CENTER_VERTICAL);
 
-   statusText = new wxStaticText(this, wxID_ANY, model.installed ? "Installed" : "Not Installed");
-   sizer->Add(statusText, 0, wxALIGN_CENTER_VERTICAL);
-
-   installButton = new wxButton(this, wxID_ANY, "Install");
-   installButton->Enable(!model.installed);
+   installButton = new wxButton(this, wxID_ANY, model->installed ? "Installed" : "Install");
+   installButton->Enable(!model->installed);
+   if (model->baseUrl.empty()) {
+      if (!model->installed) {
+         installButton->SetLabelText("Not Installed");
+      }
+      installButton->Enable(false);
+   }
    sizer->Add(installButton, 0, wxALIGN_CENTER_VERTICAL);
 
    SetSizerAndFit(sizer);
@@ -29,7 +33,7 @@ ModelEntryPanel::ModelEntryPanel(wxWindow* parent, const ModelData& data, ModelM
 }
 
 void ModelEntryPanel::OnInfo(wxCommandEvent&) {
-   wxMessageBox(model.description, "Model Info", wxOK | wxICON_INFORMATION, this);
+   wxMessageBox(wxString(model->info), "Model Info", wxOK | wxICON_INFORMATION, this);
 }
 
 void ModelEntryPanel::OnInstall(wxCommandEvent&) {
@@ -38,22 +42,21 @@ void ModelEntryPanel::OnInstall(wxCommandEvent&) {
 }
 
 void ModelEntryPanel::UpdateStatus() {
-   statusText->SetLabel(model.installed ? "Installed" : "Not Installed");
-   installButton->Enable(!model.installed);
+   installButton->SetLabelText(model->installed ? "Installed" : "Install");
+   installButton->Enable(!model->installed);
 }
 
 void ModelEntryPanel::SetQueued() {
-   statusText->SetLabel("Queued");
+   installButton->SetLabelText("Queued");
    installButton->Disable();
 }
 
 void ModelEntryPanel::SetInstalling() {
-   statusText->SetLabel("Installing...");
+   installButton->SetLabelText("Installing...");
    installButton->Disable();
 }
 
 void ModelEntryPanel::SetInstalled() {
-   model.installed = true;
    UpdateStatus();
 }
 InstallQueueEntryPanel::InstallQueueEntryPanel(wxWindow* parent, ModelEntryPanel* source)
@@ -61,7 +64,7 @@ InstallQueueEntryPanel::InstallQueueEntryPanel(wxWindow* parent, ModelEntryPanel
 {
    wxBoxSizer* sizer = new wxBoxSizer(wxHORIZONTAL);
 
-   label = new wxStaticText(this, wxID_ANY, source->GetModel().name);
+   label = new wxStaticText(this, wxID_ANY, source->GetModel()->model_name);
    gauge = new wxGauge(this, wxID_ANY, 100, wxDefaultPosition, wxSize(-1, 16));
    gauge->Hide();
 
@@ -74,7 +77,7 @@ InstallQueueEntryPanel::InstallQueueEntryPanel(wxWindow* parent, ModelEntryPanel
 }
 
 void InstallQueueEntryPanel::SetAsInstalling() {
-   label->SetLabel(modelPanel->GetModel().name + " (Installing...)");
+   label->SetLabel(modelPanel->GetModel()->model_name + " (Installing...)");
    gauge->SetValue(0);
    gauge->Show();
 
@@ -83,7 +86,7 @@ void InstallQueueEntryPanel::SetAsInstalling() {
 }
 
 void InstallQueueEntryPanel::SetAsQueued() {
-   label->SetLabel(modelPanel->GetModel().name + " (Queued)");
+   label->SetLabel(modelPanel->GetModel()->model_name + " (Queued)");
    gauge->Hide();
    Layout();
 }
@@ -95,7 +98,6 @@ void InstallQueueEntryPanel::UpdateProgress(int percent) {
 ModelEntryPanel* InstallQueueEntryPanel::GetSourcePanel() const {
    return modelPanel;
 }
-
 
 ModelManagerDialog* ModelManagerDialog::instance = nullptr;
 
@@ -113,9 +115,14 @@ void ModelManagerDialog::ShowDialog() {
 }
 
 ModelManagerDialog::ModelManagerDialog(wxWindow* parent)
-   : wxDialog(parent, wxID_ANY, "Model Manager", wxDefaultPosition, wxSize(600, 600)),
+   : wxDialog(parent, wxID_ANY, "Model Manager", wxDefaultPosition, wxSize(600, 600), wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
    installTimer(this)
 {
+   // trigger constructions of OVModelManager
+   {
+      OVModelManager::instance();
+   }
+
    SetMinSize(wxSize(600, 400));
    wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
 
@@ -125,43 +132,54 @@ ModelManagerDialog::ModelManagerDialog(wxWindow* parent)
    modelSizer = new wxBoxSizer(wxVERTICAL);
    scrollPanel->SetSizer(modelSizer);
 
-   std::vector<ModelData> models = {
-       {"whisper_tiny", "Whisper Tiny", "A tiny ASR model.", "Whisper", false, 20 * 1024 * 1024},
-       {"whisper_base", "Whisper Base", "A base ASR model.", "Whisper", false, 20 * 1024 * 1024},
-       {"noise_v1", "NoiseNet v1", "Suppresses background noise.", "Noise Suppression", true, 15 * 1024 * 1024}
-   };
+   std::vector < std::string > allSections = {
+      OVModelManager::MusicGenName(),
+      OVModelManager::MusicSepName(),
+      OVModelManager::NoiseSuppressName(),
+      OVModelManager::SuperResName(),
+      OVModelManager::WhisperName() };
 
-   wxString currentSection;
-   wxStaticBoxSizer* currentSectionBox = nullptr;
-   wxBoxSizer* currentSectionInner = nullptr;
-
-   for (const auto& m : models) {
-      if (m.section != currentSection) {
-         currentSection = m.section;
-
-         // Create a new section box
-         currentSectionInner = new wxBoxSizer(wxVERTICAL);
-         currentSectionBox = new wxStaticBoxSizer(wxVERTICAL, scrollPanel, currentSection);
-         currentSectionBox->Add(currentSectionInner, 0, wxEXPAND | wxALL, 5);
-
-         modelSizer->Add(currentSectionBox, 0, wxEXPAND | wxALL, 5);
+   for (const auto& s : allSections) {
+      auto collection = OVModelManager::instance().GetModelCollection(s);
+      if (collection->models.empty()) {
+         std::cout << "Empty collection for section=" << s << std::endl;
+         continue;
       }
 
-      auto* panel = new ModelEntryPanel(scrollPanel, m, this);
-      currentSectionInner->Add(panel, 0, wxEXPAND | wxALL, 2);
-      allPanels.push_back(panel);
+      auto currentSection = wxString(s);
+      // Create a new section box
+      auto* staticBox = new wxStaticBox(scrollPanel, wxID_ANY, currentSection);
+      wxStaticBoxSizer* currentSectionBox = new wxStaticBoxSizer(staticBox, wxVERTICAL);
+      // Make label bold
+      wxFont font = staticBox->GetFont();
+      font.SetWeight(wxFONTWEIGHT_BOLD);
+      staticBox->SetFont(font);
+      
+      wxBoxSizer* currentSectionInner = new wxBoxSizer(wxVERTICAL);
+
+      currentSectionBox->Add(currentSectionInner, 0, wxEXPAND | wxALL, 5);
+      modelSizer->Add(currentSectionBox, 0, wxEXPAND | wxALL, 5);
+
+      for (auto& m : collection->models)
+      {
+         auto* panel = new ModelEntryPanel(scrollPanel, s, m, this);
+         currentSectionInner->Add(panel, 0, wxEXPAND | wxALL, 2);
+         allPanels.push_back(panel);
+      }
    }
 
    scrollPanel->FitInside();
-   mainSizer->Add(scrollPanel, 1, wxEXPAND | wxALL, 10);
+   mainSizer->Add(scrollPanel, 7, wxEXPAND | wxALL, 10);
 
    wxStaticBoxSizer* queueBox = new wxStaticBoxSizer(wxVERTICAL, this, "Install Queue");
    queueBox->SetMinSize(wxSize(-1, 40));
    queueSizer = new wxBoxSizer(wxVERTICAL);
    queueBox->Add(queueSizer, 1, wxEXPAND | wxALL, 5);
-   mainSizer->Add(queueBox, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
+   mainSizer->Add(queueBox, 2, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
 
    SetSizerAndFit(mainSizer);
+
+   OVModelManager& model_manager = OVModelManager::instance();
 }
 
 void ModelManagerDialog::QueueInstall(ModelEntryPanel* panel) {
@@ -181,13 +199,19 @@ void ModelManagerDialog::QueueInstall(ModelEntryPanel* panel) {
 
 void ModelManagerDialog::BeginInstallFor(ModelEntryPanel* panel) {
    std::thread([this, panel]() {
-      for (int i = 0; i <= 100; i += 10) {
-         std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+      auto effect = panel->GetEffect();
+      auto model_name = panel->GetModel()->model_name;
+
+      OVModelManager::ProgressCallback callback =
+         [this](float perc_complete) {
          wxTheApp->CallAfter([=]() {
             if (!queuePanels.empty())
-               queuePanels.front()->UpdateProgress(i);
+               queuePanels.front()->UpdateProgress(static_cast<int>(perc_complete * 100));
             });
-      }
+         };
+
+      OVModelManager::instance().install_model(effect, model_name, callback);
 
       wxTheApp->CallAfter([=]() {
          activeInstall->SetInstalled();

@@ -78,11 +78,15 @@ set( SOURCES
       OVStringUtils.h
       OVModelManagerUI.h
       OVModelManagerUI.cpp
+      OVModelManager.h
+      OVModelManager.cpp
+      OVModelManagerPopulation.cpp
 )
 
 set( LIBRARIES
    PRIVATE
       Audacity
+      lib-network-manager
       openvino::runtime
       openvino::genai
 	   OpenCL::OpenCL

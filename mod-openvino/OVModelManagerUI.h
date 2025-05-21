@@ -6,15 +6,7 @@
 #include <wx/scrolwin.h>
 #include <wx/timer.h>
 #include <queue>
-
-struct ModelData {
-   wxString id;
-   wxString name;
-   wxString description;
-   wxString section;
-   bool installed = false;
-   size_t sizeBytes = 0;
-};
+#include "OVModelManager.h"
 
 void ShowModelManagerDialog();
 
@@ -48,9 +40,10 @@ private:
 
 class ModelEntryPanel : public wxPanel {
 public:
-   ModelEntryPanel(wxWindow* parent, const ModelData& data, ModelManagerDialog* manager);
+   ModelEntryPanel(wxWindow* parent, const std::string peffect, std::shared_ptr<OVModelManager::ModelInfo> minfo, ModelManagerDialog* manager);
 
-   const ModelData& GetModel() const { return model; }
+   std::shared_ptr<OVModelManager::ModelInfo> GetModel() const { return model; }
+   const std::string& GetEffect() const { return effect; }
 
    void UpdateStatus();
    void SetQueued();
@@ -61,10 +54,10 @@ private:
    void OnInfo(wxCommandEvent& event);
    void OnInstall(wxCommandEvent& event);
 
-   ModelData model;
+   std::string effect;
+   std::shared_ptr<OVModelManager::ModelInfo> model;
    ModelManagerDialog* manager;
 
-   wxStaticText* statusText;
    wxButton* installButton;
 };
 
