@@ -29,6 +29,8 @@
 
 #include "OVStringUtils.h"
 #include <openvino/openvino.hpp>
+#include "OVModelManager.h"
+#include "OVModelManagerUI.h"
 
 const ComponentInterfaceSymbol EffectOVMusicSeparation::Symbol{ XO("OpenVINO Music Separation") };
 
@@ -37,6 +39,7 @@ namespace { BuiltinEffectsModule::Registration< EffectOVMusicSeparation > reg; }
 BEGIN_EVENT_TABLE(EffectOVMusicSeparation, wxEvtHandler)
 EVT_CHECKBOX(ID_Type_AdvancedCheckbox, EffectOVMusicSeparation::OnAdvancedCheckboxChanged)
 EVT_BUTTON(ID_Type_DeviceInfoButton, EffectOVMusicSeparation::OnDeviceInfoButtonClicked)
+EVT_BUTTON(ID_Type_ModelManagerButton, EffectOVMusicSeparation::OnModelManagerButtonClicked)
 END_EVENT_TABLE()
 
 EffectOVMusicSeparation::EffectOVMusicSeparation()
@@ -103,6 +106,12 @@ std::unique_ptr<EffectEditor> EffectOVMusicSeparation::PopulateOrExchange(
    S.AddSpace(0, 5);
    S.StartVerticalLay();
    {
+      S.StartMultiColumn(1, wxLEFT);
+      {
+         auto model_manager_button = S.Id(ID_Type_ModelManagerButton).AddButton(XO("Open Model Manager"));
+      }
+      S.EndMultiColumn();
+
       S.StartMultiColumn(2, wxLEFT);
       {
          //m_deviceSelectionChoice
@@ -192,6 +201,11 @@ void EffectOVMusicSeparation::OnAdvancedCheckboxChanged(wxCommandEvent& evt)
    }
 }
 
+void EffectOVMusicSeparation::OnModelManagerButtonClicked(wxCommandEvent& evt)
+{
+   ShowModelManagerDialog();
+}
+
 void EffectOVMusicSeparation::OnDeviceInfoButtonClicked(wxCommandEvent& evt)
 {
    std::string device_mapping_str = "";
@@ -250,12 +264,18 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
 {
    try
    {
-      //okay, let's try to find openvino model
-      //todo: Right now we're looking for the model in the 'BaseDir' (which is top-level folder of Audacity install)
-      // This might be okay, but some users may not have permissions to place models there. So, also look in
-      // DataDir(), which is the path to C:\Users\<user>\AppData\Roaming\audacity.
+      auto model_collection = OVModelManager::instance().GetModelCollection(OVModelManager::MusicSepName());
+
+      // It shouldn't be possible for this condition to be true (User shoudn't have been able to click 'Apply'),
+      // but double check anyway..
+      if (!model_collection || model_collection->models.empty() || !model_collection->models[0]->installed)
+      {
+         throw std::runtime_error("Music Separation model has not been installed.");
+      }
+
       FilePath model_folder = FileNames::MkDir(wxFileName(FileNames::BaseDir(), wxT("openvino-models")).GetFullPath());
-      std::string demucs_v4_path = audacity::ToUTF8(wxFileName(model_folder, wxT("htdemucs_v4.xml"))
+
+      std::string demucs_v4_path = audacity::ToUTF8(wxFileName(model_collection->models[0]->installation_path, wxT("htdemucs_v4.xml"))
          .GetFullPath());
 
       FilePath cache_folder = FileNames::MkDir(wxFileName(FileNames::DataDir(), wxT("openvino-model-cache")).GetFullPath());
@@ -569,6 +589,16 @@ bool EffectOVMusicSeparation::TransferDataToWindow(const EffectSettings&)
    }
 
    EffectEditor::EnablePreview(mUIParent, false);
+
+   auto model_collection = OVModelManager::instance().GetModelCollection(OVModelManager::MusicSepName());
+   if (!model_collection || model_collection->models.empty() || !model_collection->models[0]->installed)
+   {
+      EffectEditor::EnableApply(mUIParent, false);
+   }
+   else
+   {
+      EffectEditor::EnableApply(mUIParent, true);
+   }
 
    return true;
 }
