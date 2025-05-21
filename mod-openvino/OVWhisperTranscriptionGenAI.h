@@ -17,15 +17,15 @@ class wxSizer;
 #include <wx/weakref.h>
 
 
-class EffectOVWhisperTranscription final : public StatefulEffect, public StatefulEffectUIServices
+class EffectOVWhisperTranscriptionGenAI final : public StatefulEffect, public StatefulEffectUIServices
 {
 public:
    //static inline EffectOVWhisperTranscription*
    //   FetchParameters(EffectOVWhisperTranscription& e, EffectSettings&) { return &e; }
    static const ComponentInterfaceSymbol Symbol;
 
-   EffectOVWhisperTranscription();
-   virtual ~EffectOVWhisperTranscription();
+   EffectOVWhisperTranscriptionGenAI();
+   virtual ~EffectOVWhisperTranscriptionGenAI();
 
    // ComponentInterface implementation
 
@@ -43,7 +43,6 @@ public:
       EffectSettingsAccess& access, const EffectOutputs* pOutputs) override;
 
    bool UpdateProgress(double perc);
-   bool _EncoderBegin();
 
    void OnAdvancedCheckboxChanged(wxCommandEvent& evt);
    void OnDeviceInfoButtonClicked(wxCommandEvent& evt);
@@ -64,8 +63,8 @@ private:
    //const EffectParameterMethods& Parameters() const override;
    bool ProcessStereoToMono(sampleCount& curTime, sampleCount totalTime, WaveTrack& track);
 
-   bool ProcessWhisper(WaveTrack* mono, LabelTrack* lt0, LabelTrack* lt1);
-   bool Whisper(std::vector<float>& mono_samples, LabelTrack* lt0, LabelTrack* lt1, double start_time);
+   bool ProcessWhisper(WaveTrack* mono, LabelTrack* lt0);
+   bool Whisper(std::vector<float>& mono_samples, LabelTrack* lt0, double start_time);
 
    wxWeakRef<wxWindow> mUIParent{};
 
@@ -119,22 +118,28 @@ private:
 
    wxSizer* advancedSizer = nullptr;
 
-   int mMaxTextSegLength = 0;
-   wxTextCtrl* mMaxTextSegLengthCtrl = nullptr;
-
    std::string mInitialPrompt = "";
    wxTextCtrl* mInitialPromptCtrl = nullptr;
 
-   int mBeamSize = 1;
-   wxTextCtrl* mBeamSizeCtrl = nullptr;
-
-   int mBestOf = 1;
-   wxTextCtrl* mBestOfCtrl = nullptr;
+   std::string mHotwords = "";
+   wxTextCtrl* mHotwordsCtrl = nullptr;
 
    std::vector<std::pair<std::string, std::string>> m_simple_to_full_device_map;
 
    float mProgressFrac = 0.f;
    std::string mProgMessage;
+
+   struct WhisperModelInfo
+   {
+      std::string ui_name;
+      std::string folderpath;
+   };
+
+   std::unordered_map < std::string, WhisperModelInfo > _ui_name_to_model_info;
+   std::vector<std::string> _FindAvailableModels();
+   void _process_available_model(const std::string& ui_name,
+      const std::string& folder_name,
+      std::vector<std::string>& available_models);
 
    DECLARE_EVENT_TABLE()
 };

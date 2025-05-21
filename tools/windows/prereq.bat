@@ -9,11 +9,8 @@ set "bat_path=%~dp0"
 set LIBTORCH_PACKAGE_URL="https://download.pytorch.org/libtorch/cpu/libtorch-win-shared-with-deps-2.4.1%%%%2Bcpu.zip"
 set LIBTORCH_PACKAGE_256SUM=e7b8d0b3b958d2215f52ff5385335f93aa78e42005727e44f1043d94d5bfc5dd
 
-set OPENVINO_PACKAGE_URL=https://storage.openvinotoolkit.org/repositories/openvino/packages/2024.6/windows/w_openvino_toolkit_windows_2024.6.0.17404.4c0f47d2335_x86_64.zip
-set OPENVINO_PACKAGE_256SUM=45a71a1e11f3e8a8109118e56434e79b3b2bfcc828b38b0e61be55949f317a53
-
-set OPENVINO_TOKENIZERS_URL=https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/2024.6.0.0/openvino_tokenizers_windows_2024.6.0.0_x86_64.zip
-set OPENVINO_TOKENIZERS_256SUM=c2b1c6d020f3536c72872321cb8eb379eed2fd3b367a840b606d27e8680d1e6b
+set OPENVINO_GENAI_PACKAGE_URL=https://storage.openvinotoolkit.org/repositories/openvino_genai/packages/nightly/2025.2.0.0.dev20250513/openvino_genai_windows_2025.2.0.0.dev20250513_x86_64.zip
+set OPENVINO_GENAI_PACKAGE_256SUM=5c158964ca5dae997caf1ff55c133ca64c05e6cd435d32cf0bd7f624d6b23496
 
 set OPENCL_SDK_URL=https://github.com/KhronosGroup/OpenCL-SDK/releases/download/v2023.04.17/OpenCL-SDK-v2023.04.17-Win-x64.zip
 set OPENCL_SDK_256SUM=11844a1d69a71f82dc14ce66382c6b9fc8a4aee5840c21a786c5accb1d69bc0a
@@ -23,9 +20,6 @@ set OPENCL_SDK_256SUM=11844a1d69a71f82dc14ce66382c6b9fc8a4aee5840c21a786c5accb1d
 :::::::::::::::::::::::::::::
 set AUDACITY_REPO_CLONE_URL=https://github.com/audacity/audacity.git
 set AUDACITY_REPO_CHECKOUT=release-3.7.1
-
-set WHISPERCPP_REPO_CLONE_URL=https://github.com/ggerganov/whisper.cpp
-set WHISPERCPP_REPO_CHECKOUT=v1.6.0
 
 ::::::::::::::::::::::::::::::::::::::::::::::::
 :: Download, verify, and extract the packages ::
@@ -42,22 +36,13 @@ if not defined LIBTORCH_DIR (
     echo Not downloading Libtorch, as LIBTORCH_DIR is defined by environment. LIBTORCH_DIR=%LIBTORCH_DIR%
 )
 
-call :DownloadVerifyExtract %OPENVINO_PACKAGE_URL% %OPENVINO_PACKAGE_256SUM%
+call :DownloadVerifyExtract %OPENVINO_GENAI_PACKAGE_URL% %OPENVINO_GENAI_PACKAGE_256SUM%
 IF "%EXTRACTED_PACKAGE_PATH%"=="" (
-echo Error in openvino download routine..
+echo Error in openvino genai download routine..
 exit /b
 )
 
-set OPENVINO_DIR=%EXTRACTED_PACKAGE_PATH%
-
-call :DownloadVerifyExtract %OPENVINO_TOKENIZERS_URL% %OPENVINO_TOKENIZERS_256SUM% openvino_tokenizers.zip
-IF "%EXTRACTED_PACKAGE_PATH%"=="" (
-echo Error in openvino tokenizers download routine..
-exit /b
-)
-
-echo Extracting openvino_tokenizers.zip to %OPENVINO_DIR% ...
-powershell -Command "Expand-Archive -LiteralPath openvino_tokenizers.zip -DestinationPath '%OPENVINO_DIR%' -Force"
+set OPENVINO_GENAI_DIR=%EXTRACTED_PACKAGE_PATH%
 
 call :DownloadVerifyExtract %OPENCL_SDK_URL% %OPENCL_SDK_256SUM%
 IF "%EXTRACTED_PACKAGE_PATH%"=="" (
@@ -68,8 +53,6 @@ exit /b
 set OPENCL_SDK_DIR=%EXTRACTED_PACKAGE_PATH%
 
 :: Clone the required repo's and check out the desired tags
-git clone --depth 1 --branch %WHISPERCPP_REPO_CHECKOUT% %WHISPERCPP_REPO_CLONE_URL%
-
 git clone --depth 1 --branch %AUDACITY_REPO_CHECKOUT% %AUDACITY_REPO_CLONE_URL%
 
 :: Create local python env, just to install conan.
@@ -81,7 +64,7 @@ call "build_env\Scripts\activate"
 echo "installing conan"
 pip install conan
 
-call %bat_path%\set_env.bat %LIBTORCH_DIR% %OPENVINO_DIR% %OPENCL_SDK_DIR% whisper.cpp audacity %CONAN_CACHE_PATH%
+call %bat_path%\set_env.bat %LIBTORCH_DIR% %OPENVINO_GENAI_DIR% %OPENCL_SDK_DIR% audacity %CONAN_CACHE_PATH%
 
 goto :eof
 
