@@ -46,6 +46,7 @@ public:
 
    void OnAdvancedCheckboxChanged(wxCommandEvent& evt);
    void OnDeviceInfoButtonClicked(wxCommandEvent& evt);
+   void OnModelManagerButtonClicked(wxCommandEvent& evt);
 
 protected:
 
@@ -75,7 +76,8 @@ private:
       ID_Type_Mode = 10002,
       ID_Type_Language = 10003,
       ID_Type_AdvancedCheckbox = 10004,
-      ID_Type_DeviceInfoButton = 10005
+      ID_Type_DeviceInfoButton = 10005,
+      ID_Type_ModelManagerButton = 10006
    };
 
    wxChoice* mTypeChoiceDeviceCtrl;
@@ -128,18 +130,6 @@ private:
 
    float mProgressFrac = 0.f;
    std::string mProgMessage;
-
-   struct WhisperModelInfo
-   {
-      std::string ui_name;
-      std::string folderpath;
-   };
-
-   std::unordered_map < std::string, WhisperModelInfo > _ui_name_to_model_info;
-   std::vector<std::string> _FindAvailableModels();
-   void _process_available_model(const std::string& ui_name,
-      const std::string& folder_name,
-      std::vector<std::string>& available_models);
 
    DECLARE_EVENT_TABLE()
 };

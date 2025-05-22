@@ -41,6 +41,8 @@
 #include <openvino/openvino.hpp>
 #include "openvino/genai/whisper_pipeline.hpp"
 
+#include "OVModelManagerUI.h"
+
 struct ovgenai_whisper_lang_entry
 {
    std::string lang_full_string;
@@ -162,78 +164,10 @@ static std::shared_ptr<AddedAnalysisTrack> MyAddAnalysisTrack(
    { safenew AddedAnalysisTrack{ &effect, name } };
 }
 
-// Set name to given value if that is not empty, else use default name
-static ModifiedAnalysisTrack MyModifyAnalysisTrack(
-   Effect& effect, const LabelTrack& origTrack, const wxString& name)
-{
-   return{ &effect, origTrack, name };
-}
-
-void EffectOVWhisperTranscriptionGenAI::_process_available_model(const std::string& ui_name,
-   const std::string& folder_name,
-   std::vector<std::string>& available_models)
-{
-   auto model_folder = wxFileName(FileNames::BaseDir(), wxT("openvino-models")).GetFullPath();
-   auto base_whisper_folder = wxFileName(model_folder, wxT("whisper")).GetFullPath();
-
-   auto whisper_model_folder = wxFileName(base_whisper_folder, wxString(folder_name)).GetFullPath();
-   auto decoder = wxFileName(whisper_model_folder, wxString("openvino_decoder_model.xml"));
-   auto encoder = wxFileName(whisper_model_folder, wxString("openvino_encoder_model.xml"));
-   auto tokenizer = wxFileName(whisper_model_folder, wxString("openvino_tokenizer.xml"));
-   if (decoder.FileExists() && encoder.FileExists() && tokenizer.FileExists())
-   {
-      _ui_name_to_model_info[ui_name] = { ui_name, audacity::ToUTF8(whisper_model_folder) };
-      available_models.push_back(ui_name);
-   }
-}
-
-std::vector<std::string> EffectOVWhisperTranscriptionGenAI::_FindAvailableModels()
-{
-   std::vector<std::string> available_models;
-
-   _process_available_model("Whisper Base (FP16)", "whisper-base-fp16-ov", available_models);
-   _process_available_model("Whisper Base (INT8)", "whisper-base-int8-ov", available_models);
-   _process_available_model("Whisper Base (INT4)", "whisper-base-int4-ov", available_models);
-
-   _process_available_model("Whisper Medium (FP16)", "whisper-medium-fp16-ov", available_models);
-   _process_available_model("Whisper Medium (INT8)", "whisper-medium-int8-ov", available_models);
-   _process_available_model("Whisper Medium (INT4)", "whisper-medium-int4-ov", available_models);
-
-   _process_available_model("Whisper Large V2 (FP16)", "whisper-large-v2-fp16-ov", available_models);
-   _process_available_model("Whisper Large V2 (INT8)", "whisper-large-v2-int8-ov", available_models);
-   _process_available_model("Whisper Large V2 (INT4)", "whisper-large-v2-int4-ov", available_models);
-
-   _process_available_model("Whisper Large V3 (FP16)", "whisper-large-v3-fp16-ov", available_models);
-   _process_available_model("Whisper Large V3 (INT8)", "whisper-large-v3-int8-ov", available_models);
-   _process_available_model("Whisper Large V3 (INT4)", "whisper-large-v3-int4-ov", available_models);
-
-   _process_available_model("Whisper Large V3 Turbo (FP16)", "whisper-large-v3-turbo-fp16-ov", available_models);
-   _process_available_model("Whisper Large V3 Turbo (INT8)", "whisper-large-v3-turbo-int8-ov", available_models);
-   _process_available_model("Whisper Large V3 Turbo (INT4)", "whisper-large-v3-turbo-int4-ov", available_models);
-
-
-   _process_available_model("Distil-Whisper Base (FP16)", "distil-whisper-base-fp16-ov", available_models);
-   _process_available_model("Distil-Whisper Base (INT8)", "distil-whisper-base-int8-ov", available_models);
-   _process_available_model("Distil-Whisper Base (INT4)", "distil-whisper-base-int4-ov", available_models);
-
-   _process_available_model("Distil-Whisper Medium (FP16)", "distil-whisper-medium-fp16-ov", available_models);
-   _process_available_model("Distil-Whisper Medium (INT8)", "distil-whisper-medium-int8-ov", available_models);
-   _process_available_model("Distil-Whisper Medium (INT4)", "distil-whisper-medium-int4-ov", available_models);
-
-   _process_available_model("Distil-Whisper Large V2 (FP16)", "distil-whisper-large-v2-fp16-ov", available_models);
-   _process_available_model("Distil-Whisper Large V2 (INT8)", "distil-whisper-large-v2-int8-ov", available_models);
-   _process_available_model("Distil-Whisper Large V2 (INT4)", "distil-whisper-large-v2-int4-ov", available_models);
-
-   _process_available_model("Distil-Whisper Large V3 (FP16)", "distil-whisper-large-v3-fp16-ov", available_models);
-   _process_available_model("Distil-Whisper Large V3 (INT8)", "distil-whisper-large-v3-int8-ov", available_models);
-   _process_available_model("Distil-Whisper Large V3 (INT4)", "distil-whisper-large-v3-int4-ov", available_models);
-
-   return available_models;
-}
-
 BEGIN_EVENT_TABLE(EffectOVWhisperTranscriptionGenAI, wxEvtHandler)
     EVT_CHECKBOX(ID_Type_AdvancedCheckbox, EffectOVWhisperTranscriptionGenAI::OnAdvancedCheckboxChanged)
     EVT_BUTTON(ID_Type_DeviceInfoButton, EffectOVWhisperTranscriptionGenAI::OnDeviceInfoButtonClicked)
+    EVT_BUTTON(ID_Type_ModelManagerButton, EffectOVWhisperTranscriptionGenAI::OnModelManagerButtonClicked)
 END_EVENT_TABLE()
 
 EffectOVWhisperTranscriptionGenAI::EffectOVWhisperTranscriptionGenAI()
@@ -254,12 +188,6 @@ EffectOVWhisperTranscriptionGenAI::EffectOVWhisperTranscriptionGenAI()
    for (auto d : mSupportedDevices)
    {
       mGuiDeviceSelections.push_back({ TranslatableString{ wxString(d), {}} });
-   }
-
-   mSupportedModels = _FindAvailableModels();
-   for (auto &m : mSupportedModels)
-   {
-      mGuiModelSelections.push_back({ TranslatableString{ wxString(m), {}} });
    }
 
    mSupportedModes = { "transcribe", "translate" };
@@ -570,7 +498,21 @@ bool EffectOVWhisperTranscriptionGenAI::Whisper(std::vector<float>& mono_samples
    std::cout << "Creating ov::genai::WhisperPipeline with device = " << device_name << std::endl;
 
    std::string ui_whisper_model_name = mSupportedModels[m_modelSelectionChoice];
-   auto whisper_model_path = _ui_name_to_model_info[ui_whisper_model_name].folderpath;
+   auto model_collection = OVModelManager::instance().GetModelCollection(OVModelManager::WhisperName());
+
+   std::shared_ptr< OVModelManager::ModelInfo > retrieved_model_info;
+   for (auto model_info : model_collection->models) {
+      if (model_info && model_info->installed && model_info->model_name == ui_whisper_model_name)
+      {
+         retrieved_model_info = model_info;
+      }
+   }
+
+   if (!retrieved_model_info) {
+      throw std::runtime_error("Couldn't retrieve installed model info for " + ui_whisper_model_name);
+   }
+
+   auto whisper_model_path = retrieved_model_info->installation_path;
    std::cout << "whisper_model_path = " << whisper_model_path << std::endl;
 
    FilePath cache_folder = FileNames::MkDir(wxFileName(FileNames::DataDir(), wxT("openvino-model-cache")).GetFullPath());
@@ -763,8 +705,7 @@ bool EffectOVWhisperTranscriptionGenAI::TransferDataToWindow(const EffectSetting
       return false;
    }
 
-
-   if (mSupportedModels.empty())
+   if (mGuiModelSelections.empty())
    {
       wxLogInfo("OpenVINO Whisper Transcription has no models installed.");
       EffectEditor::EnableApply(mUIParent, false);
@@ -786,11 +727,56 @@ bool EffectOVWhisperTranscriptionGenAI::TransferDataFromWindow(EffectSettings&)
    return true;
 }
 
+void EffectOVWhisperTranscriptionGenAI::OnModelManagerButtonClicked(wxCommandEvent& evt)
+{
+   ShowModelManagerDialog();
+}
+
 std::unique_ptr<EffectEditor> EffectOVWhisperTranscriptionGenAI::PopulateOrExchange(
    ShuttleGui& S, EffectInstance&, EffectSettingsAccess& access,
    const EffectOutputs*)
 {
    mUIParent = S.GetParent();
+
+   auto collection = OVModelManager::instance().GetModelCollection(OVModelManager::WhisperName());
+   for (auto& model_info : collection->models) {
+      if (model_info->installed) {
+         if (std::find(mSupportedModels.begin(), mSupportedModels.end(), model_info->model_name) == mSupportedModels.end()) {
+            mSupportedModels.push_back(model_info->model_name);
+         }
+      }
+   }
+
+   mGuiModelSelections.clear();
+   for (auto& m : mSupportedModels)
+   {
+      mGuiModelSelections.push_back({ TranslatableString{ wxString(m), {}} });
+   }
+
+   OVModelManager::InstalledCallback callback =
+      [this](const std::string& model_name) {
+      wxTheApp->CallAfter([=]() {
+         if (std::find(mSupportedModels.begin(), mSupportedModels.end(), model_name) == mSupportedModels.end()) {
+            mSupportedModels.push_back(model_name);
+            mGuiModelSelections.push_back({ TranslatableString{ wxString(model_name), {}} });
+         }
+
+         if (mUIParent)
+         {
+            EffectEditor::EnableApply(mUIParent, true);
+            if (mTypeChoiceModelCtrl)
+            {
+               mTypeChoiceModelCtrl->Append(wxString(model_name));
+
+               if (mTypeChoiceModelCtrl->GetCount() == 1) {
+                  mTypeChoiceModelCtrl->SetSelection(mTypeChoiceModelCtrl->GetCount() - 1);
+               }
+            }
+         }
+         });
+      };
+
+   OVModelManager::instance().register_installed_callback(OVModelManager::WhisperName(), callback);
 
    S.AddSpace(0, 5);
    S.StartVerticalLay();
@@ -814,9 +800,14 @@ std::unique_ptr<EffectEditor> EffectOVWhisperTranscriptionGenAI::PopulateOrExcha
       }
       S.EndStatic();
 
+      S.StartMultiColumn(1, wxLEFT);
+      {
+         auto model_manager_button = S.Id(ID_Type_ModelManagerButton).AddButton(XO("Open Model Manager"));
+      }
+      S.EndMultiColumn();
+
       S.StartMultiColumn(4, wxLEFT);
       {
-         //m_deviceSelectionChoice
          mTypeChoiceModelCtrl = S.Id(ID_Type_Model)
             .MinSize({ -1, -1 })
             .Validator<wxGenericValidator>(&m_modelSelectionChoice)
@@ -827,14 +818,13 @@ std::unique_ptr<EffectEditor> EffectOVWhisperTranscriptionGenAI::PopulateOrExcha
   
       S.StartMultiColumn(4, wxLEFT);
       {
-         //m_deviceSelectionChoice
-         mTypeChoiceModelCtrl = S.Id(ID_Type_Mode)
+         mTypeChoiceModeCtrl = S.Id(ID_Type_Mode)
             .MinSize({ -1, -1 })
             .Validator<wxGenericValidator>(&m_modeSelectionChoice)
             .AddChoice(XXO("Mode:"),
                Msgids(mGuiModeSelections.data(), mGuiModeSelections.size()));
 
-         mTypeChoiceModelCtrl = S.Id(ID_Type_Language)
+         mTypeChoiceLanguageCtrl = S.Id(ID_Type_Language)
             .MinSize({ -1, -1 })
             .Validator<wxGenericValidator>(&m_languageSelectionChoice)
             .AddChoice(XXO("Source Language:"),

@@ -45,6 +45,7 @@ class EffectOVMusicSeparation final : public StatefulEffect, public StatefulEffe
 
       void OnAdvancedCheckboxChanged(wxCommandEvent& evt);
       void OnDeviceInfoButtonClicked(wxCommandEvent& evt);
+      void OnModelManagerButtonClicked(wxCommandEvent& evt);
 
    protected:
 
@@ -57,7 +58,8 @@ class EffectOVMusicSeparation final : public StatefulEffect, public StatefulEffe
        {
           ID_Type = 10000,
           ID_Type_AdvancedCheckbox,
-          ID_Type_DeviceInfoButton
+          ID_Type_DeviceInfoButton,
+          ID_Type_ModelManagerButton
        };
 
        std::vector< std::string > mSupportedDevices;
