@@ -57,29 +57,6 @@ namespace ov_musicgen
          _text_encoder_infer_request.infer();
       }
 
-
-      {
-         //prep enc-to-dec proj model
-         std::string enc_to_dec_model_folder = model_folder;
-         if (config.bStereo)
-         {
-            enc_to_dec_model_folder = FullPath(enc_to_dec_model_folder, "stereo");
-         }
-         else
-         {
-            enc_to_dec_model_folder = FullPath(enc_to_dec_model_folder, "mono");
-         }
-
-         auto modelpath = FullPath(enc_to_dec_model_folder, "enc_to_dec_proj.xml");
-         std::shared_ptr<ov::Model> model = core.read_model(modelpath);
-
-         model->reshape({ {2, ov::Dimension(1, 64), 768} });
-
-         ov::CompiledModel compiled_model = core.compile_model(model, "CPU");
-
-         _enc_to_dec_proj_infer_request = compiled_model.create_infer_request();
-      }
-
       {
          size_t num_encodec_secs = 20;
 
@@ -550,25 +527,6 @@ namespace ov_musicgen
       std::cout << "loop time = " << t1 - t0 << std::endl;
 
       return input_ids;
-   }
-
-
-
-   torch::Tensor MusicgenForConditionalGenerationRefactor::_enc_to_dec_proj(torch::Tensor encoder_hidden_states)
-   {
-      ITT_SCOPED_TASK(_enc_to_dec_proj)
-         using namespace torch::indexing;
-
-      auto ov_input_tensor = wrap_torch_tensor_as_ov(encoder_hidden_states);
-      _enc_to_dec_proj_infer_request.set_input_tensor(ov_input_tensor);
-
-      //run inference.
-      _enc_to_dec_proj_infer_request.infer();
-
-      //wrap output tensor as a torch tensor
-      auto output_tensor_wrapped = wrap_ov_tensor_as_torch(_enc_to_dec_proj_infer_request.get_output_tensor());
-
-      return output_tensor_wrapped;
    }
 
    torch::Tensor MusicgenForConditionalGenerationRefactor::_logits_processor(torch::Tensor input_ids, torch::Tensor next_token_logits, float guidance_scale)

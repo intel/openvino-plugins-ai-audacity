@@ -96,8 +96,6 @@ namespace ov_musicgen
 
       void ShiftLeft(int64_t ntokens);
 
-      torch::Tensor _enc_to_dec_proj(torch::Tensor encoder_hidden_states);
-
       //transformers\generation\logits_process.py, ClassifierFreeGuidanceLogitsProcessor.
       torch::Tensor _logits_processor(torch::Tensor input_ids, torch::Tensor next_token_logits, float guidance_scale);
 
@@ -108,8 +106,6 @@ namespace ov_musicgen
       std::shared_ptr< MusicgenDecoder > _decoder_refactor;
 
       std::shared_ptr< MusicGenEncodecEncoder > _encoder;
-
-      ov::InferRequest _enc_to_dec_proj_infer_request;
 
       int _nforward_calls = 1;
 
