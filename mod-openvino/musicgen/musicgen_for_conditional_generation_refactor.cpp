@@ -27,14 +27,14 @@ namespace ov_musicgen
       _core = std::make_shared< ov::Core >();
       auto& core = *_core;
 
-      _decoder_refactor = std::make_shared< MusicgenDecoderStatic >(core, config);
-
       if (config.cache_folder)
       {
          std::cout << "Setting cache_dir to " << *config.cache_folder << std::endl;
 
          core.set_property(ov::cache_dir(*config.cache_folder));
       }
+
+      _decoder_refactor = std::make_shared< MusicgenDecoderStatic >(core, config);
 
       torch::Generator generator = at::detail::createCPUGenerator();
       {
