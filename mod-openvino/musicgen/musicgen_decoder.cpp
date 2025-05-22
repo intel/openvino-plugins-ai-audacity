@@ -241,8 +241,6 @@ namespace ov_musicgen
          model_folder = FullPath(model_folder, "mono");
       }
 
-      //TODO: This is temporary
-      model_folder = FullPath(model_folder, "refactor");
       {
          std::string decoder_model_path;
          std::string decoder_bin_path;

@@ -104,10 +104,8 @@ static std::vector<std::string> FindAvailableModels()
    {
       auto mono_model_folder = wxFileName(model_folder, wxT("mono")).GetFullPath();
 
-      auto decoder = wxFileName(mono_model_folder, wxString("musicgen_decoder_static.xml"));
-      auto decoder_batch1 = wxFileName(mono_model_folder, wxString("musicgen_decoder_static_batch1.xml"));
-      auto decoder_int8 = wxFileName(mono_model_folder, wxString("musicgen_decoder_static_int8.xml"));
-      if (decoder.FileExists() && decoder_batch1.FileExists() && decoder_int8.FileExists())
+      auto decoder = wxFileName(mono_model_folder, wxString("musicgen_decoder.xml"));
+      if (decoder.FileExists())
       {
          available_models.push_back("musicgen-small-fp16-mono");
          available_models.push_back("musicgen-small-int8-mono");
@@ -119,20 +117,18 @@ static std::vector<std::string> FindAvailableModels()
    {
       auto stereo_model_folder = wxFileName(model_folder, wxT("stereo")).GetFullPath();
 
-      auto decoder = wxFileName(stereo_model_folder, wxString("musicgen_decoder_static.xml"));
-      auto decoder_batch1 = wxFileName(stereo_model_folder, wxString("musicgen_decoder_static_batch1.xml"));
-      auto decoder_int8 = wxFileName(stereo_model_folder, wxString("musicgen_decoder_static_int8.xml"));
-      if (decoder.FileExists() && decoder_batch1.FileExists() && decoder_int8.FileExists())
+      auto decoder = wxFileName(stereo_model_folder, wxString("musicgen_decoder.xml"));
+      if (decoder.FileExists())
       {
          available_models.push_back("musicgen-small-fp16-stereo");
          available_models.push_back("musicgen-small-int8-stereo");
       }
    }
 
-   available_models.push_back("musicgen-medium-fp16-mono");
-   available_models.push_back("musicgen-medium-int8-mono");
-   available_models.push_back("musicgen-medium-fp16-stereo");
-   available_models.push_back("musicgen-medium-int8-stereo");
+   //available_models.push_back("musicgen-medium-fp16-mono");
+   //available_models.push_back("musicgen-medium-int8-mono");
+   //available_models.push_back("musicgen-medium-fp16-stereo");
+   //available_models.push_back("musicgen-medium-int8-stereo");
 
    return available_models;
 }
