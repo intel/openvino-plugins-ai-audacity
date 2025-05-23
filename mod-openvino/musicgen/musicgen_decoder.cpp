@@ -234,11 +234,11 @@ namespace ov_musicgen
 
       if (config.bStereo)
       {
-         model_folder = FullPath(model_folder, "stereo");
+         model_folder = FullPath(model_folder, "small-stereo");
       }
       else
       {
-         model_folder = FullPath(model_folder, "mono");
+         model_folder = FullPath(model_folder, "small-mono");
       }
 
       {

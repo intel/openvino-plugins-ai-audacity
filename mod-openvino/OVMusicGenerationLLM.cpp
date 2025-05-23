@@ -41,6 +41,8 @@
 #include "InterpolateAudio.h"
 #include "TempoChange.h"
 
+#include "OVModelManagerUI.h"
+
 const ComponentInterfaceSymbol EffectOVMusicGenerationLLM::Symbol{ XO("OpenVINO Music Generation") };
 
 namespace { BuiltinEffectsModule::Registration< EffectOVMusicGenerationLLM > reg; }
@@ -51,6 +53,7 @@ EVT_BUTTON(ID_Type_DeviceInfoButton, EffectOVMusicGenerationLLM::OnDeviceInfoBut
 EVT_CHOICE(ID_Type_ContextLength, EffectOVMusicGenerationLLM::OnContextLengthChanged)
 EVT_CHECKBOX(ID_Type_AudioContinuationCheckBox, EffectOVMusicGenerationLLM::OnContextLengthChanged)
 EVT_CHECKBOX(ID_Type_AudioContinuationAsNewTrackCheckBox, EffectOVMusicGenerationLLM::OnContextLengthChanged)
+EVT_BUTTON(ID_Type_ModelManagerButton, EffectOVMusicGenerationLLM::OnModelManagerButtonClicked)
 END_EVENT_TABLE()
 
 // Determine which variants of musicgen are available by polling available
@@ -70,7 +73,7 @@ static std::vector<std::string> FindAvailableModels()
 {
    std::vector<std::string> available_models;
 
-   auto model_folder = wxFileName(FileNames::BaseDir(), wxT("openvino-models")).GetFullPath();
+   auto model_folder = wxFileName(FileNames::DataDir(), wxT("openvino-models")).GetFullPath();
    model_folder = wxFileName(model_folder, wxT("musicgen")).GetFullPath();
 
    //make sure that a couple of the 'base' models, like EnCodec, tokenizer are present.
@@ -102,7 +105,7 @@ static std::vector<std::string> FindAvailableModels()
    //mono
    //check to see if a few mono-specific files are present.
    {
-      auto mono_model_folder = wxFileName(model_folder, wxT("mono")).GetFullPath();
+      auto mono_model_folder = wxFileName(model_folder, wxT("small-mono")).GetFullPath();
 
       auto decoder = wxFileName(mono_model_folder, wxString("musicgen_decoder.xml"));
       if (decoder.FileExists())
@@ -115,7 +118,7 @@ static std::vector<std::string> FindAvailableModels()
    //stereo
    //check to see if a few stereo-specific files are present.
    {
-      auto stereo_model_folder = wxFileName(model_folder, wxT("stereo")).GetFullPath();
+      auto stereo_model_folder = wxFileName(model_folder, wxT("small-stereo")).GetFullPath();
 
       auto decoder = wxFileName(stereo_model_folder, wxString("musicgen_decoder.xml"));
       if (decoder.FileExists())
@@ -302,7 +305,7 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
    bool bGoodResult = true;
 
    {
-      FilePath model_folder = FileNames::MkDir(wxFileName(FileNames::BaseDir(), wxT("openvino-models")).GetFullPath());
+      FilePath model_folder = FileNames::MkDir(wxFileName(FileNames::DataDir(), wxT("openvino-models")).GetFullPath());
       std::string musicgen_model_folder = audacity::ToUTF8(wxFileName(model_folder, wxString("musicgen"))
          .GetFullPath());
 
@@ -944,6 +947,11 @@ void EffectOVMusicGenerationLLM::OnDeviceInfoButtonClicked(wxCommandEvent& evt)
       XO("OpenVINO Device Details"));
 }
 
+void EffectOVMusicGenerationLLM::OnModelManagerButtonClicked(wxCommandEvent& evt)
+{
+   ShowModelManagerDialog();
+}
+
 void EffectOVMusicGenerationLLM::DoPopulateOrExchange(
    ShuttleGui& S, EffectSettingsAccess& access)
 {
@@ -982,6 +990,12 @@ void EffectOVMusicGenerationLLM::DoPopulateOrExchange(
             .Position(wxALIGN_LEFT | wxALL)
             .AddWindow(mDurationT);
 
+      }
+      S.EndMultiColumn();
+
+      S.StartMultiColumn(1, wxLEFT);
+      {
+         auto model_manager_button = S.Id(ID_Type_ModelManagerButton).AddButton(XO("Open Model Manager"));
       }
       S.EndMultiColumn();
 

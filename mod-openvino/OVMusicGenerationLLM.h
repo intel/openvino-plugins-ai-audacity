@@ -54,6 +54,7 @@ public:
    bool UpdateProgress(double perc);
 
    bool MusicGenCallback(float perc_complete);
+   void OnModelManagerButtonClicked(wxCommandEvent& evt);
 
    virtual bool DoEffect(
       EffectSettings& settings, //!< Always given; only for processing
@@ -93,7 +94,8 @@ private:
       ID_Type_AudioContinuationCheckBox,
       ID_Type_AudioContinuationAsNewTrackCheckBox,
 
-      ID_Type_DeviceInfoButton
+      ID_Type_DeviceInfoButton,
+      ID_Type_ModelManagerButton
    };
 
    void OnContextLengthChanged(wxCommandEvent& evt);
