@@ -56,86 +56,6 @@ EVT_CHECKBOX(ID_Type_AudioContinuationAsNewTrackCheckBox, EffectOVMusicGeneratio
 EVT_BUTTON(ID_Type_ModelManagerButton, EffectOVMusicGenerationLLM::OnModelManagerButtonClicked)
 END_EVENT_TABLE()
 
-// Determine which variants of musicgen are available by polling available
-// file in openvino-models/musicgen. Note that this only checks a sub-sample
-// of the required files for each variant. In the case where *some* of the files
-// exist (enough to satisfy this check), but not *all* required for some variant,
-// then we'll see some exception thrown about missing files when user actually goes
-// to run that. This should be a rare occurence.
-// If all models are available, this function should return a list that look like this:
-//{
-//"musicgen-small-fp16-mono",
-//"musicgen-small-int8-mono",
-//"musicgen-small-fp16-stereo",
-//"musicgen-small-int8-stereo"
-//}
-static std::vector<std::string> FindAvailableModels()
-{
-   std::vector<std::string> available_models;
-
-   auto model_folder = wxFileName(FileNames::DataDir(), wxT("openvino-models")).GetFullPath();
-   model_folder = wxFileName(model_folder, wxT("musicgen")).GetFullPath();
-
-   //make sure that a couple of the 'base' models, like EnCodec, tokenizer are present.
-   // If any of these aren't found, then just return an empty list.. we can't
-   // support anything without these 'base' files.
-   {
-      //check encodec encoder
-      auto encodec_enc_file = wxFileName(model_folder, wxString("encodec_encoder_10s.xml"));
-      if (!encodec_enc_file.FileExists())
-      {
-         return {};
-      }
-
-      //check encodec decoder
-      auto encodec_dec_file = wxFileName(model_folder, wxString("encodec_20s.xml"));
-      if (!encodec_dec_file.FileExists())
-      {
-         return {};
-      }
-
-      //check tokenizer
-      auto tokenizer_file = wxFileName(model_folder, wxString("musicgen-small-tokenizer.xml"));
-      if (!tokenizer_file.FileExists())
-      {
-         return {};
-      }
-   }
-
-   //mono
-   //check to see if a few mono-specific files are present.
-   {
-      auto mono_model_folder = wxFileName(model_folder, wxT("small-mono")).GetFullPath();
-
-      auto decoder = wxFileName(mono_model_folder, wxString("musicgen_decoder.xml"));
-      if (decoder.FileExists())
-      {
-         available_models.push_back("musicgen-small-fp16-mono");
-         available_models.push_back("musicgen-small-int8-mono");
-      }
-   }
-
-   //stereo
-   //check to see if a few stereo-specific files are present.
-   {
-      auto stereo_model_folder = wxFileName(model_folder, wxT("small-stereo")).GetFullPath();
-
-      auto decoder = wxFileName(stereo_model_folder, wxString("musicgen_decoder.xml"));
-      if (decoder.FileExists())
-      {
-         available_models.push_back("musicgen-small-fp16-stereo");
-         available_models.push_back("musicgen-small-int8-stereo");
-      }
-   }
-
-   //available_models.push_back("musicgen-medium-fp16-mono");
-   //available_models.push_back("musicgen-medium-int8-mono");
-   //available_models.push_back("musicgen-medium-fp16-stereo");
-   //available_models.push_back("musicgen-medium-int8-stereo");
-
-   return available_models;
-}
-
 EffectOVMusicGenerationLLM::EffectOVMusicGenerationLLM()
 {
    Parameters().Reset(*this);
@@ -163,13 +83,6 @@ EffectOVMusicGenerationLLM::EffectOVMusicGenerationLLM()
    for (auto d : context_length_choices)
    {
       mGuiContextLengthSelections.push_back({ TranslatableString{ wxString(d), {}} });
-   }
-
-   mModelSelections = FindAvailableModels();
-
-   for (auto m : mModelSelections)
-   {
-      mGuiModelSelections.push_back({ TranslatableString{ wxString(m), {}} });
    }
 }
 
@@ -245,69 +158,85 @@ static bool musicgen_callback(float perc_complete, void* user)
 // Effect implementation
 bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settings)
 {
-   if (!mDurationT || (mDurationT->GetValue() <= 0))
+   bool bGoodResult = true;
+   try
    {
-      std::cout << "Duration <= 0... returning" << std::endl;
-      return false;
-   }
-
-   mIsCancelled = false;
-
-   std::string model_selection_str = mModelSelections[m_modelSelectionChoice];
-
-   //convert model_selection_str to lower case. This is to add some safety
-   // to the substring searches "stereo" and "fp16" that are about to take
-   // place on this string.
-   for (auto& c : model_selection_str) c = tolower(c);
-
-   std::cout << "model_selection_string = " << model_selection_str << std::endl;
-
-   bool bIsModelStereo = (model_selection_str.find("stereo") != std::string::npos);
-
-   // The following logic addresses the following scenario:
-   // The user has no tracks selected and chooses this generator from the
-   // menu. As of Audacity 3.5.0, EffectBase will automatically add a 'selected'
-   // mono track on behalf of the user.
-   // If they have chosen a stereo model, then most likely their intention /
-   // expecation is to generate a stereo track. So, in that case we replace
-   // the mono track that was added with a new stereo one.
-   auto selected_tracks = mTracks->Selected<WaveTrack>();
-   if ((_num_selected_tracks_at_effect_start == 0) && (selected_tracks.size() == 1))
-   {
-      auto track = *selected_tracks.begin();
-      if (track->IsEmpty(track->GetStartTime(), track->GetEndTime()))
+      if (!mDurationT || (mDurationT->GetValue() <= 0))
       {
-         if (bIsModelStereo && (track->NChannels() == 1))
+         std::cout << "Duration <= 0... returning" << std::endl;
+         return false;
+      }
+
+      mIsCancelled = false;
+
+      std::string model_selection_str = mSupportedModels[m_modelSelectionChoice];
+
+      auto model_collection = OVModelManager::instance().GetModelCollection(OVModelManager::MusicGenName());
+
+      if (!model_collection) {
+         throw std::runtime_error("Couldn't retrieve model collection for " + OVModelManager::MusicGenName());
+      }
+
+      std::shared_ptr< OVModelManager::ModelInfo > retrieved_model_info;
+      for (auto model_info : model_collection->models) {
+         if (model_info && model_info->installed && model_info->model_name == model_selection_str)
          {
-            auto pProject = const_cast<AudacityProject*>(FindProject());
-            auto& trackFactory = WaveTrackFactory::Get(*pProject);
-            auto format = track->GetSampleFormat();
-            auto rate = track->GetRate();
-            auto tempList = TrackList::Create(pProject);
-            tempList->Add(trackFactory.Create((size_t)2, format, rate));
-            mTracks->Append(std::move(*tempList));
-            (*mTracks->rbegin())->SetSelected(true);
-            auto track_name = track->GetName();
-            (*mTracks->rbegin())->SetName(track_name);
-            const auto tempo = GetProjectTempo(*track);
-            if (tempo)
-            {
-               DoProjectTempoChange(*(*mTracks->rbegin()), *tempo);
-            }
-            mTracks->Remove(*track);
+            retrieved_model_info = model_info;
          }
       }
-   }
 
+      if (!retrieved_model_info) {
+         throw std::runtime_error("Couldn't retrieve installed model info for " + model_selection_str);
+      }
 
-   EffectOutputTracks outputs{ *mTracks, GetType(), {{ mT0, mT1 }} };
+      if (!retrieved_model_info->installed) {
+         throw std::runtime_error("This model is not installed: " + retrieved_model_info->model_name);
+      }
 
-   bool bGoodResult = true;
+      std::cout << "model_selection_string = " << model_selection_str << std::endl;
 
-   {
-      FilePath model_folder = FileNames::MkDir(wxFileName(FileNames::DataDir(), wxT("openvino-models")).GetFullPath());
-      std::string musicgen_model_folder = audacity::ToUTF8(wxFileName(model_folder, wxString("musicgen"))
-         .GetFullPath());
+      bool bIsModelStereo = (model_selection_str.find("Stereo") != std::string::npos);
+
+      // The following logic addresses the following scenario:
+      // The user has no tracks selected and chooses this generator from the
+      // menu. As of Audacity 3.5.0, EffectBase will automatically add a 'selected'
+      // mono track on behalf of the user.
+      // If they have chosen a stereo model, then most likely their intention /
+      // expecation is to generate a stereo track. So, in that case we replace
+      // the mono track that was added with a new stereo one.
+      auto selected_tracks = mTracks->Selected<WaveTrack>();
+      if ((_num_selected_tracks_at_effect_start == 0) && (selected_tracks.size() == 1))
+      {
+         auto track = *selected_tracks.begin();
+         if (track->IsEmpty(track->GetStartTime(), track->GetEndTime()))
+         {
+            if (bIsModelStereo && (track->NChannels() == 1))
+            {
+               auto pProject = const_cast<AudacityProject*>(FindProject());
+               auto& trackFactory = WaveTrackFactory::Get(*pProject);
+               auto format = track->GetSampleFormat();
+               auto rate = track->GetRate();
+               auto tempList = TrackList::Create(pProject);
+               tempList->Add(trackFactory.Create((size_t)2, format, rate));
+               mTracks->Append(std::move(*tempList));
+               (*mTracks->rbegin())->SetSelected(true);
+               auto track_name = track->GetName();
+               (*mTracks->rbegin())->SetName(track_name);
+               const auto tempo = GetProjectTempo(*track);
+               if (tempo)
+               {
+                  DoProjectTempoChange(*(*mTracks->rbegin()), *tempo);
+               }
+               mTracks->Remove(*track);
+            }
+         }
+      }
+
+      EffectOutputTracks outputs{ *mTracks, GetType(), {{ mT0, mT1 }} };
+
+      std::string musicgen_model_folder = retrieved_model_info->installation_path;
+
+      std::cout << "musicgen_model_folder = " << musicgen_model_folder << std::endl;
 
       auto encodec_device = audacity::ToUTF8(mTypeChoiceDeviceCtrl_EnCodec->GetString(m_deviceSelectionChoice_EnCodec));
 
@@ -329,24 +258,23 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
       std::cout << "model_selection_str = " << model_selection_str << std::endl;
       ov_musicgen::MusicGenConfig::ModelSelection model_selection;
 
-      if (model_selection_str.find("musicgen-small-fp16") != std::string::npos )
-      {
+      if (model_selection_str.find("Small") != std::string::npos &&
+         model_selection_str.find("FP16") != std::string::npos) {
          model_selection = ov_musicgen::MusicGenConfig::ModelSelection::MUSICGEN_SMALL_FP16;
       }
-      else if (model_selection_str.find("musicgen-small-int8") != std::string::npos )
-      {
+      else if (model_selection_str.find("Small") != std::string::npos &&
+         model_selection_str.find("INT8") != std::string::npos) {
          model_selection = ov_musicgen::MusicGenConfig::ModelSelection::MUSICGEN_SMALL_INT8;
       }
-      else if (model_selection_str.find("musicgen-medium-fp16") != std::string::npos)
-      {
+      else if (model_selection_str.find("Medium") != std::string::npos &&
+         model_selection_str.find("FP16") != std::string::npos) {
          model_selection = ov_musicgen::MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_FP16;
       }
-      else if (model_selection_str.find("musicgen-medium-int8") != std::string::npos)
-      {
+      else if (model_selection_str.find("Medium") != std::string::npos &&
+         model_selection_str.find("INT8") != std::string::npos) {
          model_selection = ov_musicgen::MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_INT8;
       }
-      else
-      {
+      else {
          throw std::runtime_error("Unknown model selection: " + model_selection_str);
       }
 
@@ -359,557 +287,553 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
       std::cout << "cache path = " << cache_path << std::endl;
 
       wxString added_trackName;
-      try
-      {
-         mProgress->SetMessage(TranslatableString{ wxString("Creating MusicGen Pipeline"), {} });
+      mProgress->SetMessage(TranslatableString{ wxString("Creating MusicGen Pipeline"), {} });
 
-         auto musicgen_pipeline_creation_future = std::async(std::launch::async,
-            [this, &musicgen_model_folder, &cache_path, &encodec_device, &musicgen_dec0_device, &musicgen_dec1_device,
-            &continuation_context, &model_selection, &bIsModelStereo]
+      auto musicgen_pipeline_creation_future = std::async(std::launch::async,
+         [this, &musicgen_model_folder, &cache_path, &encodec_device, &musicgen_dec0_device, &musicgen_dec1_device,
+         &continuation_context, &model_selection, &bIsModelStereo]
+         {
+
+            try
             {
-
-               try
+               //TODO: This should be much more efficient. No need to destroy *everything*, just update the
+               // pieces of the pipelines that have changed.
+               if ((musicgen_dec0_device != _musicgen_config.musicgen_decode_device0) ||
+                  (musicgen_dec1_device != _musicgen_config.musicgen_decode_device1))
                {
-                  //TODO: This should be much more efficient. No need to destroy *everything*, just update the
-                  // pieces of the pipelines that have changed.
-                  if ((musicgen_dec0_device != _musicgen_config.musicgen_decode_device0) ||
-                     (musicgen_dec1_device != _musicgen_config.musicgen_decode_device1))
-                  {
-                     //force destroy music gen if config has changed.
-                     _musicgen = {};
-                  }
-
-                  if (continuation_context != _musicgen_config.m_continuation_context)
-                  {
-                     _musicgen = {};
-                  }
-
-                  if (model_selection != _musicgen_config.model_selection)
-                  {
-                     _musicgen = {};
-                  }
-
-                  if ((encodec_device != _musicgen_config.encodec_enc_device) ||
-                     (encodec_device != _musicgen_config.encodec_dec_device))
-                  {
-                     //force destroy music gen if config has changed.
-                     _musicgen = {};
-                  }
-
-                  if (bIsModelStereo != _musicgen_config.bStereo)
-                  {
-                     _musicgen = {};
-                  }
-
-                  if (!_musicgen)
-                  {
-                     _musicgen_config.musicgen_decode_device0 = musicgen_dec0_device;
-                     _musicgen_config.musicgen_decode_device1 = musicgen_dec1_device;
-
-                     _musicgen_config.encodec_enc_device = encodec_device;
-                     _musicgen_config.encodec_dec_device = encodec_device;
-
-                     _musicgen_config.cache_folder = cache_path;
-                     _musicgen_config.model_folder = musicgen_model_folder;
-
-                     _musicgen_config.m_continuation_context = continuation_context;
-
-                     _musicgen_config.bStereo = bIsModelStereo;
-
-                     _musicgen_config.model_selection = model_selection;
-
-                     // WA for OpenVINO locale caching issue (https://github.com/openvinotoolkit/openvino/issues/24370)
-                     OVLocaleWorkaround wa;
-                     _musicgen = std::make_shared< ov_musicgen::MusicGen >(_musicgen_config);
-                  }
-               }
-               catch (const std::exception& error) {
-                  std::cout << "In Music Generation V2, exception: " << error.what() << std::endl;
-                  wxLogError("In Music Generation V2, exception: %s", error.what());
-                  EffectUIServices::DoMessageBox(*this,
-                     XO("Music Generation failed. See details in Help->Diagnostics->Show Log..."),
-                     wxICON_STOP,
-                     XO("Error"));
+                  //force destroy music gen if config has changed.
                   _musicgen = {};
                }
-            });
 
-         float total_time = 0.f;
-         std::future_status status;
-         do {
-            using namespace std::chrono_literals;
-            status = musicgen_pipeline_creation_future.wait_for(0.5s);
-
-            {
-               std::string message = "Loading Music Generation AI Models... ";
-               if (total_time > 30)
+               if (continuation_context != _musicgen_config.m_continuation_context)
                {
-                  message += " (This could take a while if this is the first time running this feature with this device)";
+                  _musicgen = {};
                }
-               if (TotalProgress(0.01, TranslatableString{ wxString(message), {} }))
+
+               if (model_selection != _musicgen_config.model_selection)
                {
-                  mIsCancelled = true;
+                  _musicgen = {};
+               }
+
+               if ((encodec_device != _musicgen_config.encodec_enc_device) ||
+                  (encodec_device != _musicgen_config.encodec_dec_device))
+               {
+                  //force destroy music gen if config has changed.
+                  _musicgen = {};
+               }
+
+               if (bIsModelStereo != _musicgen_config.bStereo)
+               {
+                  _musicgen = {};
+               }
+
+               if (!_musicgen)
+               {
+                  _musicgen_config.musicgen_decode_device0 = musicgen_dec0_device;
+                  _musicgen_config.musicgen_decode_device1 = musicgen_dec1_device;
+
+                  _musicgen_config.encodec_enc_device = encodec_device;
+                  _musicgen_config.encodec_dec_device = encodec_device;
+
+                  _musicgen_config.cache_folder = cache_path;
+                  _musicgen_config.model_folder = musicgen_model_folder;
+
+                  _musicgen_config.m_continuation_context = continuation_context;
+
+                  _musicgen_config.bStereo = bIsModelStereo;
+
+                  _musicgen_config.model_selection = model_selection;
+
+                  // WA for OpenVINO locale caching issue (https://github.com/openvinotoolkit/openvino/issues/24370)
+                  OVLocaleWorkaround wa;
+                  _musicgen = std::make_shared< ov_musicgen::MusicGen >(_musicgen_config);
                }
             }
-         } while (status != std::future_status::ready);
+            catch (const std::exception& error) {
+               std::cout << "In Music Generation V2, exception: " << error.what() << std::endl;
+               wxLogError("In Music Generation V2, exception: %s", error.what());
+               EffectUIServices::DoMessageBox(*this,
+                  XO("Music Generation failed. See details in Help->Diagnostics->Show Log..."),
+                  wxICON_STOP,
+                  XO("Error"));
+               _musicgen = {};
+            }
+         });
 
-         if (mIsCancelled)
+      float total_time = 0.f;
+      std::future_status status;
+      do {
+         using namespace std::chrono_literals;
+         status = musicgen_pipeline_creation_future.wait_for(0.5s);
+
          {
-            return false;
+            std::string message = "Loading Music Generation AI Models... ";
+            if (total_time > 30)
+            {
+               message += " (This could take a while if this is the first time running this feature with this device)";
+            }
+            if (TotalProgress(0.01, TranslatableString{ wxString(message), {} }))
+            {
+               mIsCancelled = true;
+            }
          }
+      } while (status != std::future_status::ready);
 
-         if (!_musicgen)
+      if (mIsCancelled)
+      {
+         return false;
+      }
+
+      if (!_musicgen)
+      {
+         wxLogError("MusicGen pipeline could not be created.");
+         return false;
+      }
+
+      _prompt = audacity::ToUTF8(mTextPrompt->GetLineText(0));
+
+      std::string seed_str = audacity::ToUTF8(mSeed->GetLineText(0));
+      _seed_str = seed_str;
+
+      std::optional<unsigned int> seed;
+      if (!seed_str.empty() && seed_str != "")
+      {
+         seed = std::stoul(seed_str);
+      }
+      else
+      {
+         //seed is not set.. set it to time.
+         time_t t;
+         seed = (unsigned)time(&t);
+      }
+
+      std::cout << "Guidance Scale = " << mGuidanceScale << std::endl;
+      std::cout << "TopK = " << mTopK << std::endl;
+
+      std::string descriptor_str = "Prompt: " + _prompt;
+      descriptor_str += ", Model:" + model_selection_str;
+      descriptor_str += ", Devices:" + std::string("[") + encodec_device + std::string(", ") + musicgen_dec0_device + std::string(", ") + musicgen_dec1_device + std::string("]");
+      descriptor_str += ", Seed: " + std::to_string(*seed);
+      descriptor_str += ", Guidance Scale = " + std::to_string(mGuidanceScale);
+      descriptor_str += ", TopK = " + std::to_string(mTopK);
+
+      if (_AudioContinuationCheckBox->GetValue() || ((float)mDurationT->GetValue() > 20))
+      {
+         if (m_contextLengthChoice == 0)
          {
-            wxLogError("MusicGen pipeline could not be created.");
-            return false;
-         }
-
-         _prompt = audacity::ToUTF8(mTextPrompt->GetLineText(0));
-
-         std::string seed_str = audacity::ToUTF8(mSeed->GetLineText(0));
-         _seed_str = seed_str;
-
-         std::optional<unsigned int> seed;
-         if (!seed_str.empty() && seed_str != "")
-         {
-            seed = std::stoul(seed_str);
+            descriptor_str += ", Context Length = 5s";
          }
          else
          {
-            //seed is not set.. set it to time.
-            time_t t;
-            seed = (unsigned)time(&t);
+            descriptor_str += ", Context Length = 10s";
          }
+      }
 
-         std::cout << "Guidance Scale = " << mGuidanceScale << std::endl;
-         std::cout << "TopK = " << mTopK << std::endl;
+      added_trackName = wxString("(" + descriptor_str + ")");
 
-         std::string descriptor_str = "Prompt: " + _prompt;
-         descriptor_str += ", Model:" + model_selection_str;
-         descriptor_str += ", Devices:" + std::string("[") + encodec_device + std::string(", ") + musicgen_dec0_device + std::string(", ") + musicgen_dec1_device + std::string("]");
-         descriptor_str += ", Seed: " + std::to_string(*seed);
-         descriptor_str += ", Guidance Scale = " + std::to_string(mGuidanceScale);
-         descriptor_str += ", TopK = " + std::to_string(mTopK);
+      std::cout << "Duration = " << (float)mDurationT->GetValue() << std::endl;
 
-         if (_AudioContinuationCheckBox->GetValue() || ((float)mDurationT->GetValue() > 20))
+      std::optional<ov_musicgen::MusicGen::AudioContinuationParams> audio_to_continue_params;
+
+      double audio_to_continue_start, audio_to_continue_end;
+      size_t audio_to_continue_samples = 0;
+      if (_AudioContinuationCheckBox->GetValue())
+      {
+         ov_musicgen::MusicGen::AudioContinuationParams params;
+         auto track = *(outputs.Get().Selected<WaveTrack>().begin());
+
+         auto left = track->GetChannel(0);
+
+         // create a temporary track list to append samples to
+         auto pTmpTrack = track->EmptyCopy();
+
+         auto iter =
+            pTmpTrack->Channels().begin();
+
          {
-            if (m_contextLengthChoice == 0)
+            // If an existing (non-empty) track is highlighted, and the highlighted region
+               // overlaps with existing segment.
+            if (((mT0 >= left->GetStartTime()) && (mT0 < left->GetEndTime())) || ((mT1 >= left->GetStartTime()) && (mT1 < left->GetEndTime())))
             {
-               descriptor_str += ", Context Length = 5s";
+               audio_to_continue_start = mT0;
+               audio_to_continue_end = mT1;
             }
             else
             {
-               descriptor_str += ", Context Length = 10s";
+               audio_to_continue_start = mT0 - 10.f;
+               audio_to_continue_end = mT0;
             }
-         }
 
-         added_trackName = wxString("(" + descriptor_str + ")");
-
-         std::cout << "Duration = " << (float)mDurationT->GetValue() << std::endl;
-
-         std::optional<ov_musicgen::MusicGen::AudioContinuationParams> audio_to_continue_params;
-
-         double audio_to_continue_start, audio_to_continue_end;
-         size_t audio_to_continue_samples = 0;
-         if (_AudioContinuationCheckBox->GetValue())
-         {
-            ov_musicgen::MusicGen::AudioContinuationParams params;
-            auto track = *(outputs.Get().Selected<WaveTrack>().begin());
-
-            auto left = track->GetChannel(0);
-
-            // create a temporary track list to append samples to
-            auto pTmpTrack = track->EmptyCopy();
-
-            auto iter =
-               pTmpTrack->Channels().begin();
-
+            double max_context_length = 0.f;
+            switch (_musicgen_config.m_continuation_context)
             {
-               // If an existing (non-empty) track is highlighted, and the highlighted region
-                // overlaps with existing segment.
-               if (((mT0 >= left->GetStartTime()) && (mT0 < left->GetEndTime())) || ((mT1 >= left->GetStartTime()) && (mT1 < left->GetEndTime())))
+            case ov_musicgen::MusicGenConfig::ContinuationContext::FIVE_SECONDS:
+               max_context_length = 5.;
+               break;
+
+            case ov_musicgen::MusicGenConfig::ContinuationContext::TEN_SECONDS:
+               max_context_length = 10.;
+               break;
+            }
+
+            if ((audio_to_continue_end - audio_to_continue_start) > max_context_length)
+            {
+               audio_to_continue_start = audio_to_continue_end - max_context_length;
+            }
+
+            std::cout << "audio_to_continue_start = " << audio_to_continue_start << std::endl;
+            std::cout << "audio_to_continue_end = " << audio_to_continue_end << std::endl;
+
+            if (audio_to_continue_start < left->GetStartTime())
+               audio_to_continue_start = left->GetStartTime();
+
+            auto start_s = left->TimeToLongSamples(audio_to_continue_start);
+            auto end_s = left->TimeToLongSamples(audio_to_continue_end);
+
+            size_t audio_to_continue_samples = (end_s - start_s).as_size_t();
+
+            Floats entire_input{ audio_to_continue_samples };
+
+            bool bOkay = left->GetFloats(entire_input.get(), start_s, audio_to_continue_samples);
+            if (!bOkay)
+            {
+               throw std::runtime_error("unable to get all left samples. GetFloats() failed for " +
+                  std::to_string(audio_to_continue_samples) + "samples");
+            }
+
+            auto& tmpLeft = **iter++;
+            tmpLeft.Append((samplePtr)entire_input.get(), floatSample, audio_to_continue_samples);
+
+            if (track->Channels().size() > 1)
+            {
+               auto right = track->GetChannel(1);
+               bOkay = right->GetFloats(entire_input.get(), start_s, audio_to_continue_samples);
+               if (!bOkay)
                {
-                  audio_to_continue_start = mT0;
-                  audio_to_continue_end = mT1;
+                  throw std::runtime_error("unable to get all right samples. GetFloats() failed for " +
+                     std::to_string(audio_to_continue_samples) + " samples");
                }
-               else
-               {
-                  audio_to_continue_start = mT0 - 10.f;
-                  audio_to_continue_end = mT0;
-               }
+               auto& tmpRight = **iter;
+               tmpRight.Append((samplePtr)entire_input.get(), floatSample, audio_to_continue_samples);
+            }
 
-               double max_context_length = 0.f;
-               switch (_musicgen_config.m_continuation_context)
-               {
-               case ov_musicgen::MusicGenConfig::ContinuationContext::FIVE_SECONDS:
-                  max_context_length = 5.;
-                  break;
+            pTmpTrack->Flush();
 
-               case ov_musicgen::MusicGenConfig::ContinuationContext::TEN_SECONDS:
-                  max_context_length = 10.;
-                  break;
-               }
+            if (pTmpTrack->GetRate() != 32000)
+            {
+               pTmpTrack->Resample(32000, mProgress);
+            }
 
-               if ((audio_to_continue_end - audio_to_continue_start) > max_context_length)
-               {
-                  audio_to_continue_start = audio_to_continue_end - max_context_length;
-               }
+            std::pair<std::shared_ptr<std::vector<float>>, std::shared_ptr<std::vector<float>>> wav_pair;
+            {
+               auto pResampledTrack = pTmpTrack->GetChannel(0);
 
-               std::cout << "audio_to_continue_start = " << audio_to_continue_start << std::endl;
-               std::cout << "audio_to_continue_end = " << audio_to_continue_end << std::endl;
+               auto start = pResampledTrack->GetStartTime();
+               auto end = pResampledTrack->GetEndTime();
 
-               if (audio_to_continue_start < left->GetStartTime())
-                  audio_to_continue_start = left->GetStartTime();
+               auto start_s = pResampledTrack->TimeToLongSamples(start);
+               auto end_s = pResampledTrack->TimeToLongSamples(end);
 
-               auto start_s = left->TimeToLongSamples(audio_to_continue_start);
-               auto end_s = left->TimeToLongSamples(audio_to_continue_end);
+               audio_to_continue_samples = (end_s - start_s).as_size_t();
 
-               size_t audio_to_continue_samples = (end_s - start_s).as_size_t();
-
-               Floats entire_input{ audio_to_continue_samples };
-
-               bool bOkay = left->GetFloats(entire_input.get(), start_s, audio_to_continue_samples);
+               std::shared_ptr< std::vector<float> > resampled_samples_left = std::make_shared< std::vector<float> >(audio_to_continue_samples);
+               bool bOkay = pResampledTrack->GetFloats(resampled_samples_left->data(), start_s, audio_to_continue_samples);
                if (!bOkay)
                {
                   throw std::runtime_error("unable to get all left samples. GetFloats() failed for " +
                      std::to_string(audio_to_continue_samples) + "samples");
                }
 
+
+               wav_pair.first = resampled_samples_left;
+
+               if (_musicgen_config.bStereo)
+               {
+                  if (pTmpTrack->Channels().size() > 1)
+                  {
+                     auto pResampledTrackR = pTmpTrack->GetChannel(1);
+                     std::shared_ptr< std::vector<float> > resampled_samples_right = std::make_shared< std::vector<float> >(audio_to_continue_samples);
+                     bool bOkay = pResampledTrackR->GetFloats(resampled_samples_right->data(), start_s, audio_to_continue_samples);
+                     if (!bOkay)
+                     {
+                        throw std::runtime_error("unable to get all right samples. GetFloats() failed for " +
+                           std::to_string(audio_to_continue_samples) + "samples");
+                     }
+
+                     wav_pair.second = resampled_samples_right;
+                  }
+                  else
+                  {
+                     //we're setting both R & L channels to the same thing -- so divide by 2.
+                     float* pResampled = resampled_samples_left->data();
+                     for (size_t i = 0; i < resampled_samples_left->size(); i++)
+                     {
+                        pResampled[i] /= 2.f;
+                     }
+                     wav_pair.second = resampled_samples_left;
+                  }
+               }
+
+               std::cout << "okay, set audio to continue to " << audio_to_continue_samples << " samples..." << std::endl;
+            }
+
+            params.audio_to_continue = wav_pair;
+            params.bReturnAudioToContinueInOutput = _AudioContinuationAsNewTrackCheckBox->GetValue();
+            audio_to_continue_params = params;
+         }
+      }
+
+      mProgressFrac = 0.0;
+      mProgMessage = "Running Music Generation";
+
+      auto musicgen_pipeline_run_future = std::async(std::launch::async,
+         [this, &seed, &audio_to_continue_params]
+         {
+
+            ov_musicgen::CallbackParams callback_params;
+            callback_params.user = this;
+            callback_params.every_n_new_tokens = 5;
+            callback_params.callback = musicgen_callback;
+
+            auto wav = _musicgen->Generate(_prompt,
+               audio_to_continue_params,
+               (float)mDurationT->GetValue(),
+               seed,
+               mGuidanceScale,
+               mTopK,
+               callback_params);
+
+            return wav;
+         }
+         );
+
+      do {
+         using namespace std::chrono_literals;
+         status = musicgen_pipeline_run_future.wait_for(0.5s);
+         {
+            std::lock_guard<std::mutex> guard(mProgMutex);
+            mProgress->SetMessage(TranslatableString{ wxString(mProgMessage), {} });
+            if (TotalProgress(mProgressFrac))
+            {
+               mIsCancelled = true;
+            }
+         }
+
+      } while (status != std::future_status::ready);
+
+      auto res_wav_pair = musicgen_pipeline_run_future.get();
+      auto generated_samples_L = res_wav_pair.first;
+      if (!generated_samples_L)
+         return false;
+
+      auto generated_samples_R = res_wav_pair.second;
+
+      auto duration = settings.extra.GetDuration();
+      if (_AudioContinuationCheckBox->GetValue() && _AudioContinuationAsNewTrackCheckBox->GetValue())
+      {
+         duration += audio_to_continue_end - audio_to_continue_start;
+      }
+
+      settings.extra.SetDuration(duration);
+
+      //clip samples to max duration
+      size_t max_output_samples = duration * 32000;
+      if (generated_samples_L)
+      {
+         std::cout << "Clipping Left from " << generated_samples_L->size() << " to " << max_output_samples << " samples." << std::endl;
+         if (generated_samples_L->size() > max_output_samples)
+         {
+            generated_samples_L->resize(max_output_samples);
+         }
+      }
+      else
+      {
+         std::cout << "No L samples" << std::endl;
+         return false;
+      }
+
+      if (generated_samples_R)
+      {
+         std::cout << "Clipping Right from " << generated_samples_R->size() << " to " << max_output_samples << " samples." << std::endl;
+         if (generated_samples_R->size() > max_output_samples)
+         {
+            generated_samples_R->resize(max_output_samples);
+         }
+      }
+
+      bool bNormalized = false;
+      for (auto track : outputs.Get().Selected<WaveTrack>())
+      {
+         bool editClipCanMove = GetEditClipsCanMove();
+
+         if (!_AudioContinuationAsNewTrackCheckBox->GetValue())
+         {
+            //if we can't move clips, and we're generating into an empty space,
+            //make sure there's room.
+            if (!editClipCanMove &&
+               track->IsEmpty(mT0, mT1 + 1.0 / track->GetRate()) &&
+               !track->IsEmpty(mT0,
+                  mT0 + duration - (mT1 - mT0) - 1.0 / track->GetRate()))
+            {
+               EffectUIServices::DoMessageBox(*this,
+                  XO("There is not enough room available to generate the audio"),
+                  wxICON_STOP,
+                  XO("Error"));
+               return false;
+            }
+         }
+
+         if (duration > 0.0)
+         {
+            auto pProject = FindProject();
+
+            // Create a temporary track
+            track->SetName(added_trackName);
+
+            // create a temporary track list to append samples to
+            auto pTmpTrack = track->EmptyCopy();
+            auto iter = pTmpTrack->Channels().begin();
+
+            if (track->NChannels() > 1)
+            {
+               //append output samples to L & R channels.
                auto& tmpLeft = **iter++;
-               tmpLeft.Append((samplePtr)entire_input.get(), floatSample, audio_to_continue_samples);
+               tmpLeft.Append((samplePtr)generated_samples_L->data(), floatSample, generated_samples_L->size());
 
-               if (track->Channels().size() > 1)
+               auto& tmpRight = **iter;
+
+               if (generated_samples_R)
                {
-                  auto right = track->GetChannel(1);
-                  bOkay = right->GetFloats(entire_input.get(), start_s, audio_to_continue_samples);
-                  if (!bOkay)
-                  {
-                     throw std::runtime_error("unable to get all right samples. GetFloats() failed for " +
-                        std::to_string(audio_to_continue_samples) + " samples");
-                  }
-                  auto& tmpRight = **iter;
-                  tmpRight.Append((samplePtr)entire_input.get(), floatSample, audio_to_continue_samples);
-               }
-
-               pTmpTrack->Flush();
-
-               if (pTmpTrack->GetRate() != 32000)
-               {
-                  pTmpTrack->Resample(32000, mProgress);
-               }
-
-               std::pair<std::shared_ptr<std::vector<float>>, std::shared_ptr<std::vector<float>>> wav_pair;
-               {
-                  auto pResampledTrack = pTmpTrack->GetChannel(0);
-
-                  auto start = pResampledTrack->GetStartTime();
-                  auto end = pResampledTrack->GetEndTime();
-
-                  auto start_s = pResampledTrack->TimeToLongSamples(start);
-                  auto end_s = pResampledTrack->TimeToLongSamples(end);
-
-                  audio_to_continue_samples = (end_s - start_s).as_size_t();
-
-                  std::shared_ptr< std::vector<float> > resampled_samples_left = std::make_shared< std::vector<float> >(audio_to_continue_samples);
-                  bool bOkay = pResampledTrack->GetFloats(resampled_samples_left->data(), start_s, audio_to_continue_samples);
-                  if (!bOkay)
-                  {
-                     throw std::runtime_error("unable to get all left samples. GetFloats() failed for " +
-                        std::to_string(audio_to_continue_samples) + "samples");
-                  }
-
-
-                  wav_pair.first = resampled_samples_left;
-
-                  if (_musicgen_config.bStereo)
-                  {
-                     if (pTmpTrack->Channels().size() > 1)
-                     {
-                        auto pResampledTrackR = pTmpTrack->GetChannel(1);
-                        std::shared_ptr< std::vector<float> > resampled_samples_right = std::make_shared< std::vector<float> >(audio_to_continue_samples);
-                        bool bOkay = pResampledTrackR->GetFloats(resampled_samples_right->data(), start_s, audio_to_continue_samples);
-                        if (!bOkay)
-                        {
-                           throw std::runtime_error("unable to get all right samples. GetFloats() failed for " +
-                              std::to_string(audio_to_continue_samples) + "samples");
-                        }
-
-                        wav_pair.second = resampled_samples_right;
-                     }
-                     else
-                     {
-                        //we're setting both R & L channels to the same thing -- so divide by 2.
-                        float* pResampled = resampled_samples_left->data();
-                        for (size_t i = 0; i < resampled_samples_left->size(); i++)
-                        {
-                           pResampled[i] /= 2.f;
-                        }
-                        wav_pair.second = resampled_samples_left;
-                     }
-                  }
-
-                  std::cout << "okay, set audio to continue to " << audio_to_continue_samples << " samples..." << std::endl;
-               }
-
-               params.audio_to_continue = wav_pair;
-               params.bReturnAudioToContinueInOutput = _AudioContinuationAsNewTrackCheckBox->GetValue();
-               audio_to_continue_params = params;
-            }
-         }
-
-         mProgressFrac = 0.0;
-         mProgMessage = "Running Music Generation";
-
-         auto musicgen_pipeline_run_future = std::async(std::launch::async,
-            [this, &seed, &audio_to_continue_params]
-            {
-
-               ov_musicgen::CallbackParams callback_params;
-               callback_params.user = this;
-               callback_params.every_n_new_tokens = 5;
-               callback_params.callback = musicgen_callback;
-
-               auto wav = _musicgen->Generate(_prompt,
-                  audio_to_continue_params,
-                  (float)mDurationT->GetValue(),
-                  seed,
-                  mGuidanceScale,
-                  mTopK,
-                  callback_params);
-
-               return wav;
-            }
-            );
-
-         do {
-            using namespace std::chrono_literals;
-            status = musicgen_pipeline_run_future.wait_for(0.5s);
-            {
-               std::lock_guard<std::mutex> guard(mProgMutex);
-               mProgress->SetMessage(TranslatableString{ wxString(mProgMessage), {} });
-               if (TotalProgress(mProgressFrac))
-               {
-                  mIsCancelled = true;
-               }
-            }
-
-         } while (status != std::future_status::ready);
-
-         auto res_wav_pair = musicgen_pipeline_run_future.get();
-         auto generated_samples_L = res_wav_pair.first;
-         if (!generated_samples_L)
-            return false;
-
-         auto generated_samples_R = res_wav_pair.second;
-
-         auto duration = settings.extra.GetDuration();
-         if (_AudioContinuationCheckBox->GetValue() && _AudioContinuationAsNewTrackCheckBox->GetValue())
-         {
-            duration += audio_to_continue_end - audio_to_continue_start;
-         }
-
-         settings.extra.SetDuration(duration);
-
-         //clip samples to max duration
-         size_t max_output_samples = duration * 32000;
-         if (generated_samples_L)
-         {
-            std::cout << "Clipping Left from " << generated_samples_L->size() << " to " << max_output_samples << " samples." << std::endl;
-            if (generated_samples_L->size() > max_output_samples)
-            {
-               generated_samples_L->resize(max_output_samples);
-            }
-         }
-         else
-         {
-            std::cout << "No L samples" << std::endl;
-            return false;
-         }
-
-         if (generated_samples_R)
-         {
-            std::cout << "Clipping Right from " << generated_samples_R->size() << " to " << max_output_samples << " samples." << std::endl;
-            if (generated_samples_R->size() > max_output_samples)
-            {
-               generated_samples_R->resize(max_output_samples);
-            }
-         }
-
-         bool bNormalized = false;
-         for (auto track : outputs.Get().Selected<WaveTrack>())
-         {
-            bool editClipCanMove = GetEditClipsCanMove();
-
-            if (!_AudioContinuationAsNewTrackCheckBox->GetValue())
-            {
-               //if we can't move clips, and we're generating into an empty space,
-               //make sure there's room.
-               if (!editClipCanMove &&
-                  track->IsEmpty(mT0, mT1 + 1.0 / track->GetRate()) &&
-                  !track->IsEmpty(mT0,
-                     mT0 + duration - (mT1 - mT0) - 1.0 / track->GetRate()))
-               {
-                  EffectUIServices::DoMessageBox(*this,
-                     XO("There is not enough room available to generate the audio"),
-                     wxICON_STOP,
-                     XO("Error"));
-                  return false;
-               }
-            }
-
-            if (duration > 0.0)
-            {
-               auto pProject = FindProject();
-
-               // Create a temporary track
-               track->SetName(added_trackName);
-
-               // create a temporary track list to append samples to
-               auto pTmpTrack = track->EmptyCopy();
-               auto iter = pTmpTrack->Channels().begin();
-
-               if (track->NChannels() > 1)
-               {
-                  //append output samples to L & R channels.
-                  auto& tmpLeft = **iter++;
-                  tmpLeft.Append((samplePtr)generated_samples_L->data(), floatSample, generated_samples_L->size());
-
-                  auto& tmpRight = **iter;
-
-                  if (generated_samples_R)
-                  {
-                     tmpRight.Append((samplePtr)generated_samples_R->data(), floatSample, generated_samples_R->size());
-                  }
-                  else
-                  {
-                     tmpRight.Append((samplePtr)generated_samples_L->data(), floatSample, generated_samples_L->size());
-                  }
+                  tmpRight.Append((samplePtr)generated_samples_R->data(), floatSample, generated_samples_R->size());
                }
                else
                {
-                  auto& tmpMono = **iter++;
-
-                  //if we're populating a mono track, but we had stereo track selected which produced L & R. Convert to mono quick.
-                  if (generated_samples_L && generated_samples_R)
-                  {
-                     Floats entire_input{ generated_samples_L->size() };
-                     float* pL = generated_samples_L->data();
-                     float* pR = generated_samples_R->data();
-                     float* pMono = entire_input.get();
-                     for (size_t i = 0; i < generated_samples_L->size(); i++)
-                     {
-                        pMono[i] = pL[i] + pR[i] / 2.f;
-                     }
-
-                     tmpMono.Append((samplePtr)pMono, floatSample, generated_samples_L->size());
-                  }
-                  else
-                  {
-                     tmpMono.Append((samplePtr)generated_samples_L->data(), floatSample, generated_samples_L->size());
-                  }
-
-               }
-
-               //flush it
-               pTmpTrack->Flush();
-
-               // The track we just populated with samples is 32000 Hz.
-               pTmpTrack->SetRate(32000);
-
-               if (_AudioContinuationAsNewTrackCheckBox->GetValue())
-               {
-                  auto newOutputTrack = track->EmptyCopy();
-
-                  newOutputTrack->SetRate(32000);
-
-                  std::cout << "Pasting " << audio_to_continue_start << " : " << audio_to_continue_start + duration << std::endl;
-                  // Clear & Paste into new output track
-                  newOutputTrack->ClearAndPaste(audio_to_continue_start,
-                     audio_to_continue_start + duration, *pTmpTrack);
-
-                  if (TracksBehaviorsSolo.ReadEnum() == SoloBehaviorSimple)
-                  {
-                     //If in 'simple' mode, if original track is solo,
-                     // mute the new track and set it to *not* be solo.
-                     if (newOutputTrack->GetSolo())
-                     {
-                        newOutputTrack->SetMute(true);
-                        newOutputTrack->SetSolo(false);
-                     }
-                  }
-
-                  newOutputTrack->Split(audio_to_continue_start, audio_to_continue_end);
-
-                  //auto v = *newOutputTrackList;
-                 // Add the new track to the output.
-                  outputs.AddToOutputTracks(std::move(newOutputTrack));
-
-                  // audio_to_continue_start may have been moved forward a bit, so update it.
-                  //mT0 = audio_to_continue_start;
-
-                  //in audio continuation case, original outputs size is exactly 1. We need to break out of
-                  // the loop here, as the loop is iterating over outputs... this is ugly. Clean it up.
-                  break;
-               }
-               else
-               {
-                  PasteTimeWarper warper{ mT1, mT0 + duration };
-                  const auto& selectedRegion =
-                     ViewInfo::Get(*pProject).selectedRegion;
-
-                  // If this is an empty track, set the sample rate to 32khz. We do
-                  // this to better support (potential) audio continuation later on. Otherwise,
-                  // if we just force the output to the 'project rate' (most likely 44.1 or 48 khz),
-                  // we'll just need to convert back to 32khz later on, which just introduces more potential
-                  // for artifacts, etc.
-                  if (track->IsEmpty(track->GetStartTime(), track->GetEndTime()))
-                  {
-                     track->SetRate(32000);
-                  }
-
-                  track->ClearAndPaste(
-                     selectedRegion.t0(), selectedRegion.t1(),
-                     *pTmpTrack, true, false, &warper);
-               }
-
-               if (!bGoodResult) {
-                  return false;
+                  tmpRight.Append((samplePtr)generated_samples_L->data(), floatSample, generated_samples_L->size());
                }
             }
             else
             {
-               // If the duration is zero, there's no need to actually
-               // generate anything
-               track->Clear(mT0, mT1);
+               auto& tmpMono = **iter++;
+
+               //if we're populating a mono track, but we had stereo track selected which produced L & R. Convert to mono quick.
+               if (generated_samples_L && generated_samples_R)
+               {
+                  Floats entire_input{ generated_samples_L->size() };
+                  float* pL = generated_samples_L->data();
+                  float* pR = generated_samples_R->data();
+                  float* pMono = entire_input.get();
+                  for (size_t i = 0; i < generated_samples_L->size(); i++)
+                  {
+                     pMono[i] = pL[i] + pR[i] / 2.f;
+                  }
+
+                  tmpMono.Append((samplePtr)pMono, floatSample, generated_samples_L->size());
+               }
+               else
+               {
+                  tmpMono.Append((samplePtr)generated_samples_L->data(), floatSample, generated_samples_L->size());
+               }
+
+            }
+
+            //flush it
+            pTmpTrack->Flush();
+
+            // The track we just populated with samples is 32000 Hz.
+            pTmpTrack->SetRate(32000);
+
+            if (_AudioContinuationAsNewTrackCheckBox->GetValue())
+            {
+               auto newOutputTrack = track->EmptyCopy();
+
+               newOutputTrack->SetRate(32000);
+
+               std::cout << "Pasting " << audio_to_continue_start << " : " << audio_to_continue_start + duration << std::endl;
+               // Clear & Paste into new output track
+               newOutputTrack->ClearAndPaste(audio_to_continue_start,
+                  audio_to_continue_start + duration, *pTmpTrack);
+
+               if (TracksBehaviorsSolo.ReadEnum() == SoloBehaviorSimple)
+               {
+                  //If in 'simple' mode, if original track is solo,
+                  // mute the new track and set it to *not* be solo.
+                  if (newOutputTrack->GetSolo())
+                  {
+                     newOutputTrack->SetMute(true);
+                     newOutputTrack->SetSolo(false);
+                  }
+               }
+
+               newOutputTrack->Split(audio_to_continue_start, audio_to_continue_end);
+
+               //auto v = *newOutputTrackList;
+               // Add the new track to the output.
+               outputs.AddToOutputTracks(std::move(newOutputTrack));
+
+               // audio_to_continue_start may have been moved forward a bit, so update it.
+               //mT0 = audio_to_continue_start;
+
+               //in audio continuation case, original outputs size is exactly 1. We need to break out of
+               // the loop here, as the loop is iterating over outputs... this is ugly. Clean it up.
+               break;
+            }
+            else
+            {
+               PasteTimeWarper warper{ mT1, mT0 + duration };
+               const auto& selectedRegion =
+                  ViewInfo::Get(*pProject).selectedRegion;
+
+               // If this is an empty track, set the sample rate to 32khz. We do
+               // this to better support (potential) audio continuation later on. Otherwise,
+               // if we just force the output to the 'project rate' (most likely 44.1 or 48 khz),
+               // we'll just need to convert back to 32khz later on, which just introduces more potential
+               // for artifacts, etc.
+               if (track->IsEmpty(track->GetStartTime(), track->GetEndTime()))
+               {
+                  track->SetRate(32000);
+               }
+
+               track->ClearAndPaste(
+                  selectedRegion.t0(), selectedRegion.t1(),
+                  *pTmpTrack, true, false, &warper);
+            }
+
+            if (!bGoodResult) {
+               return false;
             }
          }
-
-         if (mIsCancelled)
+         else
          {
-            return false;
+            // If the duration is zero, there's no need to actually
+            // generate anything
+            track->Clear(mT0, mT1);
          }
-
-         if (bGoodResult) {
-
-            outputs.Commit();
-
-            //mT1 = mT0 + duration; // Update selection.
-         }
-
       }
-      catch (const std::exception& error) {
-         std::cout << "In Music Generation V2, exception:" + std::string(error.what()) << std::endl;
-         wxLogError("In Music Generation V2, exception: %s", error.what());
-         EffectUIServices::DoMessageBox(*this,
-            XO("Music Generation failed. See details in Help->Diagnostics->Show Log..."),
-            wxICON_STOP,
-            XO("Error"));
+
+      if (mIsCancelled)
+      {
          return false;
       }
 
-      std::cout << "returning!" << std::endl;
-      return bGoodResult;
+      if (bGoodResult) {
+
+         outputs.Commit();
+
+         //mT1 = mT0 + duration; // Update selection.
+      }
+
    }
+   catch (const std::exception& error) {
+      std::cout << "In Music Generation, exception:" + std::string(error.what()) << std::endl;
+      wxLogError("In Music Generation, exception: %s", error.what());
+      EffectUIServices::DoMessageBox(*this,
+         XO("Music Generation failed. See details in Help->Diagnostics->Show Log..."),
+         wxICON_STOP,
+         XO("Error"));
+      return false;
+   }
+
+   return bGoodResult;
 }
 
 bool EffectOVMusicGenerationLLM::UpdateProgress(double perc)
@@ -958,6 +882,46 @@ void EffectOVMusicGenerationLLM::DoPopulateOrExchange(
    mUIParent = S.GetParent();
 
    //EnablePreview(false); //Port this
+   auto collection = OVModelManager::instance().GetModelCollection(OVModelManager::MusicGenName());
+   for (auto& model_info : collection->models) {
+      if (model_info->installed) {
+         if (std::find(mSupportedModels.begin(), mSupportedModels.end(), model_info->model_name) == mSupportedModels.end()) {
+            mSupportedModels.push_back(model_info->model_name);
+         }
+      }
+   }
+
+   mGuiModelSelections.clear();
+   for (auto& m : mSupportedModels)
+   {
+      mGuiModelSelections.push_back({ TranslatableString{ wxString(m), {}} });
+   }
+
+   OVModelManager::InstalledCallback callback =
+      [this](const std::string& model_name) {
+      wxTheApp->CallAfter([=]() {
+         if (std::find(mSupportedModels.begin(), mSupportedModels.end(), model_name) == mSupportedModels.end()) {
+            mSupportedModels.push_back(model_name);
+            mGuiModelSelections.push_back({ TranslatableString{ wxString(model_name), {}} });
+         }
+
+         if (mUIParent)
+         {
+            EffectEditor::EnableApply(mUIParent, true);
+            EffectEditor::EnablePreview(mUIParent, false);
+            if (mTypeChoiceModelSelection)
+            {
+               mTypeChoiceModelSelection->Append(wxString(model_name));
+
+               if (mTypeChoiceModelSelection->GetCount() == 1) {
+                  mTypeChoiceModelSelection->SetSelection(mTypeChoiceModelSelection->GetCount() - 1);
+               }
+            }
+         }
+         });
+      };
+
+   OVModelManager::instance().register_installed_callback(OVModelManager::MusicGenName(), callback);
 
    S.StartVerticalLay(wxLEFT);
    {
@@ -1265,9 +1229,9 @@ bool EffectOVMusicGenerationLLM::TransferDataToWindow(const EffectSettings& sett
 
    EffectEditor::EnablePreview(mUIParent, false);
 
-   if (mModelSelections.empty())
+   if (mGuiModelSelections.empty())
    {
-      wxLogInfo("OpenVINO Music Generation V2 has no models installed.");
+      wxLogInfo("OpenVINO Music Generation has no models installed.");
       EffectEditor::EnableApply(mUIParent, false);
    }
 
