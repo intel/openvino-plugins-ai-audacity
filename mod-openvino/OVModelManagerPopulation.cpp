@@ -22,10 +22,10 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_generat
    common->model_name = "Music Generation Common";
    common->baseUrl = baseUrl;
    common->relative_path = "musicgen";
-   common->fileList = { "encodec_20s.xml", "encodec_5s.xml", "encodec_combined_weights.bin",
-                        "encodec_encoder_10s.xml", "encodec_encoder_5s.xml",
-                        "encodec_encoder_combined_weights.bin", "musicgen-small-tokenizer.bin",
-                        "musicgen-small-tokenizer.xml", "t5.bin", "t5.xml" };
+   common->fileList = { "musicgen-small-tokenizer.bin", "musicgen-small-tokenizer.xml",
+                        "t5.bin", "t5.xml",
+                        "openvino_encodec_decode.xml", "openvino_encodec_decode.bin",
+                        "openvino_encodec_encode.xml", "openvino_encodec_encode.bin" };
 
    auto collection = std::make_shared< OVModelManager::ModelCollection >();
 

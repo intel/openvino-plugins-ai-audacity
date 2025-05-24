@@ -59,17 +59,14 @@ namespace ov_musicgen
 
       {
          size_t num_encodec_secs = 20;
-
-         auto modelpath = FullPath(model_folder, "encodec_" + std::to_string(num_encodec_secs) + "s.xml");
-         auto binfile = FullPath(model_folder, "encodec_combined_weights.bin");
-
-         std::shared_ptr<ov::Model> model = core.read_model(modelpath, binfile);
-
+         auto modelpath = FullPath(model_folder, "openvino_encodec_decode.xml");
+         std::shared_ptr<ov::Model> model = core.read_model(modelpath);
          model->reshape({ 1, 1, 4, num_encodec_secs * 50 });
-
+         std::cout << "openvino_encodec_decode:" << std::endl;
+         logBasicModelInfo(model);
          auto compiled_model = core.compile_model(model, config.encodec_dec_device);
-
          _encodec_infer_request = compiled_model.create_infer_request();
+         _encodec_infer_request.infer();
       }
 
       _encoder = std::make_shared< MusicGenEncodecEncoder >(core, config);
