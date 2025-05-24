@@ -239,9 +239,7 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
       std::cout << "musicgen_model_folder = " << musicgen_model_folder << std::endl;
 
       auto encodec_device = audacity::ToUTF8(mTypeChoiceDeviceCtrl_EnCodec->GetString(m_deviceSelectionChoice_EnCodec));
-
-      auto musicgen_dec0_device = audacity::ToUTF8(mTypeChoiceDeviceCtrl_Decode0->GetString(m_deviceSelectionChoice_MusicGenDecode0));
-      auto musicgen_dec1_device = audacity::ToUTF8(mTypeChoiceDeviceCtrl_Decode1->GetString(m_deviceSelectionChoice_MusicGenDecode1));
+      auto musicgen_decode_device = audacity::ToUTF8(mTypeChoiceDeviceCtrl_Decode0->GetString(m_deviceSelectionChoice_MusicGenDecode));
 
       ov_musicgen::MusicGenConfig::ContinuationContext continuation_context;
       if (m_contextLengthChoice == 0)
@@ -279,8 +277,7 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
       }
 
       std::cout << "encodec_device = " << encodec_device << std::endl;
-      std::cout << "MusicGen Decode Device 0 = " << musicgen_dec0_device << std::endl;
-      std::cout << "MusicGen Decode Device 1 = " << musicgen_dec1_device << std::endl;
+      std::cout << "MusicGen Decode Device = " << musicgen_decode_device << std::endl;
 
       FilePath cache_folder = FileNames::MkDir(wxFileName(FileNames::DataDir(), wxT("openvino-model-cache")).GetFullPath());
       std::string cache_path = wstring_to_string(wxFileName(cache_folder).GetFullPath().ToStdWstring());
@@ -290,7 +287,7 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
       mProgress->SetMessage(TranslatableString{ wxString("Creating MusicGen Pipeline"), {} });
 
       auto musicgen_pipeline_creation_future = std::async(std::launch::async,
-         [this, &musicgen_model_folder, &cache_path, &encodec_device, &musicgen_dec0_device, &musicgen_dec1_device,
+         [this, &musicgen_model_folder, &cache_path, &encodec_device, &musicgen_decode_device,
          &continuation_context, &model_selection, &bIsModelStereo]
          {
 
@@ -298,8 +295,8 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
             {
                //TODO: This should be much more efficient. No need to destroy *everything*, just update the
                // pieces of the pipelines that have changed.
-               if ((musicgen_dec0_device != _musicgen_config.musicgen_decode_device0) ||
-                  (musicgen_dec1_device != _musicgen_config.musicgen_decode_device1))
+               if ((musicgen_decode_device != _musicgen_config.musicgen_decode_device0) ||
+                  (musicgen_decode_device != _musicgen_config.musicgen_decode_device1))
                {
                   //force destroy music gen if config has changed.
                   _musicgen = {};
@@ -329,8 +326,8 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
 
                if (!_musicgen)
                {
-                  _musicgen_config.musicgen_decode_device0 = musicgen_dec0_device;
-                  _musicgen_config.musicgen_decode_device1 = musicgen_dec1_device;
+                  _musicgen_config.musicgen_decode_device0 = musicgen_decode_device;
+                  _musicgen_config.musicgen_decode_device1 = musicgen_decode_device;
 
                   _musicgen_config.encodec_enc_device = encodec_device;
                   _musicgen_config.encodec_dec_device = encodec_device;
@@ -412,7 +409,7 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
 
       std::string descriptor_str = "Prompt: " + _prompt;
       descriptor_str += ", Model:" + model_selection_str;
-      descriptor_str += ", Devices:" + std::string("[") + encodec_device + std::string(", ") + musicgen_dec0_device + std::string(", ") + musicgen_dec1_device + std::string("]");
+      descriptor_str += ", Devices:" + std::string("[") + encodec_device + std::string(", ") + musicgen_decode_device + std::string(", ") + musicgen_decode_device + std::string("]");
       descriptor_str += ", Seed: " + std::to_string(*seed);
       descriptor_str += ", Guidance Scale = " + std::to_string(mGuidanceScale);
       descriptor_str += ", TopK = " + std::to_string(mTopK);
@@ -996,18 +993,12 @@ void EffectOVMusicGenerationLLM::DoPopulateOrExchange(
 
             mTypeChoiceDeviceCtrl_Decode0 = S.Id(ID_Type_MusicGenDecodeDevice0)
                .MinSize({ -1, -1 })
-               .Validator<wxGenericValidator>(&m_deviceSelectionChoice_MusicGenDecode0)
-               .AddChoice(XXO("MusicGen Decode Device 0:"),
+               .Validator<wxGenericValidator>(&m_deviceSelectionChoice_MusicGenDecode)
+               .AddChoice(XXO("MusicGen Decode Device:"),
                   Msgids(mGuiDeviceVPUSupportedSelections.data(), mGuiDeviceVPUSupportedSelections.size()));
             S.AddVariableText(XO(""));
             S.AddVariableText(XO(""));
 
-            mTypeChoiceDeviceCtrl_Decode1 = S.Id(ID_Type_MusicGenDecodeDevice1)
-               .MinSize({ -1, -1 })
-               .Validator<wxGenericValidator>(&m_deviceSelectionChoice_MusicGenDecode1)
-               .AddChoice(XXO("MusicGen Decode Device 1:"),
-                  Msgids(mGuiDeviceVPUSupportedSelections.data(), mGuiDeviceVPUSupportedSelections.size()));
-            S.AddVariableText(XO(""));
             auto device_info_button = S.Id(ID_Type_DeviceInfoButton).AddButton(XO("Device Details..."));
 
             S.SetStretchyCol(2);

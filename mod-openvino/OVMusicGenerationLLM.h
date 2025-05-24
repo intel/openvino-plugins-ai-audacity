@@ -108,8 +108,7 @@ private:
 
 
    int m_deviceSelectionChoice_EnCodec = 0;
-   int m_deviceSelectionChoice_MusicGenDecode0 = 0;
-   int m_deviceSelectionChoice_MusicGenDecode1 = 0;
+   int m_deviceSelectionChoice_MusicGenDecode = 0;
 
    std::vector< EnumValueSymbol > mGuiDeviceVPUSupportedSelections;
    std::vector< EnumValueSymbol > mGuiDeviceNonVPUSupportedSelections;
