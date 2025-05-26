@@ -231,6 +231,9 @@ mkdir openvino-models/musicgen
 
 # clone the HF repo
 git clone https://huggingface.co/Intel/musicgen-static-openvino
+cd musicgen-static-openvino
+git checkout b2ad8083f3924ed704814b68c5df9cbbf2ad2aae
+cd ..
 
 # unzip the 'base' set of models (like the EnCodec, tokenizer, etc.) into musicgen folder
 unzip musicgen-static-openvino/musicgen_small_enc_dec_tok_openvino_models.zip -d openvino-models/musicgen
@@ -279,6 +282,9 @@ rm -rf demucs-openvino
 
 # Clone the deepfilternet HF repo
 git clone https://huggingface.co/Intel/deepfilternet-openvino
+cd deepfilternet-openvino
+git checkout 995706bda3da69da0825074ba7dbc8a78067e980
+cd ..
 
 # extract deepfilter2 models
 unzip deepfilternet-openvino/deepfilternet2.zip -d openvino-models
