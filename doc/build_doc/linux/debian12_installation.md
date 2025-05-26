@@ -191,6 +191,9 @@ sudo apt install git-lfs
 ```bash
 # MusicGen
 git clone https://huggingface.co/Intel/musicgen-static-openvino
+cd musicgen-static-openvino
+git checkout b2ad8083f3924ed704814b68c5df9cbbf2ad2aae
+cd ..
 unzip musicgen-static-openvino/musicgen_small_enc_dec_tok_openvino_models.zip -d musicgen
 unzip musicgen-static-openvino/musicgen_small_mono_openvino_models.zip -d musicgen
 unzip musicgen-static-openvino/musicgen_small_stereo_openvino_models.zip -d musicgen
@@ -204,6 +207,9 @@ rm -rf whisper.cpp-openvino-models
 
 # Noise Suppression
 git clone https://huggingface.co/Intel/deepfilternet-openvino
+cd deepfilternet-openvino
+git checkout 995706bda3da69da0825074ba7dbc8a78067e980
+cd ..
 unzip deepfilternet-openvino/deepfilternet2.zip -d .
 unzip deepfilternet-openvino/deepfilternet3.zip -d .
 rm -rf deepfilternet-openvino
