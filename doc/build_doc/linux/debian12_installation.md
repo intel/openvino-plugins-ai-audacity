@@ -213,6 +213,23 @@ cd ..
 unzip deepfilternet-openvino/deepfilternet2.zip -d .
 unzip deepfilternet-openvino/deepfilternet3.zip -d .
 rm -rf deepfilternet-openvino
+
+#********************
+#* Music Separation *
+#********************
+
+# clone the HF repo
+git clone https://huggingface.co/Intel/demucs-openvino
+cd demucs-openvino
+git checkout 97fc578fb57650045d40b00bc84c7d156be77547
+cd ..
+
+# Copy the demucs OpenVINO IR files
+cp demucs-openvino/htdemucs_v4.bin openvino-models
+cp demucs-openvino/htdemucs_v4.xml openvino-models
+
+# Now that the required models are extracted, feel free to delete the cloned 'demucs-openvino' directory.
+rm -rf demucs-openvino
 ```
 
 #### **Move Models to System Directory**
