@@ -268,6 +268,9 @@ rm -rf whisper.cpp-openvino-models
 
 # clone the HF repo
 git clone https://huggingface.co/Intel/demucs-openvino
+cd demucs-openvino
+git checkout 97fc578fb57650045d40b00bc84c7d156be77547
+cd ..
 
 # Copy the demucs OpenVINO IR files
 cp demucs-openvino/htdemucs_v4.bin openvino-models
