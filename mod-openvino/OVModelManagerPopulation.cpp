@@ -121,6 +121,53 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_generat
       }
    }
 
+   //medium-mono
+   {
+      //for now, we haven't uploaded these to HF, so 'grey out' install button
+      baseUrl = "";
+
+      std::shared_ptr<OVModelManager::ModelInfo> cross_attn_common = std::make_shared<OVModelManager::ModelInfo>();
+      cross_attn_common->model_name = "Music Generation Cross-Attn Common";
+      cross_attn_common->baseUrl = baseUrl;
+      cross_attn_common->relative_path = "musicgen";
+      cross_attn_common->fileList = cross_attn_common_file_list;
+      for (auto& f : cross_attn_common->fileList) {
+         f = "medium-mono/" + f;
+      }
+
+      //medium-mono F16
+      {
+         std::shared_ptr<OVModelManager::ModelInfo> model = std::make_shared<OVModelManager::ModelInfo>();
+         model->model_name = "Medium Mono (FP16)";
+         model->info = "FP16-quantized variant of facebook/musicgen-medium model. This is a mono model, therefore it will produce a mono track.";
+         model->baseUrl = baseUrl;
+         model->relative_path = "musicgen";
+         model->dependencies.push_back(common);
+         model->dependencies.push_back(cross_attn_common);
+         model->fileList = f16_file_list;
+         for (auto& f : model->fileList) {
+            f = "medium-mono/" + f;
+         }
+         collection->models.emplace_back(model);
+      }
+
+      //medium-mono INT8
+      {
+         std::shared_ptr<OVModelManager::ModelInfo> model = std::make_shared<OVModelManager::ModelInfo>();
+         model->model_name = "Medium Mono (INT8)";
+         model->info = "INT8-quantized variant of facebook/musicgen-medium model. This is a mono model, therefore it will produce a mono track.";
+         model->baseUrl = baseUrl;
+         model->relative_path = "musicgen";
+         model->dependencies.push_back(common);
+         model->dependencies.push_back(cross_attn_common);
+         model->fileList = int8_file_list;
+         for (auto& f : model->fileList) {
+            f = "medium-mono/" + f;
+         }
+         collection->models.emplace_back(model);
+      }
+   }
+
    return collection;
 }
 

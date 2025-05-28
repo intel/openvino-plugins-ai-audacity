@@ -225,21 +225,33 @@ namespace ov_musicgen
 
       auto tensortype = device == "CPU" ? ov::element::f32 : ov::element::f16;
 
-      //hack for now.
+      std::string subfolder;
+      if (config.model_selection == MusicGenConfig::ModelSelection::MUSICGEN_SMALL_FP16 ||
+         config.model_selection == MusicGenConfig::ModelSelection::MUSICGEN_SMALL_INT8)
+      {
+         subfolder = "small";
+      }
+      else
       if (config.model_selection == MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_FP16 ||
          config.model_selection == MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_INT8)
       {
-         model_folder = FullPath(model_folder, "medium");
+         subfolder = "medium";
+      }
+      else
+      {
+         throw std::runtime_error("Invalid model selection: " + std::to_string((int)config.model_selection));
       }
 
       if (config.bStereo)
       {
-         model_folder = FullPath(model_folder, "small-stereo");
+         subfolder += "-stereo";
       }
       else
       {
-         model_folder = FullPath(model_folder, "small-mono");
+         subfolder += "-mono";
       }
+
+      model_folder = FullPath(model_folder, subfolder);
 
       {
          std::string decoder_model_path;
@@ -268,7 +280,6 @@ namespace ov_musicgen
 
          //reshape to static shapes
          {
-            
             std::map<ov::Output<ov::Node>, ov::PartialShape> port_to_shape;
             port_to_shape[model->input("encoder_attention_mask")] = { 2, MAX_PROMPT_TOKENS };
             port_to_shape[model->input("decoder_input_ids")] = { _decoder_config.num_codebooks*2, 1 };
