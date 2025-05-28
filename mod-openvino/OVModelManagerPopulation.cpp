@@ -14,6 +14,163 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_separat
    return music_sep_collection;
 }
 
+static std::shared_ptr< OVModelManager::ModelCollection > populate_music_generation()
+{
+   //TODO: Change 'main' to specific commit-id
+   std::string baseUrl = "https://huggingface.co/Intel/musicgen-static-openvino/resolve/main/";
+   std::shared_ptr<OVModelManager::ModelInfo> common = std::make_shared<OVModelManager::ModelInfo>();
+   common->model_name = "Music Generation Common";
+   common->baseUrl = baseUrl;
+   common->relative_path = "musicgen";
+   common->fileList = { "musicgen-small-tokenizer.bin", "musicgen-small-tokenizer.xml",
+                        "t5.bin", "t5.xml",
+                        "openvino_encodec_decode.xml", "openvino_encodec_decode.bin",
+                        "openvino_encodec_encode.xml", "openvino_encodec_encode.bin" };
+
+   auto collection = std::make_shared< OVModelManager::ModelCollection >();
+
+   std::vector<std::string> f16_file_list = { "musicgen_decoder.xml", "musicgen_decoder_nonkv.xml", "musicgen_decoder_combined.bin"};
+   std::vector<std::string> int8_file_list = { "musicgen_decoder_int8.xml", "musicgen_decoder_nonkv_int8.xml", "musicgen_decoder_int8_combined.bin" };
+   std::vector<std::string> cross_attn_common_file_list = { "initial_cross_attn_kv_producer.bin", "initial_cross_attn_kv_producer.xml" };
+
+   //small-mono
+   {
+      std::shared_ptr<OVModelManager::ModelInfo> cross_attn_common = std::make_shared<OVModelManager::ModelInfo>();
+      cross_attn_common->model_name = "Music Generation Cross-Attn Common";
+      cross_attn_common->baseUrl = baseUrl;
+      cross_attn_common->relative_path = "musicgen";
+      cross_attn_common->fileList = cross_attn_common_file_list;
+      for (auto& f : cross_attn_common->fileList) {
+         f = "small-mono/" + f;
+      }
+
+      //small-mono F16
+      {
+         std::shared_ptr<OVModelManager::ModelInfo> model = std::make_shared<OVModelManager::ModelInfo>();
+         model->model_name = "Small Mono (FP16)";
+         model->info = "FP16-quantized variant of facebook/musicgen-small model. This is a mono model, therefore it will produce a mono track.";
+         model->baseUrl = baseUrl;
+         model->relative_path = "musicgen";
+         model->dependencies.push_back(common);
+         model->dependencies.push_back(cross_attn_common);
+         model->fileList = f16_file_list;
+         for (auto& f : model->fileList) {
+            f = "small-mono/" + f;
+         }
+         collection->models.emplace_back(model);
+      }
+
+      //small-mono INT8
+      {
+         std::shared_ptr<OVModelManager::ModelInfo> model = std::make_shared<OVModelManager::ModelInfo>();
+         model->model_name = "Small Mono (INT8)";
+         model->info = "INT8-quantized variant of facebook/musicgen-small model. This is a mono model, therefore it will produce a mono track.";
+         model->baseUrl = baseUrl;
+         model->relative_path = "musicgen";
+         model->dependencies.push_back(common);
+         model->dependencies.push_back(cross_attn_common);
+         model->fileList = int8_file_list;
+         for (auto& f : model->fileList) {
+            f = "small-mono/" + f;
+         }
+         collection->models.emplace_back(model);
+      }
+   }
+
+   //small-stereo
+   {
+      std::shared_ptr<OVModelManager::ModelInfo> cross_attn_common = std::make_shared<OVModelManager::ModelInfo>();
+      cross_attn_common->model_name = "Music Generation Cross-Attn Common";
+      cross_attn_common->baseUrl = baseUrl;
+      cross_attn_common->relative_path = "musicgen";
+      cross_attn_common->fileList = cross_attn_common_file_list;
+      for (auto& f : cross_attn_common->fileList) {
+         f = "small-stereo/" + f;
+      }
+
+      //small-stereo F16
+      {
+         std::shared_ptr<OVModelManager::ModelInfo> model = std::make_shared<OVModelManager::ModelInfo>();
+         model->model_name = "Small Stereo (FP16)";
+         model->info = "FP16-quantized variant of facebook/musicgen-stereo-small model. This is a stereo model, therefore it will produce a stereo track.";
+         model->baseUrl = baseUrl;
+         model->relative_path = "musicgen";
+         model->dependencies.push_back(common);
+         model->dependencies.push_back(cross_attn_common);
+         model->fileList = f16_file_list;
+         for (auto& f : model->fileList) {
+            f = "small-stereo/" + f;
+         }
+         collection->models.emplace_back(model);
+      }
+
+      //small-stereo INT8
+      {
+         std::shared_ptr<OVModelManager::ModelInfo> model = std::make_shared<OVModelManager::ModelInfo>();
+         model->model_name = "Small Stereo (INT8)";
+         model->info = "INT8-quantized variant of facebook/musicgen-stereo-small model. This is a stereo model, therefore it will produce a stereo track.";
+         model->baseUrl = baseUrl;
+         model->relative_path = "musicgen";
+         model->dependencies.push_back(common);
+         model->dependencies.push_back(cross_attn_common);
+         model->fileList = int8_file_list;
+         for (auto& f : model->fileList) {
+            f = "small-stereo/" + f;
+         }
+         collection->models.emplace_back(model);
+      }
+   }
+
+   //medium-mono
+   {
+      //for now, we haven't uploaded these to HF, so 'grey out' install button
+      baseUrl = "";
+
+      std::shared_ptr<OVModelManager::ModelInfo> cross_attn_common = std::make_shared<OVModelManager::ModelInfo>();
+      cross_attn_common->model_name = "Music Generation Cross-Attn Common";
+      cross_attn_common->baseUrl = baseUrl;
+      cross_attn_common->relative_path = "musicgen";
+      cross_attn_common->fileList = cross_attn_common_file_list;
+      for (auto& f : cross_attn_common->fileList) {
+         f = "medium-mono/" + f;
+      }
+
+      //medium-mono F16
+      {
+         std::shared_ptr<OVModelManager::ModelInfo> model = std::make_shared<OVModelManager::ModelInfo>();
+         model->model_name = "Medium Mono (FP16)";
+         model->info = "FP16-quantized variant of facebook/musicgen-medium model. This is a mono model, therefore it will produce a mono track.";
+         model->baseUrl = baseUrl;
+         model->relative_path = "musicgen";
+         model->dependencies.push_back(common);
+         model->dependencies.push_back(cross_attn_common);
+         model->fileList = f16_file_list;
+         for (auto& f : model->fileList) {
+            f = "medium-mono/" + f;
+         }
+         collection->models.emplace_back(model);
+      }
+
+      //medium-mono INT8
+      {
+         std::shared_ptr<OVModelManager::ModelInfo> model = std::make_shared<OVModelManager::ModelInfo>();
+         model->model_name = "Medium Mono (INT8)";
+         model->info = "INT8-quantized variant of facebook/musicgen-medium model. This is a mono model, therefore it will produce a mono track.";
+         model->baseUrl = baseUrl;
+         model->relative_path = "musicgen";
+         model->dependencies.push_back(common);
+         model->dependencies.push_back(cross_attn_common);
+         model->fileList = int8_file_list;
+         for (auto& f : model->fileList) {
+            f = "medium-mono/" + f;
+         }
+         collection->models.emplace_back(model);
+      }
+   }
+
+   return collection;
+}
+
 struct WhisperInfo
 {
    std::string ui_name;
@@ -180,6 +337,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_whisper()
 
 void OVModelManager::_populate_model_collection()
 {
-   mModelCollection.insert({ MusicSepName(), populate_music_separation()});
+   mModelCollection.insert({ MusicSepName(), populate_music_separation() });
+   mModelCollection.insert({ MusicGenName(), populate_music_generation() });
    mModelCollection.insert({ WhisperName(), populate_whisper() });
 }

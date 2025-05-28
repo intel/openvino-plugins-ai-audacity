@@ -55,43 +55,64 @@ static inline std::vector<std::string> splitPath(const std::string& path, char d
    return parts;
 }
 
+static void _check_installed_model_impl(std::shared_ptr<OVModelManager::ModelInfo> model_info, const FilePath& search_path_base)
+{
+   model_info->installed = false;
+
+   if (!model_info->dependencies.empty())
+   {
+      for (auto& d : model_info->dependencies) {
+         _check_installed_model_impl(d, search_path_base);
+
+         if (!d->installed)
+         {
+            // of the dependencies aren't installed, then no point in proceeding.
+            return;
+         }
+      }
+   }
+
+   bool all_found = true;
+   for (auto& file : model_info->fileList)
+   {
+      wxFileName fullFilePath(search_path_base + "/" + model_info->relative_path + "/" + file);
+      fullFilePath.Normalize();
+
+      std::cout << "fullFilePath = " << fullFilePath.GetFullPath().ToStdString() << std::endl;
+      if (!fullFilePath.FileExists())
+      {
+         all_found = false;
+         std::cout << "    file doesn't exist." << std::endl;
+         break;
+      }
+      else
+      {
+         std::cout << "    file exists." << std::endl;
+      }
+   }
+
+   if (all_found)
+   {
+      auto split_path = splitPath(model_info->relative_path);
+      auto fullInstallationPath = search_path_base;
+      for (int i = 0; i < split_path.size(); i++)
+      {
+         fullInstallationPath = wxFileName(fullInstallationPath, wxString(split_path[i])).GetFullPath();
+      }
+
+      model_info->installed = true;
+      model_info->installation_path = fullInstallationPath.ToStdString();
+      std::cout << "Set installation path to " << model_info->installation_path << std::endl;
+   }
+}
+
 void OVModelManager::_check_installed_model(std::shared_ptr<ModelInfo> model_info)
 {
    for (auto& search_path_base : mSearchPaths)
    {
-      bool all_found = true;
-      for (auto& file : model_info->fileList)
-      {
-         wxFileName fullFilePath(search_path_base + "/" + model_info->relative_path + "/" + file);
-         fullFilePath.Normalize();
-
-         std::cout << "fullFilePath = " << fullFilePath.GetFullPath().ToStdString() << std::endl;
-         if (!fullFilePath.FileExists())
-         {
-            all_found = false;
-            std::cout << "    file doesn't exist." << std::endl;
-            break;
-         }
-         else
-         {
-            std::cout << "    file exists." << std::endl;
-         }
-      }
-
-      if (all_found)
-      {
-         auto split_path = splitPath(model_info->relative_path);
-         auto fullInstallationPath = search_path_base;
-         for (int i = 0; i < split_path.size(); i++)
-         {
-            fullInstallationPath = wxFileName(fullInstallationPath, wxString(split_path[i])).GetFullPath();
-         }
-
-         model_info->installed = true;
-         model_info->installation_path = fullInstallationPath.ToStdString();
-         std::cout << "Set installation path to " << model_info->installation_path << std::endl;
+      _check_installed_model_impl(model_info, search_path_base);
+      if (model_info->installed)
          break;
-      }
    }
 }
 
@@ -116,29 +137,8 @@ static inline void mkdir_relative_paths(std::string relative_file, wxString base
    }
 }
 
-size_t OVModelManager::install_model_size(std::string effect, std::string model_id)
+size_t OVModelManager::install_model_size(std::shared_ptr<ModelInfo> model_info)
 {
-   auto it = mModelCollection.find(effect);
-   if (it == mModelCollection.end()) {
-      std::cout << "Model Collection for effect=" << effect << " not found." << std::endl;
-      return 0;
-   }
-
-   std::shared_ptr<ModelInfo> model_info;
-   auto collection = it->second;
-   bool bFound = false;
-   for (auto& info : collection->models) {
-      if (info->model_name == model_id) {
-         model_info = info;
-         bFound = true;
-      }
-   }
-
-   if (!bFound) {
-      std::cout << "Model Info for model_id=" << model_id << " not found." << std::endl;
-      return 0;
-   }
-
    size_t total_size = 0;
    auto baseUrl = model_info->baseUrl;
    audacity::network_manager::NetworkManager& manager = audacity::network_manager::NetworkManager::GetInstance();
@@ -197,42 +197,9 @@ size_t OVModelManager::install_model_size(std::string effect, std::string model_
    return total_size;
 }
 
-void OVModelManager::install_model(std::string effect, std::string model_id, ProgressCallback callback)
+static void download_model_files(std::shared_ptr<OVModelManager::ModelInfo> model_info, const FilePath &base_openvino_models_path, size_t total_download_size,
+   size_t& bytes_downloaded_so_far, OVModelManager::ProgressCallback callback)
 {
-   auto it = mModelCollection.find(effect);
-   if (it == mModelCollection.end()) {
-      std::cout << "Model Collection for effect=" << effect << " not found." << std::endl;
-      return;
-   }
-
-   std::shared_ptr<ModelInfo> model_info;
-   auto collection = it->second;
-   bool bFound = false;
-   for (auto& info : collection->models) {
-      if (info->model_name == model_id) {
-         model_info = info;
-         bFound = true;
-      }
-   }
-
-   if (!bFound) {
-      std::cout << "Model Info for model_id=" << model_id << " not found." << std::endl;
-      return;
-   }
-
-   //TODO: Replace this with a hard-coded size... I think.
-   size_t total_download_size = install_model_size(effect, model_id);
-   if (total_download_size == 0)
-   {
-      std::cout << "install_model_size failed." << std::endl;
-      return;
-   }
-   size_t bytes_downloaded_so_far = 0;
-
-   std::cout << "Total size we are about to download = " << total_download_size << std::endl;
-
-   auto base_openvino_models_path = mSearchPaths[0];
-
    audacity::network_manager::NetworkManager& manager = audacity::network_manager::NetworkManager::GetInstance();
 
    bool bError = false;
@@ -255,7 +222,7 @@ void OVModelManager::install_model(std::string effect, std::string model_id, Pro
 
       // write to file here
       response->setOnDataReceivedCallback(
-         [this, response, wx_file, &bError , &bytes_downloaded_so_far, callback, &total_download_size](audacity::network_manager::IResponse*)
+         [response, wx_file, &bError, &bytes_downloaded_so_far, callback, &total_download_size](audacity::network_manager::IResponse*)
          {
             // only attempt save if request succeeded
             int httpCode = response->getHTTPCode();
@@ -275,18 +242,8 @@ void OVModelManager::install_model(std::string effect, std::string model_id, Pro
 
                bytes_downloaded_so_far += bytesWritten;
 
-#if 0
-               if (bytes_downloaded_so_far >= 1024 * 1024) {
-                  bError = true;
-                  std::cout << "fake error!" << std::endl;
-                  response->Cancel();
-                  return;
-               }
-#endif
-
-               if (total_download_size > 0 && callback ) {
+               if (total_download_size > 0 && callback) {
                   double perc_complete = static_cast<double>(bytes_downloaded_so_far) / static_cast<double>(total_download_size);
-                  std::cout << "making callback with perc_complete=" << perc_complete << std::endl;
                   callback(static_cast<float>(perc_complete));
                }
 
@@ -312,7 +269,7 @@ void OVModelManager::install_model(std::string effect, std::string model_id, Pro
       std::future<void> doneFuture = donePromise.get_future();
 
       response->setRequestFinishedCallback(
-         [this, &donePromise](audacity::network_manager::IResponse*)
+         [&donePromise](audacity::network_manager::IResponse*)
          {
             donePromise.set_value();
          }
@@ -326,9 +283,84 @@ void OVModelManager::install_model(std::string effect, std::string model_id, Pro
 
       std::cout << "finished downloading " << url << std::endl;
    }
+}
+
+void OVModelManager::install_model(std::string effect, std::string model_id, ProgressCallback callback)
+{
+   auto it = mModelCollection.find(effect);
+   if (it == mModelCollection.end()) {
+      std::cout << "Model Collection for effect=" << effect << " not found." << std::endl;
+      return;
+   }
+
+   std::shared_ptr<ModelInfo> model_info;
+   auto collection = it->second;
+   bool bFound = false;
+   for (auto& info : collection->models) {
+      if (info->model_name == model_id) {
+         model_info = info;
+         bFound = true;
+      }
+   }
+
+   if (!bFound) {
+      std::cout << "Model Info for model_id=" << model_id << " not found." << std::endl;
+      return;
+   }
+
+   //TODO: Replace this with a hard-coded size... I think.
+   size_t total_download_size = install_model_size(model_info);
+
+   if (total_download_size == 0)
+   {
+      std::cout << "install_model_size failed." << std::endl;
+      return;
+   }
+
+   auto &base_openvino_models_path = mSearchPaths[0];
+
+   // re-check the dependencies, but force it to use the 'base' installation folder that we will install to.
+   for (auto& d : model_info->dependencies) {
+      _check_installed_model_impl(d, base_openvino_models_path);
+   }
+
+   // add the total size of the dependencies.
+   for (auto& d : model_info->dependencies) {
+      if (!d->installed) {
+         size_t dependencies_size = install_model_size(d);
+         if (dependencies_size == 0)
+         {
+            std::cout << "install_model_size failed for dependencies: " << d->model_name << std::endl;
+            return;
+         }
+
+         total_download_size += dependencies_size;
+      }
+   }
+   
+   size_t bytes_downloaded_so_far = 0;
+
+   std::cout << "Total size we are about to download = " << total_download_size << std::endl;
+
+   if (!model_info->dependencies.empty()) {
+      for (auto& d : model_info->dependencies) {
+         if (!d->installed) {
+            download_model_files(d, base_openvino_models_path, total_download_size, bytes_downloaded_so_far, callback);
+            _check_installed_model_impl(d, base_openvino_models_path);
+            if (!d->installed)
+               return;
+         }
+         else
+         {
+            std::cout << "dependency: " << d->model_name << " is already installed." << std::endl;
+         }
+      }
+   }
+
+   download_model_files(model_info, base_openvino_models_path, total_download_size, bytes_downloaded_so_far, callback);
 
    //re-run file check for this model.
-   _check_installed_model(model_info);
+   _check_installed_model_impl(model_info, base_openvino_models_path);
 
    if (model_info->installed) {
       auto callback_it = mInstallCallbacks.find(effect);
