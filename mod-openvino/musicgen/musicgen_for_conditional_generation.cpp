@@ -2,6 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 #include "musicgen_for_conditional_generation.h"
 
+#include "encodec_encoder.h"
+#include "musicgen_decoder.h"
+
 namespace ov_musicgen
 {
    void MusicgenForConditionalGeneration::SetSeed(unsigned int seed)
@@ -16,6 +19,7 @@ namespace ov_musicgen
    }
 
    MusicgenForConditionalGeneration::MusicgenForConditionalGeneration(MusicGenConfig& config)
+      : _config(config)
    {
       auto model_folder = config.model_folder;
       std::string cache_dir = *config.cache_folder;
@@ -23,13 +27,14 @@ namespace ov_musicgen
       _core = std::make_shared< ov::Core >();
       auto& core = *_core;
 
-
       if (config.cache_folder)
       {
          std::cout << "Setting cache_dir to " << *config.cache_folder << std::endl;
 
          core.set_property(ov::cache_dir(*config.cache_folder));
       }
+
+      _decoder_refactor = std::make_shared< MusicgenDecoderStatic >(core, config);
 
       torch::Generator generator = at::detail::createCPUGenerator();
       {
@@ -52,43 +57,16 @@ namespace ov_musicgen
          _text_encoder_infer_request.infer();
       }
 
-      _decoder = std::make_shared< MusicgenForCausalLM >(core, config);
-
-      {
-         //prep enc-to-dec proj model
-         std::string enc_to_dec_model_folder = model_folder;
-         if (config.bStereo)
-         {
-            enc_to_dec_model_folder = FullPath(enc_to_dec_model_folder, "stereo");
-         }
-         else
-         {
-            enc_to_dec_model_folder = FullPath(enc_to_dec_model_folder, "mono");
-         }
-
-         auto modelpath = FullPath(enc_to_dec_model_folder, "enc_to_dec_proj.xml");
-         std::shared_ptr<ov::Model> model = core.read_model(modelpath);
-
-         model->reshape({ {2, ov::Dimension(1, 64), 768} });
-
-         ov::CompiledModel compiled_model = core.compile_model(model, "CPU");
-
-         _enc_to_dec_proj_infer_request = compiled_model.create_infer_request();
-      }
-
       {
          size_t num_encodec_secs = 20;
-
-         auto modelpath = FullPath(model_folder, "encodec_" + std::to_string(num_encodec_secs) + "s.xml");
-         auto binfile = FullPath(model_folder, "encodec_combined_weights.bin");
-
-         std::shared_ptr<ov::Model> model = core.read_model(modelpath, binfile);
-
+         auto modelpath = FullPath(model_folder, "openvino_encodec_decode.xml");
+         std::shared_ptr<ov::Model> model = core.read_model(modelpath);
          model->reshape({ 1, 1, 4, num_encodec_secs * 50 });
-
+         std::cout << "openvino_encodec_decode:" << std::endl;
+         logBasicModelInfo(model);
          auto compiled_model = core.compile_model(model, config.encodec_dec_device);
-
          _encodec_infer_request = compiled_model.create_infer_request();
+         _encodec_infer_request.infer();
       }
 
       _encoder = std::make_shared< MusicGenEncodecEncoder >(core, config);
@@ -116,7 +94,8 @@ namespace ov_musicgen
          decoder_input_ids = decoder_input_ids.repeat({ 2, 1 });
       }
 
-      auto past_length = _decoder->PastLength();
+      auto past_length = _decoder_refactor->PastLength();
+      
       if (past_length >= 1)
       {
          int64_t remove_prefix_length;
@@ -145,49 +124,45 @@ namespace ov_musicgen
       std::optional< torch::Tensor > encoder_hidden_states_in)
    {
       ITT_SCOPED_TASK(MusicgenForConditionalGeneration_forward)
-         _nforward_calls++;
+      _nforward_calls++;
 
       torch::Tensor encoder_hidden_states;
-      if (!encoder_hidden_states_in)
+      torch::Tensor encoder_attention_mask;
+
+      if (encoder_outputs)
       {
-         if (encoder_outputs)
+         encoder_hidden_states = *(*encoder_outputs).last_hidden_state;
+
+         if (attention_mask)
          {
-            if ((*encoder_outputs).last_hidden_state)
-            {
-               encoder_hidden_states = *(*encoder_outputs).last_hidden_state;
-
-               encoder_hidden_states = _enc_to_dec_proj(encoder_hidden_states);
-            }
-            else
-            {
-               throw std::runtime_error("Unexpected condition. encoder_outputs is set, but last_hidden_state is not.");
-            }
-
-            if (attention_mask)
-            {
-               using namespace torch::indexing;
-               encoder_hidden_states = encoder_hidden_states * (*attention_mask).index({ "...", None });
-            }
+            encoder_attention_mask = *attention_mask;
          }
          else
          {
-            encoder_hidden_states = torch::zeros({ 2, 1, 1024 });
+            throw std::runtime_error("attention_mask is expected to be given with encoder_outputs");
          }
       }
       else
       {
-         encoder_hidden_states = *encoder_hidden_states_in;
+         encoder_hidden_states = torch::zeros({ 2, 1, 768 });
+         encoder_attention_mask = torch::zeros({ 2, 1 }, torch::dtype(torch::kInt64));
       }
 
-      return { _decoder->forward(*decoder_input_ids, //input_ids
-          {},  //attention_mask
-          encoder_hidden_states,
-          attention_mask, //encoder attention mask
-          {}, //head mask
-          {}, //cross_attn_head_mask
-          {} //inputs_embeds
-          ),
-          encoder_hidden_states };
+      auto logits = _decoder_refactor->run(*decoder_input_ids,
+         encoder_hidden_states,
+         attention_mask);
+
+      return { logits, encoder_hidden_states };
+   }
+
+   int64_t MusicgenForConditionalGeneration::MaxNewTokens()
+   {
+      return _decoder_refactor->MaxNewTokens();
+   }
+
+   void MusicgenForConditionalGeneration::ShiftLeft(int64_t ntokens)
+   {
+
    }
 
    MusicgenForConditionalGeneration::GenerateReturn MusicgenForConditionalGeneration::generate(std::optional < torch::Tensor > inputs_tensor,
@@ -202,21 +177,27 @@ namespace ov_musicgen
    {
       ITT_SCOPED_TASK(generate)
 
-         GenerateReturn ret;
+      GenerateReturn ret;
 
       if (max_token_length <= 0)
       {
          throw std::invalid_argument("max_token_length needs to be > 0");
       }
 
-      _decoder->Reset();
+      _decoder_refactor->Reset();
 
       max_token_length += 4;
 
       int64_t pad_token_id = 2048;
 
       int64_t batch_size = 1;
-      int64_t num_codebooks = _decoder->NumCodebooks();
+
+      int64_t num_codebooks = 4;
+
+      if (_config.bStereo)
+      {
+         num_codebooks = 8;
+      }
 
       auto input_ids = torch::full({ num_codebooks, 1 }, pad_token_id, torch::kInt64);
 
@@ -224,7 +205,7 @@ namespace ov_musicgen
       {
          torch::Tensor audio_codes;
          int64_t frames, bsz, codebooks, seq_len;
-         if (_decoder->AudioChannels() == 1)
+         if (!_config.bStereo)
          {
             if (audio_to_continue->size(1) != 1)
             {
@@ -243,7 +224,7 @@ namespace ov_musicgen
                throw std::runtime_error("generate: expected frames to be 1");
             }
          }
-         else if (_decoder->AudioChannels() == 2)
+         else 
          {
             if (audio_to_continue->size(1) != 2)
             {
@@ -275,10 +256,7 @@ namespace ov_musicgen
 
             audio_codes.index_put_({ Slice(), Slice(), Slice(1, None, 2), Slice() }, audio_codes_right);
          }
-         else
-         {
-            throw std::runtime_error("AudioChannels() is not 1 or 2... (something is very wrong)");
-         }
+         
 
          auto decoder_input_ids = audio_codes.index({ 0, "..." }).reshape({ bsz * num_codebooks , seq_len });
 
@@ -313,7 +291,7 @@ namespace ov_musicgen
          encoder_outputs = output;
       }
 
-      auto build_delay_pattern_mask_ret = _decoder->build_delay_pattern_mask(input_ids, pad_token_id, max_token_length);
+      auto build_delay_pattern_mask_ret = _build_delay_pattern_mask(input_ids, pad_token_id, max_token_length);
       input_ids = build_delay_pattern_mask_ret.first;
       auto decoder_delay_pattern_mask = build_delay_pattern_mask_ret.second;
 
@@ -349,7 +327,7 @@ namespace ov_musicgen
       using namespace torch::indexing;
       output_ids = output_ids.index({ None, "..." });
 
-      if (_decoder->AudioChannels() == 1)
+      if (!_config.bStereo)
       {
          ret.wav = ids_to_wav(output_ids);
       }
@@ -548,25 +526,6 @@ namespace ov_musicgen
       return input_ids;
    }
 
-
-
-   torch::Tensor MusicgenForConditionalGeneration::_enc_to_dec_proj(torch::Tensor encoder_hidden_states)
-   {
-      ITT_SCOPED_TASK(_enc_to_dec_proj)
-         using namespace torch::indexing;
-
-      auto ov_input_tensor = wrap_torch_tensor_as_ov(encoder_hidden_states);
-      _enc_to_dec_proj_infer_request.set_input_tensor(ov_input_tensor);
-
-      //run inference.
-      _enc_to_dec_proj_infer_request.infer();
-
-      //wrap output tensor as a torch tensor
-      auto output_tensor_wrapped = wrap_ov_tensor_as_torch(_enc_to_dec_proj_infer_request.get_output_tensor());
-
-      return output_tensor_wrapped;
-   }
-
    torch::Tensor MusicgenForConditionalGeneration::_logits_processor(torch::Tensor input_ids, torch::Tensor next_token_logits, float guidance_scale)
    {
       ITT_SCOPED_TASK(_logits_processor)
@@ -595,6 +554,104 @@ namespace ov_musicgen
       auto indices_to_remove = next_token_scores < selected;
       next_token_scores = next_token_scores.masked_fill(indices_to_remove, filter_value);
       return next_token_scores;
+   }
+
+   //returns { input_ids, delayed_pattern_mask }
+   std::pair< torch::Tensor, torch::Tensor> MusicgenForConditionalGeneration::_build_delay_pattern_mask(torch::Tensor input_ids, int64_t pad_token_id, int64_t max_length)
+   {
+      using namespace torch::indexing;
+
+      int64_t codebooks = 4;
+
+      if (_config.bStereo)
+      {
+         codebooks = 8;
+      }
+
+      // (bsz * num_codebooks, seq_len) -> (bsz, num_codebooks, seq_len)
+      input_ids = input_ids.reshape({ -1, codebooks, input_ids.sizes().back() });
+      auto bsz = input_ids.sizes()[0];
+      auto num_codebooks = input_ids.sizes()[1];
+      auto seq_len = input_ids.sizes()[2];
+
+      auto input_ids_shifted = (
+         torch::ones({ bsz, num_codebooks, max_length }, torch::TensorOptions().dtype(torch::kInt64)) * -1
+         );
+
+      int64_t channel_codebooks;
+      if (_config.bStereo)
+      {
+         channel_codebooks = num_codebooks / 2;
+      }
+      else
+      {
+         channel_codebooks = num_codebooks;
+      }
+
+      // we only apply the mask if we have a large enough seq len - otherwise we return as is
+      if (max_length < (2 * channel_codebooks - 1))
+      {
+         return { input_ids.reshape({bsz * num_codebooks, -1}), input_ids_shifted.reshape({bsz * num_codebooks, -1}) };
+      }
+
+      // fill the shifted ids with the prompt entries, offset by the codebook idx
+      for (int64_t codebook = 0; codebook < channel_codebooks; codebook++)
+      {
+         if (!_config.bStereo)
+         {
+            // mono channel - loop over the codebooks one-by-one
+            input_ids_shifted.index_put_({ Slice(), codebook, Slice(codebook, seq_len + codebook) }, input_ids.index({ Slice(), codebook }));
+         }
+         else
+         {
+            // left/right channels are interleaved in the generated codebooks, so handle one then the other
+            input_ids_shifted.index_put_({ Slice(), 2 * codebook, Slice(codebook, seq_len + codebook) }, input_ids.index({ Slice(), 2 * codebook }));
+            input_ids_shifted.index_put_({ Slice(), 2 * codebook + 1, Slice(codebook, seq_len + codebook) }, input_ids.index({ Slice(), 2 * codebook + 1 }));
+         }
+      }
+
+      // construct a pattern mask that indicates the positions of padding tokens for each codebook
+      // first fill the upper triangular part (the EOS padding)
+      auto delay_pattern = torch::triu(
+         torch::ones({ channel_codebooks, max_length }, torch::TensorOptions().dtype(torch::kBool)), max_length - channel_codebooks + 1
+      );
+
+      // then fill the lower triangular part (the BOS padding)
+      delay_pattern = delay_pattern + torch::tril(torch::ones({ channel_codebooks, max_length }, torch::TensorOptions().dtype(torch::kBool)));
+
+      if (_config.bStereo)
+      {
+         // for left/right channel we need to duplicate every row of the pattern mask in an interleaved fashion
+         delay_pattern = delay_pattern.repeat_interleave(2, 0);
+      }
+
+      auto mask = ~delay_pattern;
+      input_ids = mask * input_ids_shifted + ~mask * pad_token_id;
+
+      //dump_tensor(input_ids, "ov_input_ids_after_mask_op.raw");
+
+      // find the first position to start generating - this is the first place we have the -1 token
+      // and will always be in the first codebook (since it has no codebook offset)
+      auto first_codebook_ids = input_ids.index({ Slice(), 0, Slice() });
+      auto start_ids = (first_codebook_ids == -1).nonzero().index({ Slice(), 1 });
+
+      int64_t first_start_id;
+      if (start_ids.numel() > 0)
+      {
+         first_start_id = start_ids.min().item().toLong();
+      }
+      else
+      {
+         //we have no tokens that need to be filled - return entire matrix of input ids
+         first_start_id = seq_len;
+      }
+
+      // (bsz * num_codebooks, seq_len) -> (bsz, num_codebooks, seq_len)
+      auto pattern_mask = input_ids.reshape({ bsz * num_codebooks, -1 });
+
+      input_ids = input_ids.index({ "...", Slice(None, first_start_id) }).reshape({ bsz * num_codebooks, -1 });
+
+      return { input_ids , pattern_mask };
    }
 
 }

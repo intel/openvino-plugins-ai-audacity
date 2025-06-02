@@ -16,29 +16,38 @@ namespace ov_musicgen
       MusicGenEncodecEncoder(ov::Core& core, MusicGenConfig& config)
       {
          auto model_folder = config.model_folder;
-         std::string modelpath;
+
+         auto modelpath = FullPath(model_folder, "openvino_encodec_encode.xml");
+
+         // there seems to be some issue in using the same ov::Core that was used for
+         // encodec_decoder.. GPU team investigating. So, as a workaround, instantiate
+         // a new core and use it instead.
+         //TODO: Remove this when the issue is resolved.
+         ov::Core wa_core;
+         if (config.cache_folder)
+         {
+            wa_core.set_property(ov::cache_dir(*config.cache_folder));
+         }
+
+         std::shared_ptr<ov::Model> model = wa_core.read_model(modelpath);
+
          switch (config.m_continuation_context)
          {
-         case MusicGenConfig::ContinuationContext::FIVE_SECONDS:
-         {
-            modelpath = FullPath(model_folder, "encodec_encoder_5s.xml");
-         }
-         break;
+            case MusicGenConfig::ContinuationContext::FIVE_SECONDS:
+            {
+               model->reshape({ 1, 1, 5 * 32000 });
+            }
+            break;
 
-         case MusicGenConfig::ContinuationContext::TEN_SECONDS:
-         {
-            modelpath = FullPath(model_folder, "encodec_encoder_10s.xml");
+            case MusicGenConfig::ContinuationContext::TEN_SECONDS:
+            {
+               model->reshape({ 1, 1, 10 * 32000 });
+            }
+            break;
          }
-         break;
-         }
-
-         auto binfile = FullPath(model_folder, "encodec_encoder_combined_weights.bin");
-
-         std::shared_ptr<ov::Model> model = core.read_model(modelpath, binfile);
+         std::cout << "openvino_encodec_encode:" << std::endl;
          logBasicModelInfo(model);
-
-         ov::CompiledModel compiledModel = core.compile_model(model, config.encodec_enc_device);
-
+         ov::CompiledModel compiledModel = wa_core.compile_model(model, config.encodec_enc_device);
          _infer_request = compiledModel.create_infer_request();
          _infer_request.infer(); //warm up run.
       }

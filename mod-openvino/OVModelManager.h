@@ -34,7 +34,12 @@ public:
 
       //This will be set to absolute path of openvino-models + relative_path, but only
       // if 'installed' is true. 
-      std::string installation_path;                      
+      std::string installation_path;
+
+      // This is used for multiple models to have a common subset of files
+      // that they both need. For example, musicgen mono & stereo both need
+      // the same text encoder model files.
+      std::vector< std::shared_ptr<ModelInfo>> dependencies;
    };
 
    struct ModelCollection
@@ -58,7 +63,7 @@ public:
 
    using ProgressCallback = std::function<void(float)>;
    void install_model(std::string effect, std::string model_id, ProgressCallback callback = nullptr);
-   size_t install_model_size(std::string effect, std::string model_id);
+   size_t install_model_size(std::shared_ptr<ModelInfo> model_info);
 
    using InstalledCallback = std::function<void(const std::string &model_name)>;
    void register_installed_callback(const std::string& effect, InstalledCallback callback);

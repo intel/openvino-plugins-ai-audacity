@@ -11,30 +11,32 @@
 
 #include <ittutils.h>
 #include "musicgen_utils.h"
-#include "musicgen_for_causal_lm.h"
-#include "encodec_encoder.h"
 #include "musicgen_config.h"
+
 
 namespace ov_musicgen
 {
-
-   struct BaseModelOutput
-   {
-      // Sequence of hidden-states at the output of the last layer of the model.
-      std::optional<torch::Tensor> last_hidden_state = {};
-
-      // Hidden-states of the model at the output of each layer plus the optional initial embedding outputs.
-      std::optional<torch::Tensor> hidden_states = {};
-
-      //Attentions weights after the attention softmax, used to compute the weighted average in the self - attention heads.
-      std::optional<torch::Tensor> attentions = {};
-   };
+   class MusicgenForCausalLM;
+   class MusicGenEncodecEncoder;
+   class MusicgenDecoder;
 
    class MusicgenForConditionalGeneration
    {
    public:
 
       MusicgenForConditionalGeneration(MusicGenConfig& config);
+
+      struct BaseModelOutput
+      {
+         // Sequence of hidden-states at the output of the last layer of the model.
+         std::optional<torch::Tensor> last_hidden_state = {};
+
+         // Hidden-states of the model at the output of each layer plus the optional initial embedding outputs.
+         std::optional<torch::Tensor> hidden_states = {};
+
+         //Attentions weights after the attention softmax, used to compute the weighted average in the self - attention heads.
+         std::optional<torch::Tensor> attentions = {};
+      };
 
       struct GenerateReturn
       {
@@ -59,10 +61,7 @@ namespace ov_musicgen
          int64_t top_k = 250,
          std::optional< CallbackParams > callback_params = {});
 
-      int64_t MaxNewTokens()
-      {
-         return _decoder->MaxNewTokens();
-      }
+      int64_t MaxNewTokens();
 
       void SetSeed(unsigned int seed);
 
@@ -95,12 +94,7 @@ namespace ov_musicgen
          CallbackTracking& tracking,
          std::optional< CallbackParams > callback_params);
 
-      void ShiftLeft(int64_t ntokens)
-      {
-         _decoder->ShiftLeft(ntokens);
-      }
-
-      torch::Tensor _enc_to_dec_proj(torch::Tensor encoder_hidden_states);
+      void ShiftLeft(int64_t ntokens);
 
       //transformers\generation\logits_process.py, ClassifierFreeGuidanceLogitsProcessor.
       torch::Tensor _logits_processor(torch::Tensor input_ids, torch::Tensor next_token_logits, float guidance_scale);
@@ -109,11 +103,9 @@ namespace ov_musicgen
       torch::Tensor _logits_warper(torch::Tensor input_ids,
          torch::Tensor next_token_scores, int64_t top_k, float filter_value);
 
-      std::shared_ptr< MusicgenForCausalLM > _decoder;
+      std::shared_ptr< MusicgenDecoder > _decoder_refactor;
 
       std::shared_ptr< MusicGenEncodecEncoder > _encoder;
-
-      ov::InferRequest _enc_to_dec_proj_infer_request;
 
       int _nforward_calls = 1;
 
@@ -124,5 +116,10 @@ namespace ov_musicgen
       torch::Generator _generator;
 
       std::shared_ptr<ov::Core> _core;
+
+      MusicGenConfig _config;
+
+      //returns { input_ids, delayed_pattern_mask }
+      std::pair< torch::Tensor, torch::Tensor> _build_delay_pattern_mask(torch::Tensor input_ids, int64_t pad_token_id, int64_t max_length);
    };
 }
