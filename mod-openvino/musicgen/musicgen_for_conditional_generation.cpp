@@ -1,13 +1,13 @@
 // Copyright (C) 2024 Intel Corporation
 // SPDX-License-Identifier: GPL-3.0-only
-#include "musicgen_for_conditional_generation_refactor.h"
+#include "musicgen_for_conditional_generation.h"
 
 #include "encodec_encoder.h"
 #include "musicgen_decoder.h"
 
 namespace ov_musicgen
 {
-   void MusicgenForConditionalGenerationRefactor::SetSeed(unsigned int seed)
+   void MusicgenForConditionalGeneration::SetSeed(unsigned int seed)
    {
       torch::Generator generator = at::detail::createCPUGenerator();
       {
@@ -18,7 +18,7 @@ namespace ov_musicgen
       _generator = generator;
    }
 
-   MusicgenForConditionalGenerationRefactor::MusicgenForConditionalGenerationRefactor(MusicGenConfig& config)
+   MusicgenForConditionalGeneration::MusicgenForConditionalGeneration(MusicGenConfig& config)
       : _config(config)
    {
       auto model_folder = config.model_folder;
@@ -72,7 +72,7 @@ namespace ov_musicgen
       _encoder = std::make_shared< MusicGenEncodecEncoder >(core, config);
    }
 
-   torch::Tensor MusicgenForConditionalGenerationRefactor::apply_delay_pattern_mask(torch::Tensor input_ids, torch::Tensor decoder_pad_token_mask)
+   torch::Tensor MusicgenForConditionalGeneration::apply_delay_pattern_mask(torch::Tensor input_ids, torch::Tensor decoder_pad_token_mask)
    {
       using namespace torch::indexing;
       auto seq_len = input_ids.sizes().back();
@@ -81,7 +81,7 @@ namespace ov_musicgen
       return input_ids;
    }
 
-   torch::Tensor MusicgenForConditionalGenerationRefactor::prepare_inputs_for_generation(torch::Tensor decoder_input_ids, torch::Tensor decoder_delay_pattern_mask, std::optional<float> guidance_scale)
+   torch::Tensor MusicgenForConditionalGeneration::prepare_inputs_for_generation(torch::Tensor decoder_input_ids, torch::Tensor decoder_delay_pattern_mask, std::optional<float> guidance_scale)
    {
       ITT_SCOPED_TASK(prepare_inputs_for_generation);
       using namespace torch::indexing;
@@ -115,7 +115,7 @@ namespace ov_musicgen
 
    }
 
-   std::pair<torch::Tensor, torch::Tensor> MusicgenForConditionalGenerationRefactor::forward(std::optional<torch::Tensor> input_ids,
+   std::pair<torch::Tensor, torch::Tensor> MusicgenForConditionalGeneration::forward(std::optional<torch::Tensor> input_ids,
       std::optional<torch::Tensor> attention_mask,
       std::optional<torch::Tensor> input_values,
       std::optional<torch::Tensor> padding_mask,
@@ -155,17 +155,17 @@ namespace ov_musicgen
       return { logits, encoder_hidden_states };
    }
 
-   int64_t MusicgenForConditionalGenerationRefactor::MaxNewTokens()
+   int64_t MusicgenForConditionalGeneration::MaxNewTokens()
    {
       return _decoder_refactor->MaxNewTokens();
    }
 
-   void MusicgenForConditionalGenerationRefactor::ShiftLeft(int64_t ntokens)
+   void MusicgenForConditionalGeneration::ShiftLeft(int64_t ntokens)
    {
 
    }
 
-   MusicgenForConditionalGenerationRefactor::GenerateReturn MusicgenForConditionalGenerationRefactor::generate(std::optional < torch::Tensor > inputs_tensor,
+   MusicgenForConditionalGeneration::GenerateReturn MusicgenForConditionalGeneration::generate(std::optional < torch::Tensor > inputs_tensor,
       int64_t max_token_length,
       std::optional < torch::Tensor > attention_mask,
       CallbackTracking& tracking,
@@ -343,7 +343,7 @@ namespace ov_musicgen
       return ret;
    }
 
-   std::shared_ptr<std::vector<float>> MusicgenForConditionalGenerationRefactor::ids_to_wav(torch::Tensor ids)
+   std::shared_ptr<std::vector<float>> MusicgenForConditionalGeneration::ids_to_wav(torch::Tensor ids)
    {
       using namespace torch::indexing;
 
@@ -429,7 +429,7 @@ namespace ov_musicgen
       return wav;
    }
 
-   torch::Tensor MusicgenForConditionalGenerationRefactor::sample(torch::Tensor input_ids,
+   torch::Tensor MusicgenForConditionalGeneration::sample(torch::Tensor input_ids,
       std::optional < torch::Tensor > attention_mask,
       torch::Tensor decoder_delay_pattern_mask,
       std::optional< BaseModelOutput > encoder_outputs,
@@ -526,7 +526,7 @@ namespace ov_musicgen
       return input_ids;
    }
 
-   torch::Tensor MusicgenForConditionalGenerationRefactor::_logits_processor(torch::Tensor input_ids, torch::Tensor next_token_logits, float guidance_scale)
+   torch::Tensor MusicgenForConditionalGeneration::_logits_processor(torch::Tensor input_ids, torch::Tensor next_token_logits, float guidance_scale)
    {
       ITT_SCOPED_TASK(_logits_processor)
          using namespace torch::indexing;
@@ -541,7 +541,7 @@ namespace ov_musicgen
       return scores;
    }
 
-   torch::Tensor MusicgenForConditionalGenerationRefactor::_logits_warper(torch::Tensor input_ids, torch::Tensor next_token_scores, int64_t top_k, float filter_value)
+   torch::Tensor MusicgenForConditionalGeneration::_logits_warper(torch::Tensor input_ids, torch::Tensor next_token_scores, int64_t top_k, float filter_value)
    {
       ITT_SCOPED_TASK(_logits_warper)
          top_k = std::min(top_k, next_token_scores.sizes().back());
@@ -557,7 +557,7 @@ namespace ov_musicgen
    }
 
    //returns { input_ids, delayed_pattern_mask }
-   std::pair< torch::Tensor, torch::Tensor> MusicgenForConditionalGenerationRefactor::_build_delay_pattern_mask(torch::Tensor input_ids, int64_t pad_token_id, int64_t max_length)
+   std::pair< torch::Tensor, torch::Tensor> MusicgenForConditionalGeneration::_build_delay_pattern_mask(torch::Tensor input_ids, int64_t pad_token_id, int64_t max_length)
    {
       using namespace torch::indexing;
 

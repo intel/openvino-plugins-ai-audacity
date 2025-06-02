@@ -8,8 +8,8 @@ musicgen/musicgen_decoder.h
 musicgen/musicgen_decoder.cpp
 musicgen/static_kv_cache_manager_cl.h
 musicgen/static_kv_cache_manager_cl.cpp
-musicgen/musicgen_for_conditional_generation_refactor.cpp
-musicgen/musicgen_for_conditional_generation_refactor.h
+musicgen/musicgen_for_conditional_generation.cpp
+musicgen/musicgen_for_conditional_generation.h
 musicgen/musicgen.cpp
 musicgen/musicgen.h
 musicgen/musicgen_config.h 

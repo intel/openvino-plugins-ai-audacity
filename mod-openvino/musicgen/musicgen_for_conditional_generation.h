@@ -20,11 +20,11 @@ namespace ov_musicgen
    class MusicGenEncodecEncoder;
    class MusicgenDecoder;
 
-   class MusicgenForConditionalGenerationRefactor
+   class MusicgenForConditionalGeneration
    {
    public:
 
-      MusicgenForConditionalGenerationRefactor(MusicGenConfig& config);
+      MusicgenForConditionalGeneration(MusicGenConfig& config);
 
       struct BaseModelOutput
       {
