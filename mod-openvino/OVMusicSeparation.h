@@ -59,8 +59,14 @@ class EffectOVMusicSeparation final : public StatefulEffect, public StatefulEffe
           ID_Type = 10000,
           ID_Type_AdvancedCheckbox,
           ID_Type_DeviceInfoButton,
-          ID_Type_ModelManagerButton
+          ID_Type_ModelManagerButton,
+          ID_Type_ModelSelection
        };
+
+       std::vector< std::string > mSupportedModels;
+       std::vector< EnumValueSymbol > mGuiModelSelections;
+       int m_modelSelectionChoice = 0;
+       wxChoice* mTypeChoiceModelSelection;
 
        std::vector< std::string > mSupportedDevices;
        std::vector< EnumValueSymbol > mGuiDeviceSelections;

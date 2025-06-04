@@ -103,12 +103,63 @@ std::unique_ptr<EffectEditor> EffectOVMusicSeparation::PopulateOrExchange(
 {
    mUIParent = S.GetParent();
 
+   auto collection = OVModelManager::instance().GetModelCollection(OVModelManager::MusicSepName());
+   for (auto& model_info : collection->models) {
+      if (model_info->installed) {
+         if (std::find(mSupportedModels.begin(), mSupportedModels.end(), model_info->model_name) == mSupportedModels.end()) {
+            mSupportedModels.push_back(model_info->model_name);
+         }
+      }
+   }
+
+   mGuiModelSelections.clear();
+   for (auto& m : mSupportedModels)
+   {
+      mGuiModelSelections.push_back({ TranslatableString{ wxString(m), {}} });
+   }
+
+   OVModelManager::InstalledCallback callback =
+      [this](const std::string& model_name) {
+      wxTheApp->CallAfter([=]() {
+         if (std::find(mSupportedModels.begin(), mSupportedModels.end(), model_name) == mSupportedModels.end()) {
+            mSupportedModels.push_back(model_name);
+            mGuiModelSelections.push_back({ TranslatableString{ wxString(model_name), {}} });
+         }
+
+         if (mUIParent)
+         {
+            EffectEditor::EnableApply(mUIParent, true);
+            EffectEditor::EnablePreview(mUIParent, false);
+            if (mTypeChoiceModelSelection)
+            {
+               mTypeChoiceModelSelection->Append(wxString(model_name));
+
+               if (mTypeChoiceModelSelection->GetCount() == 1) {
+                  mTypeChoiceModelSelection->SetSelection(mTypeChoiceModelSelection->GetCount() - 1);
+               }
+            }
+         }
+         });
+      };
+
+   OVModelManager::instance().register_installed_callback(OVModelManager::MusicSepName(), callback);
+
    S.AddSpace(0, 5);
    S.StartVerticalLay();
    {
       S.StartMultiColumn(1, wxLEFT);
       {
          auto model_manager_button = S.Id(ID_Type_ModelManagerButton).AddButton(XO("Open Model Manager"));
+      }
+      S.EndMultiColumn();
+
+      S.StartMultiColumn(2, wxLEFT);
+      {
+         mTypeChoiceModelSelection = S.Id(ID_Type_ModelSelection)
+            .MinSize({ -1, -1 })
+            .Validator<wxGenericValidator>(&m_modelSelectionChoice)
+            .AddChoice(XXO("Model Selection:"),
+               Msgids(mGuiModelSelections.data(), mGuiModelSelections.size()));
       }
       S.EndMultiColumn();
 
@@ -264,19 +315,81 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
 {
    try
    {
+      std::string model_selection_str = mSupportedModels[m_modelSelectionChoice];
+
       auto model_collection = OVModelManager::instance().GetModelCollection(OVModelManager::MusicSepName());
 
       // It shouldn't be possible for this condition to be true (User shoudn't have been able to click 'Apply'),
       // but double check anyway..
-      if (!model_collection || model_collection->models.empty() || !model_collection->models[0]->installed)
+      if (!model_collection || model_collection->models.empty())
       {
-         throw std::runtime_error("Music Separation model has not been installed.");
+         throw std::runtime_error("Music Separation models have not been installed.");
       }
 
-      FilePath model_folder = FileNames::MkDir(wxFileName(FileNames::BaseDir(), wxT("openvino-models")).GetFullPath());
+      std::shared_ptr< OVModelManager::ModelInfo > retrieved_model_info;
+      for (auto model_info : model_collection->models) {
+         if (model_info && model_info->installed && model_info->model_name == model_selection_str)
+         {
+            retrieved_model_info = model_info;
+         }
+      }
 
-      std::string demucs_v4_path = audacity::ToUTF8(wxFileName(model_collection->models[0]->installation_path, wxT("htdemucs_v4.xml"))
-         .GetFullPath());
+      if (!retrieved_model_info) {
+         throw std::runtime_error("Couldn't retrieve installed model info for " + model_selection_str);
+      }
+
+      if (!retrieved_model_info->installed) {
+         throw std::runtime_error("This model is not installed: " + retrieved_model_info->model_name);
+      }
+
+
+      std::string xml_name;
+      std::vector<std::string> sourceLabels;
+      int64_t num_htdemucs_output_stems = 4;
+      if (model_selection_str == "Demucs v4")
+      {
+         xml_name = "htdemucs_v4.xml";
+         if (m_separationModeSelectionChoice == 0)
+         {
+            sourceLabels = { "Instrumental", "Vocals" };
+         }
+         else
+         {
+            sourceLabels = { "Drums", "Bass", "Other Instruments", "Vocals" };
+         }
+      }
+      else if (model_selection_str == "Demucs v4 FT Drums")
+      {
+         xml_name = "htdemucs_v4_ft_drums.xml";
+         sourceLabels = { "Drums", "dummy", "dummy", "dummy" };
+      }
+      else if (model_selection_str == "Demucs v4 FT Bass")
+      {
+         xml_name = "htdemucs_v4_ft_bass.xml";
+         sourceLabels = { "dummy", "Bass", "dummy", "dummy" };
+      }
+      else if (model_selection_str == "Demucs v4 FT Other Instruments")
+      {
+         xml_name = "htdemucs_v4_ft_other.xml";
+         sourceLabels = { "dummy", "dummy", "Other Instruments", "dummy" };
+      }
+      else if (model_selection_str == "Demucs v4 FT Vocals")
+      {
+         xml_name = "htdemucs_v4_ft_vocals.xml";
+         sourceLabels = { "dummy", "dummy", "dummy", "Vocals" };
+      }
+      else if (model_selection_str == "Demucs v4 6s")
+      {
+         xml_name = "htdemucs_v4_6s.xml";
+         sourceLabels = { "Drums", "Bass", "Other Instruments", "Vocals", "Guitar", "Piano" };
+         num_htdemucs_output_stems = 6;
+      }
+      else
+      {
+         throw std::runtime_error("Unsupported model: " + model_selection_str);
+      }
+
+      std::string demucs_v4_path = audacity::ToUTF8(wxFileName(model_collection->models[0]->installation_path, xml_name).GetFullPath());
 
       FilePath cache_folder = FileNames::MkDir(wxFileName(FileNames::DataDir(), wxT("openvino-model-cache")).GetFullPath());
 
@@ -305,11 +418,11 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
       
       {
          auto device = mSupportedDevices[m_deviceSelectionChoice];
-         auto create_htdemucs_fut = std::async(std::launch::async, [&demucs_v4_path, &device, &cache_path]() {
+         auto create_htdemucs_fut = std::async(std::launch::async, [&demucs_v4_path, &device, &cache_path, &num_htdemucs_output_stems]() {
 
             // WA for OpenVINO locale caching issue (https://github.com/openvinotoolkit/openvino/issues/24370)
             OVLocaleWorkaround wa;
-            return std::make_shared< ovdemucs::HTDemucs >(demucs_v4_path.c_str(), device, cache_path);
+            return std::make_shared< ovdemucs::HTDemucs >(demucs_v4_path.c_str(), device, cache_path, num_htdemucs_output_stems);
             });
 
          std::future_status status;
@@ -460,13 +573,15 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
             //1: bass
             //2: other instruments
             //3: vocals
-            float* pOut[4];
+            float* pOut[6];
             bool demucs_success = pHTDemucs->Apply(entire_input.get(),
                total_samples,
                pOut[0],
                pOut[1],
                pOut[2],
                pOut[3],
+               pOut[4],
+               pOut[5],
                mNumberOfShifts,
                HTDemucsProgressUpdate, this);
 
@@ -479,11 +594,9 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
             const auto& selectedRegion =
                ViewInfo::Get(*pProject).selectedRegion;
 
-            std::vector<std::string> sourceLabels;
-            if (m_separationModeSelectionChoice == 0)
+            //TODO: rework this.
+            if (m_separationModeSelectionChoice == 0 && model_selection_str == "Demucs v4")
             {
-               sourceLabels = { "Instrumental", "Vocals" };
-
                // mix together drums, bass, and 'other instruments'.
                for (size_t i = 0; i < total_samples * 2; i++)
                {
@@ -494,19 +607,18 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
                // in the coming loop.
                pOut[1] = pOut[3];
             }
-            else
-            {
-               sourceLabels = { "Drums", "Bass", "Other Instruments", "Vocals" };
-            }
+            
 
             auto orig_track_name = pTrack->GetName();
             for (int i = 0; i < sourceLabels.size(); i++)
             {
+               if (sourceLabels[i] == "dummy") continue;
+
                // Workaround for 3.4.X issue where setting name of a new output track
                // retains the label of the track that it was copied from. So, we'll
                // change the name of the input track here, copy it, and then change it
                // back later.
-               pTrack->SetName(orig_track_name + wxString("-" + sourceLabels[i]));
+               pTrack->SetName(orig_track_name + wxString(" - " + model_selection_str + " - " + sourceLabels[i]));
 
                //Create new output track from input track.
                auto newOutputTrack = pTrack->EmptyCopy();

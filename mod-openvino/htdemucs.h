@@ -21,7 +21,7 @@ namespace ovdemucs
     {
     public:
 
-        HTDemucs(const char *model_path, const std::string &device = "CPU", const std::string cache_dir="");
+        HTDemucs(const char *model_path, const std::string &device = "CPU", const std::string cache_dir="", int64_t n_output_stems = 4);
 
         //will return true if processing completed, false if processing was cancelled, and
         // will throw an exception upon error.
@@ -30,6 +30,8 @@ namespace ovdemucs
            float*& pOut1,
            float*& pOut2,
            float*& pOut3,
+           float*& pOut4,
+           float*& pOut5,
            int64_t num_shifts = 2,
            ProgressUpdate fn = nullptr,
            void* progress_update_user = nullptr);
@@ -37,9 +39,6 @@ namespace ovdemucs
         static std::vector<std::string> GetSupportedDevices();
 
     private:
-#ifdef ONNX_SUPPORT
-        std::shared_ptr< HTDemucs_impl > _impl;
-#endif
         std::shared_ptr< HTDemucs_openvino_impl > _impl_ov;
         bool _apply_model_0(torch::Tensor& mix, torch::Tensor& out, int64_t shifts = 1, bool split = true, double overlap = 0.25, double transition_power = 1., int64_t static_shifts = 1);
         bool _apply_model_1(torch::Tensor& mix, torch::Tensor& out, int64_t shifts = 1, bool split = true, double overlap = 0.25, double transition_power = 1., int64_t static_shifts = 1);
@@ -54,5 +53,6 @@ namespace ovdemucs
         struct Priv;
         std::shared_ptr< Priv > _priv;
 
+        int64_t _n_output_stems = 4;
     };
 }

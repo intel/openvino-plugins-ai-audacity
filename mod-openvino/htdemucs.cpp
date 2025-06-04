@@ -8,142 +8,8 @@
 #include <stdio.h>
 #include <openvino/openvino.hpp>
 
-#ifdef ONNX_SUPPORT
-#include <onnxruntime_cxx_api.h>
-#endif
-
 namespace ovdemucs
 {
-#ifdef ONNX_SUPPORT
-    struct HTDemucs_impl
-    {
-        HTDemucs_impl(const char* model_path)
-        {
-            const size_t cSize = strlen(model_path) + 1;
-            wchar_t* model_path_w = new wchar_t[cSize];
-            mbstowcs(model_path_w, model_path, cSize);
-
-            //set up onnx session.
-            _ort_env = Ort::Env(ORT_LOGGING_LEVEL_WARNING, "demucs4");
-
-            const auto& api = Ort::GetApi();
-            _session_options.SetIntraOpNumThreads(0);
-
-            _session_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
-        
-            _session = std::make_shared< Ort::Session >(_ort_env, model_path_w, _session_options);
-        
-            delete[] model_path_w;
-
-            const size_t num_input_nodes = _session->GetInputCount();
-            _input_names_ptr.reserve(num_input_nodes);
-            _input_node_names.reserve(num_input_nodes);
-
-            for (size_t i = 0; i < num_input_nodes; i++) {
-                // print input node names
-                auto input_name = _session->GetInputNameAllocated(i, _allocator);
-                std::cout << "Input " << i << " : name =" << input_name.get() << std::endl;
-                _input_node_names.push_back(input_name.get());
-                _input_names_ptr.push_back(std::move(input_name));
-
-                // print input node types
-                auto type_info = _session->GetInputTypeInfo(i);
-                auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
-
-                ONNXTensorElementDataType type = tensor_info.GetElementType();
-                std::cout << "Input " << i << " : type = " << type << std::endl;
-
-                // print input shapes/dims
-                _input_node_dims.push_back(tensor_info.GetShape());
-                std::cout << "Input " << i << " : num_dims = " << _input_node_dims[i].size() << '\n';
-                for (size_t j = 0; j < _input_node_dims[i].size(); j++) {
-                    std::cout << "Input " << i << " : dim[" << j << "] =" << _input_node_dims[i][j] << '\n';
-                }
-                std::cout << std::flush;
-            }
-
-            const size_t num_output_nodes = _session->GetOutputCount();
-            for (size_t i = 0; i < num_output_nodes; i++) {
-                auto output_name = _session->GetOutputNameAllocated(i, _allocator);
-                std::cout << "Output " << i << " : name =" << output_name.get() << std::endl;
-                _output_node_names.push_back(output_name.get());
-                _output_names_ptr.push_back(std::move(output_name));
-            }
-        }
-
-        void run_inference(torch::Tensor& x, torch::Tensor& xt)
-        {
-            auto memory_info_x = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
-            auto memory_info_xt = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
-
-            std::vector<int64_t> x_dims;
-            for (auto d : x.sizes())
-                x_dims.push_back(d);
-
-            std::vector<Ort::Value> inputTensors;
-
-            x.contiguous();
-            xt.contiguous();
-
-            //"input.25"
-            inputTensors.push_back(Ort::Value::CreateTensor<float>(memory_info_x, (float*)x.data_ptr(), x.numel(),
-                x_dims.data(), x_dims.size()));
-
-            std::vector<int64_t> xt_dims;
-            for (auto d : xt.sizes())
-                xt_dims.push_back(d);
-
-            //"input.1"
-            inputTensors.push_back(Ort::Value::CreateTensor<float>(memory_info_xt, (float*)xt.data_ptr(), xt.numel(),
-                xt_dims.data(), xt_dims.size()));
-
-            std::cout << "Running ONNX Inference.." << std::endl;
-            //std::cout << "_input_node_names.size() = " << _input_node_names.size() << std::endl;
-            //std::cout << "_input_node_names = " << _input_node_names << std::endl;
-            //std::cout << "_output_node_names.size() = " << _input_node_names.size() << std::endl;
-            //std::cout << "_output_node_names = " << _output_node_names << std::endl;
-
-            auto output_tensors =
-                _session->Run(Ort::RunOptions{ nullptr }, _input_node_names.data(), inputTensors.data(), inputTensors.size(), _output_node_names.data(), _output_node_names.size());
-            std::cout << "Running ONNX Inference.. DONE!" << std::endl;
-
-            for (int i = 0; i < output_tensors.size(); i++)
-            {
-                //std::cout << "output " << i << ":" << std::endl;
-                auto type_info = output_tensors[i].GetTypeInfo();
-                auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
-                std::vector<int64_t> shape = tensor_info.GetShape();
-                //std::cout << "    shape = " << shape << std::endl;
-            }
-
-            float* pX_Out = output_tensors[0].GetTensorMutableData<float>();
-            float* pXt_Out = output_tensors[1].GetTensorMutableData<float>();
-
-            torch::Tensor x_as_tensor = torch::from_blob(pX_Out, { 1, 16, 2048, 336 });
-            torch::Tensor xt_as_tensor = torch::from_blob(pXt_Out, { 1, 8, 343980 });
-            x = x_as_tensor.clone();
-            xt = xt_as_tensor.clone();
-        }
-
-    private:
-
-        Ort::Env _ort_env;
-        Ort::SessionOptions _session_options;
-        std::shared_ptr< Ort::Session > _session;
-        
-        Ort::AllocatorWithDefaultOptions _allocator;
-
-        std::vector<const char*> _input_node_names;
-        std::vector<Ort::AllocatedStringPtr> _input_names_ptr;
-        std::vector<std::vector<int64_t>> _input_node_dims;
-
-        std::vector<const char*> _output_node_names;
-        std::vector<Ort::AllocatedStringPtr> _output_names_ptr;
-
-
-    };
-#endif
-
     static inline void logBasicModelInfo(const std::shared_ptr<ov::Model>& model) {
         std::cout << "Model name: " << model->get_friendly_name() << std::endl;
 
@@ -211,6 +77,65 @@ namespace ovdemucs
         return;
     }
 
+    static torch::Tensor wrap_ov_tensor_as_torch(ov::Tensor ov_tensor)
+    {
+       if (!ov_tensor)
+       {
+          throw std::invalid_argument("wrap_ov_tensor_as_torch: invalid ov_tensor");
+       }
+
+       //first, determine torch dtype from ov type
+       at::ScalarType torch_dtype;
+       size_t element_byte_size;
+       void* pOV_Tensor;
+       switch (ov_tensor.get_element_type())
+       {
+       case ov::element::i8:
+          torch_dtype = torch::kI8;
+          element_byte_size = sizeof(unsigned char);
+          pOV_Tensor = ov_tensor.data();
+          break;
+
+       case ov::element::f32:
+          torch_dtype = torch::kFloat32;
+          element_byte_size = sizeof(float);
+          pOV_Tensor = ov_tensor.data<float>();
+          break;
+
+       case ov::element::f16:
+          torch_dtype = torch::kFloat16;
+          element_byte_size = sizeof(short);
+          pOV_Tensor = ov_tensor.data<ov::float16>();
+          break;
+
+       case ov::element::i64:
+          torch_dtype = torch::kInt64;
+          element_byte_size = sizeof(int64_t);
+          pOV_Tensor = ov_tensor.data<int64_t>();
+          break;
+
+       default:
+          std::cout << "type = " << ov_tensor.get_element_type() << std::endl;
+          throw std::invalid_argument("wrap_ov_tensor_as_torch: unsupported type");
+          break;
+       }
+
+       //fill torch shape
+       std::vector<int64_t> torch_shape;
+       for (auto s : ov_tensor.get_shape())
+          torch_shape.push_back(s);
+
+       std::vector<int64_t> torch_strides;
+       for (auto s : ov_tensor.get_strides())
+          torch_strides.push_back(s / element_byte_size); //<- torch stride is in term of # of elements, whereas openvino stride is in terms of bytes
+
+       auto options =
+          torch::TensorOptions()
+          .dtype(torch_dtype);
+
+       return torch::from_blob(pOV_Tensor, torch_shape, torch_strides, options);
+    }
+
     struct HTDemucs_openvino_impl
     {
         HTDemucs_openvino_impl(const char* model_path, const std::string& device = "CPU", const std::string cache_dir = "")
@@ -227,22 +152,7 @@ namespace ovdemucs
                std::cout << "NOT Setting cache_dir"  << std::endl;
             }
 
-            if (fileExt(model_path) == "blob")
-            {
-                std::ifstream modelStream(model_path, std::ios_base::binary | std::ios_base::in);
-                if (!modelStream.is_open()) {
-                    throw std::runtime_error("Cannot open model file " + std::string(model_path));
-                }
-
-                std::cout << "Importing pre-compiled blob" << std::endl;
-                compiledModel = core.import_model(modelStream, device, {});
-                std::cout << "Import complete." << std::endl;
-                modelStream.close(); 
-            }
-            else
-            {
-                compiledModel = core.compile_model(model_path, device);
-            }
+            compiledModel = core.compile_model(model_path, device);
 
             logCompiledModelInfo(compiledModel);
 
@@ -259,6 +169,10 @@ namespace ovdemucs
             }
 
             inferRequest = compiledModel.create_infer_request();
+
+            _length = inferRequest.get_tensor(inputsNames[1]).get_shape()[2];
+
+            std::cout << "_length = " << _length << std::endl;
         }
 
         void run_inference(torch::Tensor& x, torch::Tensor& xt)
@@ -281,14 +195,14 @@ namespace ovdemucs
             ov::Tensor x_out_tensor = inferRequest.get_tensor(outputsNames[0]);
             ov::Tensor xt_out_tensor = inferRequest.get_tensor(outputsNames[1]);
 
-            auto pXTensor_Out = x_out_tensor.data<float>();
-            auto pXTTensor_Out = xt_out_tensor.data<float>();
+            auto x_as_tensor = wrap_ov_tensor_as_torch(x_out_tensor);
+            auto xt_as_tensor = wrap_ov_tensor_as_torch(xt_out_tensor);
 
-            torch::Tensor x_as_tensor = torch::from_blob(pXTensor_Out, { 1, 16, 2048, 336 });
-            torch::Tensor xt_as_tensor = torch::from_blob(pXTTensor_Out, { 1, 8, 343980 });
             x = x_as_tensor.clone();
             xt = xt_as_tensor.clone();
         }
+
+        int64_t Length() { return _length; }
 
     private:
 
@@ -297,6 +211,8 @@ namespace ovdemucs
 
         ov::InferRequest inferRequest;
         ov::CompiledModel compiledModel;
+
+        int64_t _length = 0;
 
     };
 
@@ -394,13 +310,9 @@ namespace ovdemucs
        void* progress_update_user = nullptr;
     };
 
-    HTDemucs::HTDemucs(const char* model_path, const std::string& device, const std::string cache_dir)
-        :
-#ifdef ONNX_SUPPORT		
-		_impl(std::make_shared<HTDemucs_impl>(model_path)), 
-#endif
-		_impl_ov(std::make_shared<HTDemucs_openvino_impl>(model_path, device, cache_dir)),
-       _priv(std::make_shared<Priv>())
+    HTDemucs::HTDemucs(const char* model_path, const std::string& device, const std::string cache_dir, int64_t n_output_stems)
+        : _impl_ov(std::make_shared<HTDemucs_openvino_impl>(model_path, device, cache_dir)),
+       _priv(std::make_shared<Priv>()), _n_output_stems(n_output_stems)
     {
 
     }
@@ -489,8 +401,6 @@ namespace ovdemucs
         //std::cout << "z shape before z.view = " << z.sizes() << std::endl;
         z = z.view({ -1, freqs, frames });
         //std::cout << "z shape after z.view = " << z.sizes() << std::endl;
-
-
 
         int64_t win_length = n_fft / (1 + pad);
 
@@ -620,13 +530,9 @@ namespace ovdemucs
         //length = mix.shape[-1]
         int64_t length = mix_tensor.sizes()[2];
 
-        //segment = Fraction(39, 5)
-        //samplerate = 44100
-        //training_length = int(segment * samplerate)
-
         //samplerate = 44100
         int samplerate = 44100;
-        int training_length = (44100 * 39) / 5; //343980
+        int training_length = _impl_ov->Length();
 
         torch::Tensor mix = mix_tensor;
 
@@ -694,7 +600,7 @@ namespace ovdemucs
         // std::cout << "x_out_tensor shape = " << x.sizes() << std::endl;
         // std::cout << "xt_out_tensor shape = " << xt.sizes() << std::endl;
 
-        int64_t S = 4;
+        int64_t S = _n_output_stems;
         x = x.view({ B, S, -1, Fq, T });
 
         //std::cout << "x_out_tensor shape (after x_out_tensor.view({ B, S, -1, training_length }) ) =  " << x.sizes() << std::endl;
@@ -750,7 +656,7 @@ namespace ovdemucs
         int64_t length = mix.shape()[2];
 
         //valid_length = model.valid_length(length)
-        int64_t valid_length = 343980;
+        int64_t valid_length = _impl_ov->Length();
 
         torch::Tensor padded_mix;
         mix.padded(valid_length, padded_mix);
@@ -774,11 +680,10 @@ namespace ovdemucs
         int64_t channels = mix.shape()[1];
         int64_t length = mix.shape()[2];
 
-        int64_t model_sources = 4;
-        out = torch::zeros({ batch, 4, channels, length });
+        out = torch::zeros({ batch, _n_output_stems, channels, length });
 
         torch::Tensor sum_weight = torch::zeros({ length });
-        int64_t segment = (int64_t)((44100 * 39) / 5);
+        int64_t segment = _impl_ov->Length();
         int64_t stride = (int64_t)((1.0 - overlap) * segment);
 
         //std::cout << "offsets = " << std::endl;
@@ -896,6 +801,8 @@ namespace ovdemucs
                          float* &pOut1,
                          float* &pOut2,
                          float* &pOut3,
+                         float*& pOut4,
+                         float*& pOut5,
                          int64_t num_shifts,
                          ProgressUpdate fn,
                          void* progress_update_user)
@@ -938,6 +845,16 @@ namespace ovdemucs
          pOut2 = pSources;
          pSources += 2 * nsamples;
          pOut3 = pSources;
+
+         if (_n_output_stems > 4) {
+            pSources += 2 * nsamples;
+            pOut4 = pSources;
+         }
+
+         if (_n_output_stems > 5) {
+            pSources += 2 * nsamples;
+            pOut5 = pSources;
+         }
 
          return true;
     }

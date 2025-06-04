@@ -2,14 +2,60 @@
 
 static std::shared_ptr< OVModelManager::ModelCollection > populate_music_separation()
 {
-   std::shared_ptr<OVModelManager::ModelInfo> demucs_model_info = std::make_shared<OVModelManager::ModelInfo>();
-   demucs_model_info->model_name = "Demucs v4";
-   demucs_model_info->info = "Demucs-v4 is a state-of-the-art music source separation model that can separate drums, bass, vocals, and other stems from any song.";
-   demucs_model_info->baseUrl = "https://huggingface.co/Intel/demucs-openvino/resolve/97fc578fb57650045d40b00bc84c7d156be77547/";
-   demucs_model_info->fileList = { "htdemucs_v4.bin", "htdemucs_v4.xml" };
-
    auto music_sep_collection = std::make_shared< OVModelManager::ModelCollection >();
-   music_sep_collection->models.emplace_back(demucs_model_info);
+   {
+      std::shared_ptr<OVModelManager::ModelInfo> demucs_model_info = std::make_shared<OVModelManager::ModelInfo>();
+      demucs_model_info->model_name = "Demucs v4";
+      demucs_model_info->info = "Demucs-v4 is a state-of-the-art music source separation model that can separate drums, bass, vocals, and other stems from any song.";
+      demucs_model_info->baseUrl = "https://huggingface.co/Intel/demucs-openvino/resolve/97fc578fb57650045d40b00bc84c7d156be77547/";
+      demucs_model_info->fileList = { "htdemucs_v4.bin", "htdemucs_v4.xml" };
+      music_sep_collection->models.emplace_back(demucs_model_info);
+   }
+
+   {
+      std::shared_ptr<OVModelManager::ModelInfo> demucs_model_info = std::make_shared<OVModelManager::ModelInfo>();
+      demucs_model_info->model_name = "Demucs v4 FT Drums";
+      demucs_model_info->info = "A fine-tuned variant of Demucs-v4 that gives slightly better results for drums";
+      demucs_model_info->baseUrl = "";
+      demucs_model_info->fileList = { "htdemucs_v4_ft_drums.bin", "htdemucs_v4_ft_drums.xml" };
+      music_sep_collection->models.emplace_back(demucs_model_info);
+   }
+
+   {
+      std::shared_ptr<OVModelManager::ModelInfo> demucs_model_info = std::make_shared<OVModelManager::ModelInfo>();
+      demucs_model_info->model_name = "Demucs v4 FT Bass";
+      demucs_model_info->info = "A fine-tuned variant of Demucs-v4 that gives slightly better results for bass";
+      demucs_model_info->baseUrl = "";
+      demucs_model_info->fileList = { "htdemucs_v4_ft_bass.bin", "htdemucs_v4_ft_bass.xml" };
+      music_sep_collection->models.emplace_back(demucs_model_info);
+   }
+
+   {
+      std::shared_ptr<OVModelManager::ModelInfo> demucs_model_info = std::make_shared<OVModelManager::ModelInfo>();
+      demucs_model_info->model_name = "Demucs v4 FT Other Instruments";
+      demucs_model_info->info = "A fine-tuned variant of Demucs-v4 that gives slightly better results for 'other instruments'";
+      demucs_model_info->baseUrl = "";
+      demucs_model_info->fileList = { "htdemucs_v4_ft_other.bin", "htdemucs_v4_ft_other.xml" };
+      music_sep_collection->models.emplace_back(demucs_model_info);
+   }
+
+   {
+      std::shared_ptr<OVModelManager::ModelInfo> demucs_model_info = std::make_shared<OVModelManager::ModelInfo>();
+      demucs_model_info->model_name = "Demucs v4 FT Vocals";
+      demucs_model_info->info = "A fine-tuned variant of Demucs-v4 that gives slightly better results for vocals";
+      demucs_model_info->baseUrl = "";
+      demucs_model_info->fileList = { "htdemucs_v4_ft_vocals.bin", "htdemucs_v4_ft_vocals.xml" };
+      music_sep_collection->models.emplace_back(demucs_model_info);
+   }
+
+   {
+      std::shared_ptr<OVModelManager::ModelInfo> demucs_model_info = std::make_shared<OVModelManager::ModelInfo>();
+      demucs_model_info->model_name = "Demucs v4 6s";
+      demucs_model_info->info = "A 6-stem variant of Demucs v4 that can separate drums, bass, vocals, guitar, piano, and others";
+      demucs_model_info->baseUrl = "";
+      demucs_model_info->fileList = { "htdemucs_v4_6s.bin", "htdemucs_v4_6s.xml" };
+      music_sep_collection->models.emplace_back(demucs_model_info);
+   }
 
    return music_sep_collection;
 }
