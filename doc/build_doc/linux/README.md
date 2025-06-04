@@ -230,7 +230,7 @@ sudo apt install git-lfs
 mkdir openvino-models/musicgen
 
 # clone the HF repo
-git clone https://huggingface.co/Intel/musicgen-static-openvino
+git clone --no-checkout https://huggingface.co/Intel/musicgen-static-openvino
 cd musicgen-static-openvino
 git checkout b2ad8083f3924ed704814b68c5df9cbbf2ad2aae
 cd ..
@@ -267,7 +267,7 @@ rm -rf whisper.cpp-openvino-models
 #********************
 
 # clone the HF repo
-git clone https://huggingface.co/Intel/demucs-openvino
+git clone --no-checkout https://huggingface.co/Intel/demucs-openvino
 cd demucs-openvino
 git checkout 97fc578fb57650045d40b00bc84c7d156be77547
 cd ..
@@ -284,7 +284,7 @@ rm -rf demucs-openvino
 #*********************
 
 # Clone the deepfilternet HF repo
-git clone https://huggingface.co/Intel/deepfilternet-openvino
+git clone --no-checkout https://huggingface.co/Intel/deepfilternet-openvino
 cd deepfilternet-openvino
 git checkout 995706bda3da69da0825074ba7dbc8a78067e980
 cd ..
@@ -306,7 +306,10 @@ cd ..
 #*********************
 
 # clone the HF repo
-git clone https://huggingface.co/Intel/versatile_audio_super_resolution_openvino
+git clone --no-checkout https://huggingface.co/Intel/versatile_audio_super_resolution_openvino
+cd versatile_audio_super_resolution_openvino
+git checkout 9a97d7f128b22aea72e92862a3eccc310f88ac26
+cd ..
 
 # unzip the 'base' set of models into audiosr
 unzip versatile_audio_super_resolution_openvino/versatile_audio_sr_base_openvino_models.zip -d openvino-models/audiosr
