@@ -183,43 +183,56 @@ Then:
 ## **📥 Step 9: Install OpenVINO Models**
 ```bash
 mkdir ~/audacity-openvino/openvino-models
-cd ~/audacity-openvino/openvino-models
+cd ~/audacity-openvino/
 sudo apt install git-lfs
 ```
 
 #### **Download Required Models**
 ```bash
-# MusicGen
-git clone https://huggingface.co/Intel/musicgen-static-openvino
+#************
+#* MusicGen *
+#************
+mkdir openvino-models/musicgen
+
+# clone the HF repo
+git clone --no-checkout https://huggingface.co/Intel/musicgen-static-openvino
 cd musicgen-static-openvino
 git checkout b2ad8083f3924ed704814b68c5df9cbbf2ad2aae
 cd ..
-unzip musicgen-static-openvino/musicgen_small_enc_dec_tok_openvino_models.zip -d musicgen
-unzip musicgen-static-openvino/musicgen_small_mono_openvino_models.zip -d musicgen
-unzip musicgen-static-openvino/musicgen_small_stereo_openvino_models.zip -d musicgen
+
+# unzip the 'base' set of models (like the EnCodec, tokenizer, etc.) into musicgen folder
+unzip musicgen-static-openvino/musicgen_small_enc_dec_tok_openvino_models.zip -d openvino-models/musicgen
+
+# unzip the mono-specific set of models
+unzip musicgen-static-openvino/musicgen_small_mono_openvino_models.zip -d openvino-models/musicgen
+
+# unzip the stereo-specific set of models
+unzip musicgen-static-openvino/musicgen_small_stereo_openvino_models.zip -d openvino-models/musicgen
+
+# Now that the required models are extracted, feel free to delete the cloned 'musicgen-static-openvino' directory.
 rm -rf musicgen-static-openvino
 
-# Whisper Transcription
-git clone https://huggingface.co/Intel/whisper.cpp-openvino-models
-unzip whisper.cpp-openvino-models/ggml-base-models.zip -d .
-unzip whisper.cpp-openvino-models/ggml-small-models.zip -d .
-rm -rf whisper.cpp-openvino-models
+#*************************
+#* Whisper Transcription *
+#*************************
 
-# Noise Suppression
-git clone https://huggingface.co/Intel/deepfilternet-openvino
-cd deepfilternet-openvino
-git checkout 995706bda3da69da0825074ba7dbc8a78067e980
-cd ..
-unzip deepfilternet-openvino/deepfilternet2.zip -d .
-unzip deepfilternet-openvino/deepfilternet3.zip -d .
-rm -rf deepfilternet-openvino
+# clone the HF repo
+git clone https://huggingface.co/Intel/whisper.cpp-openvino-models
+
+# Extract the individual model packages into openvino-models directory
+unzip whisper.cpp-openvino-models/ggml-base-models.zip -d openvino-models
+unzip whisper.cpp-openvino-models/ggml-small-models.zip -d openvino-models
+unzip whisper.cpp-openvino-models/ggml-small.en-tdrz-models.zip -d openvino-models
+
+# Now that the required models are extracted, feel free to delete the cloned 'whisper.cpp-openvino-models' directory.
+rm -rf whisper.cpp-openvino-models
 
 #********************
 #* Music Separation *
 #********************
 
 # clone the HF repo
-git clone https://huggingface.co/Intel/demucs-openvino
+git clone --no-checkout https://huggingface.co/Intel/demucs-openvino
 cd demucs-openvino
 git checkout 97fc578fb57650045d40b00bc84c7d156be77547
 cd ..
@@ -230,6 +243,50 @@ cp demucs-openvino/htdemucs_v4.xml openvino-models
 
 # Now that the required models are extracted, feel free to delete the cloned 'demucs-openvino' directory.
 rm -rf demucs-openvino
+
+#*********************
+#* Noise Suppression *
+#*********************
+
+# Clone the deepfilternet HF repo
+git clone --no-checkout https://huggingface.co/Intel/deepfilternet-openvino
+cd deepfilternet-openvino
+git checkout 995706bda3da69da0825074ba7dbc8a78067e980
+cd ..
+
+# extract deepfilter2 models
+unzip deepfilternet-openvino/deepfilternet2.zip -d openvino-models
+
+# extract deepfilter3 models
+unzip deepfilternet-openvino/deepfilternet3.zip -d openvino-models
+
+# For noise-suppression-denseunet-ll-0001, we can wget IR from openvino repo
+cd openvino-models
+wget https://storage.openvinotoolkit.org/repositories/open_model_zoo/2023.0/models_bin/1/noise-suppression-denseunet-ll-0001/FP16/noise-suppression-denseunet-ll-0001.xml
+wget https://storage.openvinotoolkit.org/repositories/open_model_zoo/2023.0/models_bin/1/noise-suppression-denseunet-ll-0001/FP16/noise-suppression-denseunet-ll-0001.bin
+cd ..
+
+#*********************
+#* Super Resolution *
+#*********************
+
+# clone the HF repo
+git clone --no-checkout https://huggingface.co/Intel/versatile_audio_super_resolution_openvino
+cd versatile_audio_super_resolution_openvino
+git checkout 9a97d7f128b22aea72e92862a3eccc310f88ac26
+cd ..
+
+# unzip the 'base' set of models into audiosr
+unzip versatile_audio_super_resolution_openvino/versatile_audio_sr_base_openvino_models.zip -d openvino-models/audiosr
+
+# unzip the basic ddpm model
+unzip versatile_audio_super_resolution_openvino/versatile_audio_sr_ddpm_basic_openvino_models.zip -d openvino-models/audiosr
+
+# unzip the speech ddpm model
+unzip versatile_audio_super_resolution_openvino/versatile_audio_sr_ddpm_speech_openvino_models.zip -d openvino-models/audiosr
+
+# Now that the required models are extracted, feel free to delete the cloned 'versatile_audio_super_resolution_openvino' directory.
+rm -rf versatile_audio_super_resolution_openvino 
 ```
 
 #### **Move Models to System Directory**
