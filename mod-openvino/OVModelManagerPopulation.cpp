@@ -376,10 +376,65 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_super_resolut
    return collection;
 }
 
+static std::shared_ptr< OVModelManager::ModelCollection > populate_noise_suppression()
+{
+   auto collection = std::make_shared< OVModelManager::ModelCollection >();
+
+   //deepfilternet
+   {
+      //TODO: replace 'main' with specific commit-id
+      std::string baseUrl = "https://huggingface.co/Intel/deepfilternet-openvino/resolve/main/";
+
+      // deepfilternet2
+      {
+         std::shared_ptr<OVModelManager::ModelInfo> model = std::make_shared<OVModelManager::ModelInfo>();
+         model->model_name = "DeepFilterNet2";
+         model->info = "DeepFilterNet2 model";
+         model->baseUrl = baseUrl;
+         model->fileList = { "df_dec.bin", "df_dec.xml", "enc.xml", "enc.bin", "erb_dec.xml", "erb_dec.bin" };
+
+         for (auto& f : model->fileList) {
+            f = "deepfilternet2/" + f;
+         }
+
+         collection->models.emplace_back(model);
+      }
+
+      // deepfilternet3
+      {
+         std::shared_ptr<OVModelManager::ModelInfo> model = std::make_shared<OVModelManager::ModelInfo>();
+         model->model_name = "DeepFilterNet3";
+         model->info = "DeepFilterNet3 model";
+         model->baseUrl = baseUrl;
+         model->fileList = { "df_dec.bin", "df_dec.xml", "enc.xml", "enc.bin", "erb_dec.xml", "erb_dec.bin" };
+
+         for (auto& f : model->fileList) {
+            f = "deepfilternet3/" + f;
+         }
+
+         collection->models.emplace_back(model);
+      }
+   }
+
+   // denseunet
+   {
+      std::shared_ptr<OVModelManager::ModelInfo> model = std::make_shared<OVModelManager::ModelInfo>();
+      model->model_name = "DenseUNet";
+      model->info = "DenseUNet model";
+      model->baseUrl = "https://storage.openvinotoolkit.org/repositories/open_model_zoo/2023.0/models_bin/1/noise-suppression-denseunet-ll-0001/FP16/";
+      model->postUrl = "";
+      model->fileList = { "noise-suppression-denseunet-ll-0001.xml", "noise-suppression-denseunet-ll-0001.bin" };
+      collection->models.emplace_back(model);
+   }
+
+   return collection;
+}
+
 
 void OVModelManager::_populate_model_collection()
 {
    mModelCollection.insert({ MusicSepName(), populate_music_separation() });
+   mModelCollection.insert({ NoiseSuppressName(), populate_noise_suppression()});
    mModelCollection.insert({ MusicGenName(), populate_music_generation() });
    mModelCollection.insert({ SuperResName(), populate_super_resolution() });
    mModelCollection.insert({ WhisperName(), populate_whisper() });

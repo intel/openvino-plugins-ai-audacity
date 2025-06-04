@@ -38,6 +38,8 @@
 #include "noise_suppression_omz_model.h"
 #include "noise_suppression_df_model.h"
 
+#include "OVModelManagerUI.h"
+
 const ComponentInterfaceSymbol EffectOVNoiseSuppression::Symbol{ XO("OpenVINO Noise Suppression") };
 
 namespace { BuiltinEffectsModule::Registration< EffectOVNoiseSuppression > reg; }
@@ -46,56 +48,8 @@ BEGIN_EVENT_TABLE(EffectOVNoiseSuppression, wxEvtHandler)
 EVT_CHECKBOX(ID_Type_AdvancedCheckbox, EffectOVNoiseSuppression::OnAdvancedCheckboxChanged)
 EVT_CHOICE(ID_Type_Model, EffectOVNoiseSuppression::OnAdvancedCheckboxChanged)
 EVT_BUTTON(ID_Type_DeviceInfoButton, EffectOVNoiseSuppression::OnDeviceInfoButtonClicked)
+EVT_BUTTON(ID_Type_ModelManagerButton, EffectOVNoiseSuppression::OnModelManagerButtonClicked)
 END_EVENT_TABLE()
-
-static bool is_deepfilter_model_present(std::string deepfilter_basename)
-{
-   auto model_folder = wxFileName(FileNames::BaseDir(), wxT("openvino-models")).GetFullPath();
-   model_folder = wxFileName(model_folder, wxString(deepfilter_basename)).GetFullPath();
-
-   std::vector< std::string > model_basenames = { "enc", "erb_dec", "df_dec" };
-   for( auto mb : model_basenames)
-   {
-      auto binmodelpath = wxFileName(model_folder, wxString(mb + ".bin"));
-      auto xmlmodelpath = wxFileName(model_folder, wxString(mb + ".xml"));
-
-      if (!binmodelpath.FileExists())
-      {
-         std::cout << "is_deepfilter_model_present: returning false because " << mb + ".bin" << " doesn't exist." << std::endl;
-         return false;
-      }
-
-      if (!xmlmodelpath.FileExists())
-      {
-         std::cout << "is_deepfilter_model_present: returning false because " << mb + ".xml" << " doesn't exist." << std::endl;
-         return false;
-      }
-   }
-
-   return true;
-}
-
-static bool is_omz_model_present(std::string omz_model_basename)
-{
-   auto model_folder = wxFileName(FileNames::BaseDir(), wxT("openvino-models")).GetFullPath();
-
-   auto binmodelpath = wxFileName(model_folder, wxString(omz_model_basename + ".bin"));
-   auto xmlmodelpath = wxFileName(model_folder, wxString(omz_model_basename + ".xml"));
-
-   if (!binmodelpath.FileExists())
-   {
-      std::cout << "is_omz_model_present: returning false because " << omz_model_basename + ".bin" << " doesn't exist." << std::endl;
-      return false;
-   }
-
-   if (!xmlmodelpath.FileExists())
-   {
-      std::cout << "is_omz_model_present: returning false because " << omz_model_basename + ".xml" << " doesn't exist." << std::endl;
-      return false;
-   }
-
-   return true;
-}
 
 
 EffectOVNoiseSuppression::EffectOVNoiseSuppression()
@@ -113,35 +67,15 @@ EffectOVNoiseSuppression::EffectOVNoiseSuppression()
       mSupportedDevices.push_back(d);
       mGuiDeviceSelections.push_back({ TranslatableString{ wxString(d), {}} });
    }
-
-   std::vector< std::string > deepfiltermodels = { "deepfilternet2", "deepfilternet3" };
-   for (auto dfm : deepfiltermodels)
-   {
-      if (is_deepfilter_model_present(dfm))
-      {
-         mSupportedModels.push_back(dfm);
-      }
-   }
-
-   std::vector< std::string > omzmodels = { "noise-suppression-denseunet-ll-0001" };
-   for (auto omzm : omzmodels)
-   {
-      if (is_omz_model_present(omzm))
-      {
-         mSupportedModels.push_back(omzm);
-      }
-   }
-
-   for (auto m : mSupportedModels)
-   {
-      mGuiModelSelections.push_back({ TranslatableString{ wxString(m), {}} });
-   }
 }
 
 EffectOVNoiseSuppression::~EffectOVNoiseSuppression()
 {
 
 }
+
+constexpr auto DEEPFILTERNET2_NAME = "DeepFilterNet2";
+constexpr auto DEEPFILTERNET3_NAME = "DeepFilterNet3";
 
 // ComponentInterface implementation
 ComponentInterfaceSymbol EffectOVNoiseSuppression::GetSymbol() const
@@ -179,7 +113,7 @@ void EffectOVNoiseSuppression::show_or_hide_advanced_options()
    {
       int current_selection = mTypeChoiceModelCtrl->GetCurrentSelection();
       auto model_selection_string = audacity::ToUTF8(mTypeChoiceModelCtrl->GetString(current_selection));
-      bool bDeepFilterModel = (model_selection_string == "deepfilternet2") || (model_selection_string == "deepfilternet3");
+      bool bDeepFilterModel = (model_selection_string == DEEPFILTERNET2_NAME) || (model_selection_string == DEEPFILTERNET3_NAME);
 
       attentuationLimitSizer->ShowItems(mbAdvanced && bDeepFilterModel);
       attentuationLimitSizer->Layout();
@@ -190,7 +124,7 @@ void EffectOVNoiseSuppression::show_or_hide_advanced_options()
       int current_selection = mTypeChoiceModelCtrl->GetCurrentSelection();
       auto model_selection_string = audacity::ToUTF8(mTypeChoiceModelCtrl->GetString(current_selection));
 
-      df3postfiltersizer->ShowItems(mbAdvanced && (model_selection_string == "deepfilternet3"));
+      df3postfiltersizer->ShowItems(mbAdvanced && (model_selection_string == DEEPFILTERNET3_NAME));
       df3postfiltersizer->Layout();
    }
 
@@ -243,6 +177,11 @@ void EffectOVNoiseSuppression::OnDeviceInfoButtonClicked(wxCommandEvent& evt)
       XO("OpenVINO Device Details"));
 }
 
+void EffectOVNoiseSuppression::OnModelManagerButtonClicked(wxCommandEvent& evt)
+{
+   ShowModelManagerDialog();
+}
+
 bool EffectOVNoiseSuppression::TransferDataToWindow(const EffectSettings&)
 {
    if (!mUIParent || !mUIParent->TransferDataToWindow())
@@ -252,7 +191,7 @@ bool EffectOVNoiseSuppression::TransferDataToWindow(const EffectSettings&)
 
    EffectEditor::EnablePreview(mUIParent, false);
 
-   if (mSupportedModels.empty())
+   if (mGuiModelSelections.empty())
    {
       wxLogInfo("OpenVINO Noise Suppression has no models installed.");
       EffectEditor::EnableApply(mUIParent, false);
@@ -281,6 +220,47 @@ std::unique_ptr<EffectEditor> EffectOVNoiseSuppression::PopulateOrExchange(
 {
    mUIParent = S.GetParent();
 
+   auto collection = OVModelManager::instance().GetModelCollection(OVModelManager::NoiseSuppressName());
+   for (auto& model_info : collection->models) {
+      if (model_info->installed) {
+         if (std::find(mSupportedModels.begin(), mSupportedModels.end(), model_info->model_name) == mSupportedModels.end()) {
+            mSupportedModels.push_back(model_info->model_name);
+         }
+      }
+   }
+
+   mGuiModelSelections.clear();
+   for (auto& m : mSupportedModels)
+   {
+      mGuiModelSelections.push_back({ TranslatableString{ wxString(m), {}} });
+   }
+
+   OVModelManager::InstalledCallback callback =
+      [this](const std::string& model_name) {
+      wxTheApp->CallAfter([=]() {
+         if (std::find(mSupportedModels.begin(), mSupportedModels.end(), model_name) == mSupportedModels.end()) {
+            mSupportedModels.push_back(model_name);
+            mGuiModelSelections.push_back({ TranslatableString{ wxString(model_name), {}} });
+         }
+
+         if (mUIParent)
+         {
+            EffectEditor::EnableApply(mUIParent, true);
+            EffectEditor::EnablePreview(mUIParent, false);
+            if (mTypeChoiceModelCtrl)
+            {
+               mTypeChoiceModelCtrl->Append(wxString(model_name));
+
+               if (mTypeChoiceModelCtrl->GetCount() == 1) {
+                  mTypeChoiceModelCtrl->SetSelection(mTypeChoiceModelCtrl->GetCount() - 1);
+               }
+            }
+         }
+         });
+      };
+
+   OVModelManager::instance().register_installed_callback(OVModelManager::NoiseSuppressName(), callback);
+
    S.AddSpace(0, 5);
    S.StartVerticalLay();
    {
@@ -302,6 +282,12 @@ std::unique_ptr<EffectEditor> EffectOVNoiseSuppression::PopulateOrExchange(
          S.EndMultiColumn();
       }
       S.EndStatic();
+
+      S.StartMultiColumn(1, wxLEFT);
+      {
+         auto model_manager_button = S.Id(ID_Type_ModelManagerButton).AddButton(XO("Open Model Manager"));
+      }
+      S.EndMultiColumn();
 
       S.StartMultiColumn(4, wxLEFT);
       {
@@ -383,19 +369,45 @@ bool EffectOVNoiseSuppression::Process(EffectInstance&, EffectSettings&)
          std::shared_ptr< NoiseSuppressionModel > ret;
          try
          {
-            //CompileNoiseSuppression(compiledModel);
-            FilePath model_folder = FileNames::MkDir(wxFileName(FileNames::BaseDir(), wxT("openvino-models")).GetFullPath());
             FilePath cache_folder = FileNames::MkDir(wxFileName(FileNames::DataDir(), wxT("openvino-model-cache")).GetFullPath());
             std::string cache_path = wstring_to_string(wxFileName(cache_folder).GetFullPath().ToStdWstring());
 
             // WA for OpenVINO locale caching issue (https://github.com/openvinotoolkit/openvino/issues/24370)
             OVLocaleWorkaround wa;
 
-            auto model_selection_string = mSupportedModels[m_modelSelectionChoice];
-            if ((model_selection_string == "deepfilternet2") || (model_selection_string == "deepfilternet3"))
+            if (m_modelSelectionChoice < 0 || m_modelSelectionChoice >= mSupportedModels.size())
+            {
+               throw std::runtime_error("invalid m_modelSelectionChoice value");
+            }
+
+            std::string model_selection_string = mSupportedModels[m_modelSelectionChoice];
+            auto model_collection = OVModelManager::instance().GetModelCollection(OVModelManager::NoiseSuppressName());
+            if (!model_collection) {
+               throw std::runtime_error("Couldn't retrieve model collection for " + OVModelManager::NoiseSuppressName());
+            }
+
+            std::shared_ptr< OVModelManager::ModelInfo > retrieved_model_info;
+            for (auto model_info : model_collection->models) {
+               if (model_info && model_info->installed && model_info->model_name == model_selection_string)
+               {
+                  retrieved_model_info = model_info;
+               }
+            }
+
+            if (!retrieved_model_info) {
+               throw std::runtime_error("Couldn't retrieve installed model info for " + model_selection_string);
+            }
+
+            if (!retrieved_model_info->installed) {
+               throw std::runtime_error("This model is not installed: " + retrieved_model_info->model_name);
+            }
+
+            auto model_folder = retrieved_model_info->installation_path;
+
+            if ((model_selection_string == DEEPFILTERNET2_NAME) || (model_selection_string == DEEPFILTERNET3_NAME))
             {
                ov_deepfilternet::ModelSelection dfnet_selection = ov_deepfilternet::ModelSelection::DEEPFILTERNET2;
-               if (model_selection_string == "deepfilternet3")
+               if (model_selection_string == DEEPFILTERNET3_NAME)
                {
                   dfnet_selection = ov_deepfilternet::ModelSelection::DEEPFILTERNET3;
                }
@@ -414,7 +426,22 @@ bool EffectOVNoiseSuppression::Process(EffectInstance&, EffectSettings&)
             else
             {
                //must be an omz model then.
-               auto model_file = model_selection_string + ".xml";
+               // Get the .xml file from the file list.
+               std::string model_file;
+               for (auto& f : retrieved_model_info->fileList)
+               {
+                  if (f.find(".xml") != std::string::npos)
+                  {
+                     model_file = f;
+                     break;
+                  }
+               }
+
+               if (model_file.empty())
+               {
+                  throw std::runtime_error("Could not find OpenVINO XML file in file list");
+               }
+
                std::string  model_path = audacity::ToUTF8(wxFileName(model_folder, wxString(model_file))
                   .GetFullPath());
 

@@ -47,6 +47,7 @@ public:
 
    void OnAdvancedCheckboxChanged(wxCommandEvent& evt);
    void OnDeviceInfoButtonClicked(wxCommandEvent& evt);
+   void OnModelManagerButtonClicked(wxCommandEvent& evt);
 
 protected:
 
@@ -67,7 +68,8 @@ private:
       ID_Type_Model,
       ID_Attn_Limit,
       ID_Type_AdvancedCheckbox,
-      ID_Type_DeviceInfoButton
+      ID_Type_DeviceInfoButton,
+      ID_Type_ModelManagerButton
    };
 
    std::vector< std::string > mSupportedDevices;
