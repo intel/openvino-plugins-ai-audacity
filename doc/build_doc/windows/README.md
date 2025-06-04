@@ -198,7 +198,10 @@ git lfs install
 mkdir openvino-models\musicgen
 
 :: clone the HF repo
-git clone https://huggingface.co/Intel/musicgen-static-openvino
+git clone --no-checkout https://huggingface.co/Intel/musicgen-static-openvino
+cd musicgen-static-openvino
+git checkout b2ad8083f3924ed704814b68c5df9cbbf2ad2aa
+cd ..
 
 :: unzip the 'base' set of models (like the EnCodec, tokenizer, etc.) into musicgen folder
 tar -xf musicgen-static-openvino\musicgen_small_enc_dec_tok_openvino_models.zip -C openvino-models\musicgen
@@ -232,7 +235,10 @@ rmdir whisper.cpp-openvino-models /s /q
 ::********************
 
 :: clone the HF repo
-git clone https://huggingface.co/Intel/demucs-openvino
+git clone --no-checkout https://huggingface.co/Intel/demucs-openvino
+cd demucs-openvino
+git checkout 97fc578fb57650045d40b00bc84c7d156be77547
+cd ..
 
 :: Copy the demucs OpenVINO IR files
 copy /y demucs-openvino\htdemucs_v4.bin openvino-models
@@ -246,7 +252,10 @@ rmdir demucs-openvino /s /q
 ::*********************
 
 :: Clone the deepfilternet HF repo
-git clone https://huggingface.co/Intel/deepfilternet-openvino
+git clone --no-checkout https://huggingface.co/Intel/deepfilternet-openvino
+cd deepfilternet-openvino
+git checkout 995706bda3da69da0825074ba7dbc8a78067e980
+cd ..
 
 :: extract deepfilter2 models
 tar -xf deepfilternet-openvino\deepfilternet2.zip -C openvino-models
@@ -259,7 +268,10 @@ tar -xf deepfilternet-openvino\deepfilternet3.zip -C openvino-models
 ::********************
 
 :: clone the HF repo
-git clone https://huggingface.co/Intel/versatile_audio_super_resolution_openvino
+git clone --no-checkout https://huggingface.co/Intel/versatile_audio_super_resolution_openvino
+cd versatile_audio_super_resolution_openvino
+git checkout 9a97d7f128b22aea72e92862a3eccc310f88ac26
+cd ..
 
 :: unzip the 'base' set of models into audiosr
 tar -xf versatile_audio_super_resolution_openvino\versatile_audio_sr_base_openvino_models.zip -C openvino-models\audiosr
