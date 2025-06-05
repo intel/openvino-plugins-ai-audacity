@@ -35,6 +35,8 @@
 #include "OVStringUtils.h"
 #include <openvino/openvino.hpp>
 
+#include "OVModelManagerUI.h"
+
 const ComponentInterfaceSymbol EffectOVAudioSR::Symbol{ XO("OpenVINO Super Resolution") };
 
 namespace { BuiltinEffectsModule::Registration< EffectOVAudioSR > reg; }
@@ -43,82 +45,8 @@ BEGIN_EVENT_TABLE(EffectOVAudioSR, wxEvtHandler)
 EVT_CHECKBOX(ID_Type_AdvancedCheckbox, EffectOVAudioSR::OnAdvancedCheckboxChanged)
 EVT_BUTTON(ID_Type_DeviceInfoButton, EffectOVAudioSR::OnDeviceInfoButtonClicked)
 EVT_BUTTON(ID_Type_UnloadModelsButton, EffectOVAudioSR::OnUnloadModelsButtonClicked)
+EVT_BUTTON(ID_Type_ModelManagerButton, EffectOVAudioSR::OnModelManagerButtonClicked)
 END_EVENT_TABLE()
-
-#define BASIC_MODEL_STRING "Basic (General)"
-#define SPEECH_MODEL_STRING "Speech"
-
-static std::vector<std::string> FindAvailableModels()
-{
-   std::vector<std::string> available_models;
-
-   auto model_folder = wxFileName(FileNames::BaseDir(), wxT("openvino-models")).GetFullPath();
-   model_folder = wxFileName(model_folder, wxT("audiosr")).GetFullPath();
-
-   //make sure that all of the 'base' models are present
-   // If any of these aren't found, then just return an empty list.. we can't
-   // support anything without these 'base' files.
-   {
-      auto dec = wxFileName(model_folder, wxString("audiosr_decoder.xml"));
-      if (!dec.FileExists())
-      {
-         return {};
-      }
-
-      auto enc = wxFileName(model_folder, wxString("audiosr_encoder.xml"));
-      if (!enc.FileExists())
-      {
-         return {};
-      }
-
-      auto mel_raw = wxFileName(model_folder, wxString("mel_24000_cpu.raw"));
-      if (!mel_raw.FileExists())
-      {
-         return {};
-      }
-
-      auto post_quant_conv = wxFileName(model_folder, wxString("post_quant_conv.xml"));
-      if (!post_quant_conv.FileExists())
-      {
-         return {};
-      }
-
-      auto vocoder = wxFileName(model_folder, wxString("vocoder.xml"));
-      if (!vocoder.FileExists())
-      {
-         return {};
-      }
-
-      auto vae_feature_extract = wxFileName(model_folder, wxString("vae_feature_extract.xml"));
-      if (!vae_feature_extract.FileExists())
-      {
-         return {};
-      }
-   }
-
-   //basic
-   {
-      auto basic_model_folder = wxFileName(model_folder, wxT("basic")).GetFullPath();
-      auto ddpm = wxFileName(basic_model_folder, wxString("ddpm.xml"));
-      if (ddpm.FileExists() )
-      {
-         available_models.push_back(BASIC_MODEL_STRING);
-      }
-   }
-
-   //speech
-   {
-      auto speech_model_folder = wxFileName(model_folder, wxT("speech")).GetFullPath();
-      auto ddpm = wxFileName(speech_model_folder, wxString("ddpm.xml"));
-      if (ddpm.FileExists())
-      {
-         available_models.push_back(SPEECH_MODEL_STRING);
-      }
-   }
-
-   return available_models;
-}
-
 
 EffectOVAudioSR::EffectOVAudioSR()
 {
@@ -138,12 +66,6 @@ EffectOVAudioSR::EffectOVAudioSR()
 
       mSupportedNonNPUDevices.push_back(d);
       mGuiDeviceNonNPUSelections.push_back({ TranslatableString{ wxString(d), {}} });
-   }
-
-   mModelSelections = FindAvailableModels();
-   for (auto m : mModelSelections)
-   {
-      mGuiModelSelections.push_back({ TranslatableString{ wxString(m), {}} });
    }
 
    mGuiChunkSizeSelections.push_back({ TranslatableString{ wxString("10.24 Seconds"), {}} });
@@ -198,11 +120,57 @@ void EffectOVAudioSR::OnUnloadModelsButtonClicked(wxCommandEvent& evt)
    }
 }
 
+void EffectOVAudioSR::OnModelManagerButtonClicked(wxCommandEvent& evt)
+{
+   ShowModelManagerDialog();
+}
+
 std::unique_ptr<EffectEditor> EffectOVAudioSR::PopulateOrExchange(
    ShuttleGui& S, EffectInstance&, EffectSettingsAccess&,
    const EffectOutputs*)
 {
    mUIParent = S.GetParent();
+
+   auto collection = OVModelManager::instance().GetModelCollection(OVModelManager::SuperResName());
+   for (auto& model_info : collection->models) {
+      if (model_info->installed) {
+         if (std::find(mSupportedModels.begin(), mSupportedModels.end(), model_info->model_name) == mSupportedModels.end()) {
+            mSupportedModels.push_back(model_info->model_name);
+         }
+      }
+   }
+
+   mGuiModelSelections.clear();
+   for (auto& m : mSupportedModels)
+   {
+      mGuiModelSelections.push_back({ TranslatableString{ wxString(m), {}} });
+   }
+
+   OVModelManager::InstalledCallback callback =
+      [this](const std::string& model_name) {
+      wxTheApp->CallAfter([=]() {
+         if (std::find(mSupportedModels.begin(), mSupportedModels.end(), model_name) == mSupportedModels.end()) {
+            mSupportedModels.push_back(model_name);
+            mGuiModelSelections.push_back({ TranslatableString{ wxString(model_name), {}} });
+         }
+
+         if (mUIParent)
+         {
+            EffectEditor::EnableApply(mUIParent, true);
+            EffectEditor::EnablePreview(mUIParent, false);
+            if (mTypeChoiceModelCtrl)
+            {
+               mTypeChoiceModelCtrl->Append(wxString(model_name));
+
+               if (mTypeChoiceModelCtrl->GetCount() == 1) {
+                  mTypeChoiceModelCtrl->SetSelection(mTypeChoiceModelCtrl->GetCount() - 1);
+               }
+            }
+         }
+         });
+      };
+
+   OVModelManager::instance().register_installed_callback(OVModelManager::SuperResName(), callback);
 
    S.StartVerticalLay(wxLEFT);
    {
@@ -214,6 +182,12 @@ std::unique_ptr<EffectEditor> EffectOVAudioSR::PopulateOrExchange(
          {
             mUnloadModelsButton->Enable(false);
          }
+      }
+      S.EndMultiColumn();
+
+      S.StartMultiColumn(1, wxLEFT);
+      {
+         auto model_manager_button = S.Id(ID_Type_ModelManagerButton).AddButton(XO("Open Model Manager"));
       }
       S.EndMultiColumn();
 
@@ -603,17 +577,40 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
 
    try
    {
-      //okay, let's try to find openvino model
-      //todo: Right now we're looking for the model in the 'BaseDir' (which is top-level folder of Audacity install)
-      // This might be okay, but some users may not have permissions to place models there. So, also look in
-      // DataDir(), which is the path to C:\Users\<user>\AppData\Roaming\audacity.
-      auto model_folder_wx = wxFileName(FileNames::BaseDir(), wxT("openvino-models")).GetFullPath();
-      auto model_folder = audacity::ToUTF8(wxFileName(model_folder_wx, wxT("audiosr")).GetFullPath());
 
       FilePath cache_folder = FileNames::MkDir(wxFileName(FileNames::DataDir(), wxT("openvino-model-cache")).GetFullPath());
 
       //Note: Using a variant of wstring conversion that seems to work more reliably when there are special characters present in the path.
       std::string cache_path = wstring_to_string(wxFileName(cache_folder).GetFullPath().ToStdWstring());
+
+      if (m_modelSelectionChoice < 0 || m_modelSelectionChoice >= mSupportedModels.size())
+      {
+         throw std::runtime_error("invalid m_modelSelectionChoice value");
+      }
+
+      std::string model_selection_str = mSupportedModels[m_modelSelectionChoice];
+      auto model_collection = OVModelManager::instance().GetModelCollection(OVModelManager::SuperResName());
+      if (!model_collection) {
+         throw std::runtime_error("Couldn't retrieve model collection for " + OVModelManager::SuperResName());
+      }
+
+      std::shared_ptr< OVModelManager::ModelInfo > retrieved_model_info;
+      for (auto model_info : model_collection->models) {
+         if (model_info && model_info->installed && model_info->model_name == model_selection_str)
+         {
+            retrieved_model_info = model_info;
+         }
+      }
+
+      if (!retrieved_model_info) {
+         throw std::runtime_error("Couldn't retrieve installed model info for " + model_selection_str);
+      }
+
+      if (!retrieved_model_info->installed) {
+         throw std::runtime_error("This model is not installed: " + retrieved_model_info->model_name);
+      }
+
+      auto model_folder = retrieved_model_info->installation_path;
 
       std::cout << "model_folder = " << model_folder << std::endl;
       std::cout << "cache_path = " << cache_path << std::endl;
@@ -659,17 +656,11 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
          config.ddpm__device = ddpm_device;
          config.vocoder_device = decoder_device;
 
-         if (m_modelSelectionChoice < 0 || m_modelSelectionChoice >= mModelSelections.size())
-         {
-            throw std::runtime_error("invalid m_modelSelectionChoice value");
-         }
-
-         std::string chosen_model = mModelSelections[m_modelSelectionChoice];
-         if (chosen_model == BASIC_MODEL_STRING)
+         if (model_selection_str.find("Basic") != std::string::npos)
          {
             config.model_selection = ov_audiosr::AudioSRModel::BASIC;
          }
-         else if (chosen_model == SPEECH_MODEL_STRING)
+         else if (model_selection_str.find("Speech") != std::string::npos)
          {
             config.model_selection = ov_audiosr::AudioSRModel::SPEECH;
          }
@@ -1260,7 +1251,7 @@ bool EffectOVAudioSR::TransferDataToWindow(const EffectSettings&)
 
    EffectEditor::EnablePreview(mUIParent, false);
 
-   if (mModelSelections.empty())
+   if (mGuiModelSelections.empty())
    {
       wxLogInfo("OpenVINO Super Resolution has no models installed.");
       EffectEditor::EnableApply(mUIParent, false);

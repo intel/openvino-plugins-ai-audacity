@@ -52,7 +52,7 @@ public:
 
    void OnAdvancedCheckboxChanged(wxCommandEvent& evt);
    void OnDeviceInfoButtonClicked(wxCommandEvent& evt);
-
+   void OnModelManagerButtonClicked(wxCommandEvent& evt);
 
 private:
 
@@ -68,6 +68,7 @@ private:
       ID_Type_NormalizeRMSCheckbox,
       ID_Type_ChunkSize,
       ID_Type_UnloadModelsButton,
+      ID_Type_ModelManagerButton
    };
 
    void OnUnloadModelsButtonClicked(wxCommandEvent& evt);
@@ -82,7 +83,7 @@ private:
    wxChoice* mTypeChoiceModelCtrl;
    int m_modelSelectionChoice = 0;
    std::vector< EnumValueSymbol > mGuiModelSelections;
-   std::vector< std::string > mModelSelections;
+   std::vector< std::string > mSupportedModels;
 
    wxChoice* mTypeChoiceChunkSizeCtrl;
    int m_ChunkSizeSelectionChoice = 0;
