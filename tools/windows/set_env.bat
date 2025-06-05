@@ -5,9 +5,6 @@ set "bat_path=%~dp0"
 set PATH_TO_SET=
 
 :: Check if at least 4 arguments are passed.
-if "%~1"=="" goto error
-if "%~2"=="" goto error
-if "%~3"=="" goto error
 if "%~4"=="" goto error
 
 :: Build Level 0=alpha, 1=beta, 2=release
@@ -15,7 +12,7 @@ set AUDACITY_BUILD_LEVEL=2
 set AUDACITY_BUILD_CONFIG=Release
 
 :: The version that we will pass to inno setup as the app version.
-set AI_PLUGIN_VERSION=v3.7.3-R5.0
+set AI_PLUGIN_VERSION=v3.7.4-R5.0
 
 set AI_PLUGIN_REPO_SOURCE_FOLDER=%bat_path%\..\..\
 echo AI_PLUGIN_REPO_SOURCE_FOLDER=%AI_PLUGIN_REPO_SOURCE_FOLDER%

@@ -75,7 +75,6 @@ private:
    OVModelManager();
    ~OVModelManager() = default;
 
-   struct ModelCollection;
    std::unordered_map< std::string, std::shared_ptr<ModelCollection> > mModelCollection;
 
    std::vector< FilePath > mSearchPaths;
