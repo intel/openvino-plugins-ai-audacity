@@ -103,4 +103,32 @@ namespace ov_musicgen
         uint64_t _infer_time_us = 0;
         uint64_t _kv_update_time_us = 0;
     };
+
+    class MusicgenDecoderStateful : public MusicgenDecoder
+    {
+    public:
+
+       MusicgenDecoderStateful(ov::Core& core, MusicGenConfig& config);
+
+       virtual void Reset() override;
+
+       virtual torch::Tensor run(torch::Tensor input_ids,
+          std::optional<torch::Tensor> encoder_hidden_states,
+          std::optional<torch::Tensor> encoder_attention_mask) override;
+
+       virtual int64_t PastLength() override;
+
+       virtual int64_t MaxNewTokens() override;
+
+    private:
+
+       int64_t _past_length = 0;
+
+       ov::InferRequest _infer_request;
+       ov::InferRequest _infer_request_initial;
+
+       Config _decoder_config;
+       std::string _device;
+       uint64_t _infer_time_us = 0;
+    };
 }

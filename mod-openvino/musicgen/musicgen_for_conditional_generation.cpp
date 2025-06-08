@@ -34,7 +34,14 @@ namespace ov_musicgen
          core.set_property(ov::cache_dir(*config.cache_folder));
       }
 
-      _decoder_refactor = std::make_shared< MusicgenDecoderStatic >(core, config);
+      if (config.musicgen_decode_device0.find("GPU") != std::string::npos)
+      {
+         _decoder_refactor = std::make_shared< MusicgenDecoderStateful >(core, config);
+      }
+      else
+      {
+         _decoder_refactor = std::make_shared< MusicgenDecoderStatic >(core, config);
+      }
 
       torch::Generator generator = at::detail::createCPUGenerator();
       {
