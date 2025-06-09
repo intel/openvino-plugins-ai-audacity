@@ -4,8 +4,8 @@ set "bat_path=%~dp0"
 
 set PATH_TO_SET=
 
-:: Check if at least 4 arguments are passed.
-if "%~4"=="" goto error
+:: Check if at least 3 arguments are passed.
+if "%~3"=="" goto error
 
 :: Build Level 0=alpha, 1=beta, 2=release
 set AUDACITY_BUILD_LEVEL=2
@@ -24,9 +24,6 @@ call :ConvertRelToAbsPath %2 || exit /b 1
 set OPENVINO_GENAI_ABS_PATH=%ABS_PATH%
 
 call :ConvertRelToAbsPath %3 || exit /b 1
-set OPENCL_SDK_ABS_PATH=%ABS_PATH%
-
-call :ConvertRelToAbsPath %4 || exit /b 1
 set AUDACITY_CLONE_ABS_PATH=%ABS_PATH%
 
 set LIBTORCH_DIR=%LIBTORCH_ABS_PATH%
@@ -54,11 +51,11 @@ echo set AUDACITY_CLONE_DIR=%AUDACITY_CLONE_DIR%>> env.bat
 set BUILD_FOLDER=%cd%
 echo set BUILD_FOLDER=%BUILD_FOLDER%>> env.bat
 
-if "%~5"=="" (
+if "%~4"=="" (
     goto end
 )
 
-call :ConvertRelToAbsPath %5 || exit /b 1
+call :ConvertRelToAbsPath %4 || exit /b 1
 set CONAN_CACHE_ABS_PATH=%ABS_PATH%
 set CONAN_HOME=%CONAN_CACHE_ABS_PATH%
 
@@ -80,8 +77,8 @@ for %%i in ("%rel_path%") do set "ABS_PATH=%%~fi"
 goto :eof
 
 :error
-echo Error: First 4 arguments are required, last 1 -- the conan_cache_path is optional. 
-echo Usage: set_env.bat libtorch_location openvino_genai_location opencl_sdk_location audacity_clone_location [conan_cache_path]
+echo Error: First 3 arguments are required, last 1 -- the conan_cache_path is optional. 
+echo Usage: set_env.bat libtorch_location openvino_genai_location audacity_clone_location [conan_cache_path]
 exit /b 1
 
 :end

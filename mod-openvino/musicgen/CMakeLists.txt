@@ -6,8 +6,6 @@ musicgen/musicgen_utils.h
 musicgen/encodec_encoder.h 
 musicgen/musicgen_decoder.h
 musicgen/musicgen_decoder.cpp
-musicgen/static_kv_cache_manager_cl.h
-musicgen/static_kv_cache_manager_cl.cpp
 musicgen/musicgen_for_conditional_generation.cpp
 musicgen/musicgen_for_conditional_generation.h
 musicgen/musicgen.cpp

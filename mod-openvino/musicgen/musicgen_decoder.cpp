@@ -3,7 +3,6 @@
 #include "musicgen_decoder.h"
 #include "musicgen_utils.h"
 #include "musicgen_config.h"
-#include "static_kv_cache_manager_cl.h"
 
 using namespace std::chrono;
 using Clock = std::chrono::high_resolution_clock;
@@ -492,14 +491,8 @@ namespace ov_musicgen
          _infer_request_nonkv = compiledModel.create_infer_request();
       }
 
-      if (device.find("GPU") != std::string::npos)
-      {
-         _kv_cache_manager = std::make_shared< StaticKVCacheManagerCL >(core, _infer_request_initial, _infer_request, _infer_request_nonkv, _decoder_config);
-      }
-      else
-      {
-         _kv_cache_manager = std::make_shared< StaticKVCacheManager >(_infer_request_initial, _infer_request, _infer_request_nonkv, _decoder_config);
-      }
+
+      _kv_cache_manager = std::make_shared< StaticKVCacheManager >(_infer_request_initial, _infer_request, _infer_request_nonkv, _decoder_config);
       _kv_cache_manager->Init();
 
       Reset();
