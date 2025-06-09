@@ -29,8 +29,8 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_generat
 
    auto collection = std::make_shared< OVModelManager::ModelCollection >();
 
-   std::vector<std::string> f16_file_list = { "musicgen_decoder.xml", "musicgen_decoder_nonkv.xml", "musicgen_decoder_combined.bin"};
-   std::vector<std::string> int8_file_list = { "musicgen_decoder_int8.xml", "musicgen_decoder_nonkv_int8.xml", "musicgen_decoder_int8_combined.bin" };
+   std::vector<std::string> f16_file_list = { "musicgen_decoder.xml", "musicgen_decoder_nonkv.xml", "musicgen_decoder_stateful.xml", "musicgen_decoder_combined.bin"};
+   std::vector<std::string> int8_file_list = { "musicgen_decoder_int8.xml", "musicgen_decoder_nonkv_int8.xml", "musicgen_decoder_stateful_int8.xml", "musicgen_decoder_int8_combined.bin" };
    std::vector<std::string> cross_attn_common_file_list = { "initial_cross_attn_kv_producer.bin", "initial_cross_attn_kv_producer.xml" };
 
    //small-mono
@@ -123,9 +123,6 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_generat
 
    //medium-mono
    {
-      //for now, we haven't uploaded these to HF, so 'grey out' install button
-      baseUrl = "";
-
       std::shared_ptr<OVModelManager::ModelInfo> cross_attn_common = std::make_shared<OVModelManager::ModelInfo>();
       cross_attn_common->model_name = "Music Generation Cross-Attn Common";
       cross_attn_common->baseUrl = baseUrl;
