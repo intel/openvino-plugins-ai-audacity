@@ -139,58 +139,77 @@ static inline void mkdir_relative_paths(std::string relative_file, wxString base
 
 size_t OVModelManager::install_model_size(std::shared_ptr<ModelInfo> model_info)
 {
+   if (!model_info) {
+      std::cout << "install_model_size called on null model_info" << std::endl;
+   }
+
    size_t total_size = 0;
    auto baseUrl = model_info->baseUrl;
    audacity::network_manager::NetworkManager& manager = audacity::network_manager::NetworkManager::GetInstance();
 
    for (auto& file : model_info->fileList) {
       std::string url = baseUrl + file + "?download=true";
-      audacity::network_manager::Request request(url);
-      auto response = manager.doHead(request);
+      audacity::network_manager::Request request;
 
-      while (!response->isFinished())
-      {
-         std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      try {
+         request = audacity::network_manager::Request(url);
+      }
+      catch (const std::exception& error) {
+         std::cout << "Error creating request from url=" << url << std::endl;
+         std::cout << "Exceptiond details: " << error.what() << std::endl;
+         return 0;
       }
 
-      if ((response->getHTTPCode() != 200) && (response->getHTTPCode() != 302)) {
-         std::cout << "error fetching head for URL = " << url << std::endl;
-         total_size = 0;
-         break;
-      }
+      try {
+         auto response = manager.doHead(request);
+
+         while (!response->isFinished())
+         {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+         }
+
+         if ((response->getHTTPCode() != 200) && (response->getHTTPCode() != 302)) {
+            std::cout << "error fetching head for URL = " << url << std::endl;
+            return 0;
+         }
 
 #if 0
-      std::cout << "file = " << file << std::endl;
-      auto headers_list = response->getHeaders();
-      for (auto& header : headers_list)
-      {
-         std::cout << "    header name: " << header.Name << std::endl;
-         std::cout << "    header value: " << header.Value << std::endl;
-      }
+         std::cout << "file = " << file << std::endl;
+         auto headers_list = response->getHeaders();
+         for (auto& header : headers_list)
+         {
+            std::cout << "    header name: " << header.Name << std::endl;
+            std::cout << "    header value: " << header.Value << std::endl;
+         }
 #endif
 
-      // For LFS files on GitHub (usually large ones, like .bin's) have 'X-Linked-Size' headers,
-      // so we look for those first. If that doesn't exist, we use 'Content-Length' header.
-      std::vector < std::string> size_headers = { "X-Linked-Size", "Content-Length" };
-      bool size_header_found = false;
-      for (auto& header : size_headers)
-      {
-         if (response->hasHeader(header)) {
-            std::string length = response->getHeader(header);
-            int size = std::stoi(length);
+         // For LFS files on GitHub (usually large ones, like .bin's) have 'X-Linked-Size' headers,
+         // so we look for those first. If that doesn't exist, we use 'Content-Length' header.
+         std::vector < std::string> size_headers = { "X-Linked-Size", "Content-Length" };
+         bool size_header_found = false;
+         for (auto& header : size_headers)
+         {
+            if (response->hasHeader(header)) {
+               std::string length = response->getHeader(header);
+               size_t size = (size_t)std::stoull(length);
 
-            std::cout << "file: " << file << ", size = " << size << std::endl;
-            total_size += size;
+               std::cout << "file: " << file << ", size = " << size << std::endl;
+               total_size += size;
 
-            size_header_found = true;
+               size_header_found = true;
+            }
+         }
+
+         if (!size_header_found)
+         {
+            std::cout << "response does not have 'X-Linked-Size' or 'Content-Length' headers for URL=" << url << std::endl;
+            return 0;
          }
       }
-
-      if (!size_header_found)
-      {
-         std::cout << "response does not have 'X-Linked-Size' or 'Content-Length' headers for URL=" << url << std::endl;
-         total_size = 0;
-         break;
+      catch (const std::exception& error) {
+         std::cout << "Error getting file head details (for size calculation) for url=" << url << std::endl;
+         std::cout << "Exception details: " << error.what() << std::endl;
+         return 0;
       }
    }
 
@@ -208,7 +227,6 @@ static void download_model_files(std::shared_ptr<OVModelManager::ModelInfo> mode
    auto postUrl = model_info->postUrl;
    for (auto& file : model_info->fileList) {
       std::string url = baseUrl + file + postUrl;
-      std::cout << "Downloading from URL: " << url << std::endl;
       audacity::network_manager::Request request(url);
       auto response = manager.doGet(request);
 
@@ -287,87 +305,92 @@ static void download_model_files(std::shared_ptr<OVModelManager::ModelInfo> mode
 
 void OVModelManager::install_model(std::string effect, std::string model_id, ProgressCallback callback)
 {
-   auto it = mModelCollection.find(effect);
-   if (it == mModelCollection.end()) {
-      std::cout << "Model Collection for effect=" << effect << " not found." << std::endl;
-      return;
-   }
-
-   std::shared_ptr<ModelInfo> model_info;
-   auto collection = it->second;
-   bool bFound = false;
-   for (auto& info : collection->models) {
-      if (info->model_name == model_id) {
-         model_info = info;
-         bFound = true;
+   try {
+      auto it = mModelCollection.find(effect);
+      if (it == mModelCollection.end()) {
+         std::cout << "Model Collection for effect=" << effect << " not found." << std::endl;
+         return;
       }
-   }
 
-   if (!bFound) {
-      std::cout << "Model Info for model_id=" << model_id << " not found." << std::endl;
-      return;
-   }
-
-   //TODO: Replace this with a hard-coded size... I think.
-   size_t total_download_size = install_model_size(model_info);
-
-   if (total_download_size == 0)
-   {
-      std::cout << "install_model_size failed." << std::endl;
-      return;
-   }
-
-   auto &base_openvino_models_path = mSearchPaths[0];
-
-   // re-check the dependencies, but force it to use the 'base' installation folder that we will install to.
-   for (auto& d : model_info->dependencies) {
-      _check_installed_model_impl(d, base_openvino_models_path);
-   }
-
-   // add the total size of the dependencies.
-   for (auto& d : model_info->dependencies) {
-      if (!d->installed) {
-         size_t dependencies_size = install_model_size(d);
-         if (dependencies_size == 0)
-         {
-            std::cout << "install_model_size failed for dependencies: " << d->model_name << std::endl;
-            return;
+      std::shared_ptr<ModelInfo> model_info;
+      auto collection = it->second;
+      bool bFound = false;
+      for (auto& info : collection->models) {
+         if (info->model_name == model_id) {
+            model_info = info;
+            bFound = true;
          }
-
-         total_download_size += dependencies_size;
       }
-   }
-   
-   size_t bytes_downloaded_so_far = 0;
 
-   std::cout << "Total size we are about to download = " << total_download_size << std::endl;
+      if (!bFound) {
+         std::cout << "Model Info for model_id=" << model_id << " not found." << std::endl;
+         return;
+      }
 
-   if (!model_info->dependencies.empty()) {
+      size_t total_download_size = install_model_size(model_info);
+
+      if (total_download_size == 0)
+      {
+         std::cout << "install_model_size failed." << std::endl;
+         return;
+      }
+
+      auto& base_openvino_models_path = mSearchPaths[0];
+
+      // re-check the dependencies, but force it to use the 'base' installation folder that we will install to.
+      for (auto& d : model_info->dependencies) {
+         _check_installed_model_impl(d, base_openvino_models_path);
+      }
+
+      // add the total size of the dependencies.
       for (auto& d : model_info->dependencies) {
          if (!d->installed) {
-            download_model_files(d, base_openvino_models_path, total_download_size, bytes_downloaded_so_far, callback);
-            _check_installed_model_impl(d, base_openvino_models_path);
-            if (!d->installed)
+            size_t dependencies_size = install_model_size(d);
+            if (dependencies_size == 0)
+            {
+               std::cout << "install_model_size failed for dependencies: " << d->model_name << std::endl;
                return;
+            }
+
+            total_download_size += dependencies_size;
          }
-         else
+      }
+
+      size_t bytes_downloaded_so_far = 0;
+
+      std::cout << "Total size we are about to download = " << total_download_size << std::endl;
+
+      if (!model_info->dependencies.empty()) {
+         for (auto& d : model_info->dependencies) {
+            if (!d->installed) {
+               download_model_files(d, base_openvino_models_path, total_download_size, bytes_downloaded_so_far, callback);
+               _check_installed_model_impl(d, base_openvino_models_path);
+               if (!d->installed)
+                  return;
+            }
+            else
+            {
+               std::cout << "dependency: " << d->model_name << " is already installed." << std::endl;
+            }
+         }
+      }
+
+      download_model_files(model_info, base_openvino_models_path, total_download_size, bytes_downloaded_so_far, callback);
+
+      //re-run file check for this model.
+      _check_installed_model_impl(model_info, base_openvino_models_path);
+
+      if (model_info->installed) {
+         auto callback_it = mInstallCallbacks.find(effect);
+         if (callback_it != mInstallCallbacks.end())
          {
-            std::cout << "dependency: " << d->model_name << " is already installed." << std::endl;
+            callback_it->second(model_info->model_name);
          }
       }
    }
-
-   download_model_files(model_info, base_openvino_models_path, total_download_size, bytes_downloaded_so_far, callback);
-
-   //re-run file check for this model.
-   _check_installed_model_impl(model_info, base_openvino_models_path);
-
-   if (model_info->installed) {
-      auto callback_it = mInstallCallbacks.find(effect);
-      if (callback_it != mInstallCallbacks.end())
-      {
-         callback_it->second(model_info->model_name);
-      }
+   catch (const std::exception& error) {
+      std::cout << "install_model: exception caught for model_id = " << model_id << std::endl;
+      std::cout << "exception details: " << error.what() << std::endl;
    }
 }
 
