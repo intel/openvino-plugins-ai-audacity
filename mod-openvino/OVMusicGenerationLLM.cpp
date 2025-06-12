@@ -286,6 +286,15 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
       std::cout << "encodec_device = " << encodec_device << std::endl;
       std::cout << "MusicGen Decode Device = " << musicgen_decode_device << std::endl;
 
+      auto execution_mode = ov_musicgen::MusicGenConfig::DecoderExecutionMode::PERFORMANCE;
+      if (musicgen_decode_device.find("GPU") != std::string::npos)
+      {
+         if (m_executionModeChoice == 1)
+         {
+            execution_mode = ov_musicgen::MusicGenConfig::DecoderExecutionMode::ACCURACY;
+         }
+      }
+
       FilePath cache_folder = FileNames::MkDir(wxFileName(FileNames::DataDir(), wxT("openvino-model-cache")).GetFullPath());
       std::string cache_path = wstring_to_string(wxFileName(cache_folder).GetFullPath().ToStdWstring());
       std::cout << "cache path = " << cache_path << std::endl;
@@ -295,7 +304,7 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
 
       auto musicgen_pipeline_creation_future = std::async(std::launch::async,
          [this, &musicgen_model_folder, &cache_path, &encodec_device, &musicgen_decode_device,
-         &continuation_context, &model_selection, &bIsModelStereo]
+         &continuation_context, &model_selection, &bIsModelStereo, &execution_mode]
          {
 
             try
@@ -331,6 +340,14 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
                   _musicgen = {};
                }
 
+               if (musicgen_decode_device.find("GPU") != std::string::npos)
+               {
+                  if (execution_mode != _musicgen_config.decoder_execution_mode)
+                  {
+                     _musicgen = {};
+                  }
+               }
+
                if (!_musicgen)
                {
                   _musicgen_config.musicgen_decode_device0 = musicgen_decode_device;
@@ -347,6 +364,8 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
                   _musicgen_config.bStereo = bIsModelStereo;
 
                   _musicgen_config.model_selection = model_selection;
+
+                  _musicgen_config.decoder_execution_mode = execution_mode;
 
                   // WA for OpenVINO locale caching issue (https://github.com/openvinotoolkit/openvino/issues/24370)
                   OVLocaleWorkaround wa;

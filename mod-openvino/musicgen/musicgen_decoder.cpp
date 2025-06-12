@@ -751,11 +751,13 @@ namespace ov_musicgen
          std::cout << "AFTER RESHAPE:" << std::endl;
          logBasicModelInfo(model);
 
-         // Couple ways that we could go with this. On GPU, when ExecutionMode is set to ACCURACY, f32 inference precision is used, and generated result is
-         // identical to CPU, which is really nice. The downside is, it takes almost 2x longer.
-         // TODO: Expose 'ExecutionMode::ACCURACY' / 'ExecutionMode::Performance' selection to the UI.
-         //ov::AnyMap properties = { ov::hint::performance_mode(ov::hint::PerformanceMode::LATENCY), ov::hint::execution_mode(ov::hint::ExecutionMode::ACCURACY) }
-         ov::AnyMap properties = { ov::hint::performance_mode(ov::hint::PerformanceMode::LATENCY)};
+         ov::AnyMap properties = { ov::hint::performance_mode(ov::hint::PerformanceMode::LATENCY) };
+         if (config.decoder_execution_mode == MusicGenConfig::DecoderExecutionMode::ACCURACY)
+         {
+            std::cout << "Adding ov::hint::ExecutionMode::ACCURACY to compilation properties..." << std::endl;
+            properties.insert(ov::hint::execution_mode(ov::hint::ExecutionMode::ACCURACY));
+         }
+
          ov::CompiledModel compiledModel = core.compile_model(model, device, properties);
 
          _infer_request = compiledModel.create_infer_request();

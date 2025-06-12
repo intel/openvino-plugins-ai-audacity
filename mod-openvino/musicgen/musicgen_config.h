@@ -29,6 +29,16 @@ namespace ov_musicgen
 
       ModelSelection model_selection = ModelSelection::MUSICGEN_SMALL_FP16;
 
+      // Selects between performance & accuracy mode for decoder inference.
+      // Right now, this is only applicable to GPU.
+      enum class DecoderExecutionMode
+      {
+         PERFORMANCE,
+         ACCURACY
+      };
+
+      DecoderExecutionMode decoder_execution_mode = DecoderExecutionMode::PERFORMANCE;
+
       //device used to convert wav to id's
       std::string encodec_enc_device = "CPU";
 
