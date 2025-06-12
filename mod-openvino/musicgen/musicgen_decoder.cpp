@@ -11,6 +11,57 @@ using Clock = std::chrono::high_resolution_clock;
 #define MAX_DECODER_HISTORY_TOKENS 1004
 namespace ov_musicgen
 {
+   static inline bool IsInt8Decoder(const MusicGenConfig& config)
+   {
+      switch (config.model_selection)
+      {
+         case MusicGenConfig::ModelSelection::MUSICGEN_SMALL_FP16:
+         case MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_FP16:
+            return false;
+         case MusicGenConfig::ModelSelection::MUSICGEN_SMALL_INT8:
+         case MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_INT8:
+            return true;
+         default:
+            throw std::runtime_error("Invalid model selection " + std::to_string((int)config.model_selection));
+      }
+
+      // shouldn't be possible to reach here.
+      return false;
+   }
+
+   static inline std::string GetDecoderModelFolder(const MusicGenConfig& config)
+   {
+      auto model_folder = config.model_folder;
+
+      std::string subfolder;
+      switch (config.model_selection)
+      {
+      case MusicGenConfig::ModelSelection::MUSICGEN_SMALL_FP16:
+      case MusicGenConfig::ModelSelection::MUSICGEN_SMALL_INT8:
+         subfolder = "small";
+         break;
+      case MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_FP16:
+      case MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_INT8:
+         subfolder = "medium";
+         break;
+      default:
+         throw std::runtime_error("Invalid model selection: " + std::to_string((int)config.model_selection));
+         break;
+      }
+
+      if (config.bStereo)
+      {
+         subfolder += "-stereo";
+      }
+      else
+      {
+         subfolder += "-mono";
+      }
+
+      model_folder = FullPath(model_folder, subfolder);
+
+      return model_folder;
+   }
 
    StaticKVCacheManager::StaticKVCacheManager(ov::InferRequest infer_request_initial,
       ov::InferRequest infer_request_with_past,
@@ -218,63 +269,24 @@ namespace ov_musicgen
 	MusicgenDecoderStatic::MusicgenDecoderStatic(ov::Core& core, MusicGenConfig& config)
       : _decoder_config(GenerateDecoderConfig(config))
 	{
-		auto model_folder = config.model_folder;
-
       std::string device = config.musicgen_decode_device0;
 
       auto tensortype = device == "CPU" ? ov::element::f32 : ov::element::f16;
 
-      std::string subfolder;
-      if (config.model_selection == MusicGenConfig::ModelSelection::MUSICGEN_SMALL_FP16 ||
-         config.model_selection == MusicGenConfig::ModelSelection::MUSICGEN_SMALL_INT8)
-      {
-         subfolder = "small";
-      }
-      else
-      if (config.model_selection == MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_FP16 ||
-         config.model_selection == MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_INT8)
-      {
-         subfolder = "medium";
-      }
-      else
-      {
-         throw std::runtime_error("Invalid model selection: " + std::to_string((int)config.model_selection));
-      }
-
-      if (config.bStereo)
-      {
-         subfolder += "-stereo";
-      }
-      else
-      {
-         subfolder += "-mono";
-      }
-
-      model_folder = FullPath(model_folder, subfolder);
+      auto model_folder = GetDecoderModelFolder(config);
 
       {
-         std::string decoder_model_path;
-         std::string decoder_bin_path;
-         switch (config.model_selection)
+         std::string decoder_model_path = "musicgen_decoder.xml";
+         std::string decoder_bin_path = "musicgen_decoder_combined.bin";
+         if (IsInt8Decoder(config))
          {
-         case MusicGenConfig::ModelSelection::MUSICGEN_SMALL_FP16:
-         case MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_FP16:
-            decoder_model_path = FullPath(model_folder, "musicgen_decoder.xml");
-            decoder_bin_path = FullPath(model_folder, "musicgen_decoder_combined.bin");
-            break;
-
-         case  MusicGenConfig::ModelSelection::MUSICGEN_SMALL_INT8:
-         case  MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_INT8:
-            decoder_model_path = FullPath(model_folder, "musicgen_decoder_int8.xml");
-            decoder_bin_path = FullPath(model_folder, "musicgen_decoder_int8_combined.bin");
-            break;
-
-         default:
-            throw std::runtime_error("Invalid model selection");
-            break;
+            decoder_model_path = "musicgen_decoder_int8.xml";
+            decoder_bin_path = "musicgen_decoder_int8_combined.bin";
          }
+         decoder_model_path = FullPath(model_folder, decoder_model_path);
+         decoder_bin_path = FullPath(model_folder, decoder_bin_path);
 
-         std::cout << " Using model=" << decoder_model_path << std::endl;
+         std::cout << " Using decoder model =" << decoder_model_path << ", " << decoder_bin_path << std::endl;
          std::shared_ptr<ov::Model> model = core.read_model(decoder_model_path, decoder_bin_path);
 
          //reshape to static shapes
@@ -391,29 +403,19 @@ namespace ov_musicgen
          _infer_request_initial = compiledModel.create_infer_request();
       }
 
-
       //prep large context model
       {
-         std::string decoder_model_path;
-         std::string decoder_bin_path;
-         switch (config.model_selection)
+         std::string decoder_model_path = "musicgen_decoder_nonkv.xml";
+         std::string decoder_bin_path = "musicgen_decoder_combined.bin";
+         if (IsInt8Decoder(config))
          {
-         case MusicGenConfig::ModelSelection::MUSICGEN_SMALL_FP16:
-         case MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_FP16:
-            decoder_model_path = FullPath(model_folder, "musicgen_decoder_nonkv.xml");
-            decoder_bin_path = FullPath(model_folder, "musicgen_decoder_combined.bin");
-            break;
-
-         case  MusicGenConfig::ModelSelection::MUSICGEN_SMALL_INT8:
-         case  MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_INT8:
-            decoder_model_path = FullPath(model_folder, "musicgen_decoder_nonkv_int8.xml");
-            decoder_bin_path = FullPath(model_folder, "musicgen_decoder_int8_combined.bin");
-            break;
-
-         default:
-            throw std::runtime_error("Invalid model selection");
-            break;
+            decoder_model_path = "musicgen_decoder_nonkv_int8.xml";
+            decoder_bin_path = "musicgen_decoder_int8_combined.bin";
          }
+         decoder_model_path = FullPath(model_folder, decoder_model_path);
+         decoder_bin_path = FullPath(model_folder, decoder_bin_path);
+
+         std::cout << " Using prefill decoder model =" << decoder_model_path << ", " << decoder_bin_path << std::endl;
 
          std::shared_ptr<ov::Model> model = core.read_model(decoder_model_path, decoder_bin_path);
 
@@ -659,70 +661,26 @@ namespace ov_musicgen
    MusicgenDecoderStateful::MusicgenDecoderStateful(ov::Core& core, MusicGenConfig& config)
       : _decoder_config(GenerateDecoderConfig(config))
    {
-
-      auto model_folder = config.model_folder;
-
       std::string device = config.musicgen_decode_device0;
-
       _device = device;
-
       if (device == "NPU") {
          throw std::runtime_error("NPU does not support stateful decoding.");
       }
 
-      auto tensortype = ov::element::f32;
-
-      std::string subfolder;
-      if (config.model_selection == MusicGenConfig::ModelSelection::MUSICGEN_SMALL_FP16 ||
-         config.model_selection == MusicGenConfig::ModelSelection::MUSICGEN_SMALL_INT8)
-      {
-         subfolder = "small";
-      }
-      else
-      if (config.model_selection == MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_FP16 ||
-         config.model_selection == MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_INT8)
-      {
-         subfolder = "medium";
-      }
-      else
-      {
-         throw std::runtime_error("Invalid model selection: " + std::to_string((int)config.model_selection));
-      }
-
-      if (config.bStereo)
-      {
-         subfolder += "-stereo";
-      }
-      else
-      {
-         subfolder += "-mono";
-      }
-
-      model_folder = FullPath(model_folder, subfolder);
+      auto model_folder = GetDecoderModelFolder(config);
 
       {
-         std::string decoder_model_path;
-         std::string decoder_bin_path;
-         switch (config.model_selection)
+         std::string decoder_model_path = "musicgen_decoder_stateful.xml";
+         std::string decoder_bin_path = "musicgen_decoder_combined.bin";
+         if (IsInt8Decoder(config))
          {
-         case MusicGenConfig::ModelSelection::MUSICGEN_SMALL_FP16:
-         case MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_FP16:
-            decoder_model_path = FullPath(model_folder, "musicgen_decoder_stateful.xml");
-            decoder_bin_path = FullPath(model_folder, "musicgen_decoder_combined.bin");
-            break;
-
-         case  MusicGenConfig::ModelSelection::MUSICGEN_SMALL_INT8:
-         case  MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_INT8:
-            decoder_model_path = FullPath(model_folder, "musicgen_decoder_stateful_int8.xml");
-            decoder_bin_path = FullPath(model_folder, "musicgen_decoder_int8_combined.bin");
-            break;
-
-         default:
-            throw std::runtime_error("Invalid model selection");
-            break;
+            decoder_model_path = "musicgen_decoder_stateful_int8.xml";
+            decoder_bin_path = "musicgen_decoder_int8_combined.bin";
          }
+         decoder_model_path = FullPath(model_folder, decoder_model_path);
+         decoder_bin_path = FullPath(model_folder, decoder_bin_path);
 
-         std::cout << " Using model=" << decoder_model_path << std::endl;
+         std::cout << " Using decoder model=" << decoder_model_path << ", " << decoder_bin_path << std::endl;
          std::shared_ptr<ov::Model> model = core.read_model(decoder_model_path, decoder_bin_path);
 
          std::cout << "STATEFUL MODEL:" << std::endl;
@@ -770,6 +728,8 @@ namespace ov_musicgen
          std::shared_ptr<ov::Model> model = core.read_model(model_path);
 
          auto past_encoder_key0 = _infer_request.get_tensor("past_key_values.0.encoder.key");
+
+         auto tensortype = ov::element::f32;
 
          std::map<ov::Output<ov::Node>, ov::PartialShape> port_to_shape;
          port_to_shape[model->input("encoder_hidden_states")] = { 2, past_encoder_key0.get_shape()[2], 768 };
