@@ -8,7 +8,16 @@ using namespace std::chrono;
 using Clock = std::chrono::high_resolution_clock;
 
 #define MAX_PROMPT_TOKENS 64
-#define MAX_DECODER_HISTORY_TOKENS 1004
+
+// When the static decoder is used, we set the max generation tokens to 1004
+// 1004 = 20 seconds * 50 (encodec hz) + 4 (delay pattern compensation)
+#define MAX_STATIC_DECODER_HISTORY_TOKENS 1004
+
+// When the stateful decoder is used, we can generate the maximum number of tokens
+// allowed by the MusicGen model, which is 1504
+// 1504 = 30 seconds * 50 (encoded hz) + 4
+#define MAX_STATEFUL_DECODER_HISTORY_TOKENS 1504
+
 namespace ov_musicgen
 {
    static inline bool IsInt8Decoder(const MusicGenConfig& config)
@@ -295,7 +304,7 @@ namespace ov_musicgen
             port_to_shape[model->input("encoder_attention_mask")] = { 2, MAX_PROMPT_TOKENS };
             port_to_shape[model->input("decoder_input_ids")] = { _decoder_config.num_codebooks*2, 1 };
             port_to_shape[model->input("encoder_hidden_states")] = { 2, MAX_PROMPT_TOKENS, 768 };
-            port_to_shape[model->input("decoder_attention_mask")] = { 2, MAX_DECODER_HISTORY_TOKENS + 1 };
+            port_to_shape[model->input("decoder_attention_mask")] = { 2, MAX_STATIC_DECODER_HISTORY_TOKENS + 1 };
             port_to_shape[model->input("past_key_length_tens")] = { 1 };
 
             for (int enci = 0; enci < _decoder_config.num_hidden_layers; enci++)
@@ -314,8 +323,8 @@ namespace ov_musicgen
                std::string key_name = iname + "key";
                std::string value_name = iname + "value";
 
-               port_to_shape[model->input(key_name)] = { 2, _decoder_config.num_attention_heads, MAX_DECODER_HISTORY_TOKENS, 64 };
-               port_to_shape[model->input(value_name)] = { 2, _decoder_config.num_attention_heads, MAX_DECODER_HISTORY_TOKENS, 64 };
+               port_to_shape[model->input(key_name)] = { 2, _decoder_config.num_attention_heads, MAX_STATIC_DECODER_HISTORY_TOKENS, 64 };
+               port_to_shape[model->input(value_name)] = { 2, _decoder_config.num_attention_heads, MAX_STATIC_DECODER_HISTORY_TOKENS, 64 };
             }
 
             model->reshape(port_to_shape);
@@ -871,7 +880,6 @@ namespace ov_musicgen
 
    int64_t MusicgenDecoderStateful::MaxNewTokens()
    {
-      // the stateful decoder isn't limited by the statically chosen max token size, so we can generate the full 30s.
-      return 1504;
+      return MAX_STATEFUL_DECODER_HISTORY_TOKENS;
    }
 }
