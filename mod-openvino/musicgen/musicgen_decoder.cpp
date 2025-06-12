@@ -799,8 +799,8 @@ namespace ov_musicgen
          // for some reason, CPU doesn't have the initial state tensors set with the right
          // batch size by default. So we just explicitly set them to the right shape here.
          auto states = _infer_request.query_state();
-         for (ov::VariableState& state : states) {
-
+         for (ov::VariableState& state : states)
+         {
             auto tens = state.get_state();
             auto right_batch_size_tens = ov::Tensor(tens.get_element_type(), { 2, _decoder_config.num_attention_heads, 0, 64 });
             state.set_state(right_batch_size_tens);
