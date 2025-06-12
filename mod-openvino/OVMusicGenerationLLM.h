@@ -95,12 +95,15 @@ private:
       ID_Type_AudioContinuationAsNewTrackCheckBox,
 
       ID_Type_DeviceInfoButton,
-      ID_Type_ModelManagerButton
+      ID_Type_ModelManagerButton,
+      ID_Type_ExecutionMode
    };
 
    void OnContextLengthChanged(wxCommandEvent& evt);
    void OnUnloadModelsButtonClicked(wxCommandEvent& evt);
    void OnDeviceInfoButtonClicked(wxCommandEvent& evt);
+   void OnDecoderDeviceSelectionChanged(wxCommandEvent& evt);
+   void ShowOrHideExecutionMode();
 
    wxChoice* mTypeChoiceDeviceCtrl_EnCodec;
    wxChoice* mTypeChoiceDeviceCtrl_Decode0;
@@ -149,6 +152,10 @@ private:
    std::vector< EnumValueSymbol > mGuiModelSelections;
    int m_modelSelectionChoice = 0;
    wxChoice* mTypeChoiceModelSelection;
+
+   int m_executionModeChoice = 0;
+   wxChoice* mTypeExecutionModeSelection;
+   std::vector< EnumValueSymbol > mGuiExecutionModeSelections;
 
    wxCheckBox* _AudioContinuationCheckBox;
    wxCheckBox* _AudioContinuationAsNewTrackCheckBox;

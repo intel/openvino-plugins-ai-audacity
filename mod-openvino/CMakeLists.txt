@@ -21,8 +21,6 @@ message("torch libraries = ${TORCH_LIBRARIES}")
 # That header file will implement the preprocessor logic to *actually* enable ITT or not.
 include_directories( ittutils )
 
-find_package(OpenCL REQUIRED)
-
 add_subdirectory(musicgen)
 include_directories(musicgen)
 
@@ -89,7 +87,6 @@ set( LIBRARIES
       lib-network-manager
       openvino::runtime
       openvino::genai
-	   OpenCL::OpenCL
       ${TORCH_LIBRARIES}
 )
 

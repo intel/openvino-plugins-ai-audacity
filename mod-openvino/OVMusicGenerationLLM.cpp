@@ -54,6 +54,7 @@ EVT_CHOICE(ID_Type_ContextLength, EffectOVMusicGenerationLLM::OnContextLengthCha
 EVT_CHECKBOX(ID_Type_AudioContinuationCheckBox, EffectOVMusicGenerationLLM::OnContextLengthChanged)
 EVT_CHECKBOX(ID_Type_AudioContinuationAsNewTrackCheckBox, EffectOVMusicGenerationLLM::OnContextLengthChanged)
 EVT_BUTTON(ID_Type_ModelManagerButton, EffectOVMusicGenerationLLM::OnModelManagerButtonClicked)
+EVT_CHOICE(ID_Type_MusicGenDecodeDevice0, EffectOVMusicGenerationLLM::OnDecoderDeviceSelectionChanged)
 END_EVENT_TABLE()
 
 EffectOVMusicGenerationLLM::EffectOVMusicGenerationLLM()
@@ -80,9 +81,15 @@ EffectOVMusicGenerationLLM::EffectOVMusicGenerationLLM()
    }
 
    std::vector<std::string> context_length_choices = { "5 Seconds", "10 Seconds" };
-   for (auto d : context_length_choices)
+   for (auto &d : context_length_choices)
    {
       mGuiContextLengthSelections.push_back({ TranslatableString{ wxString(d), {}} });
+   }
+
+   std::vector<std::string> execution_mode_choices = { "Performance", "Accuracy" };
+   for (auto& em : execution_mode_choices)
+   {
+      mGuiExecutionModeSelections.push_back({ TranslatableString{ wxString(em), {}} });
    }
 }
 
@@ -279,6 +286,15 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
       std::cout << "encodec_device = " << encodec_device << std::endl;
       std::cout << "MusicGen Decode Device = " << musicgen_decode_device << std::endl;
 
+      auto execution_mode = ov_musicgen::MusicGenConfig::DecoderExecutionMode::PERFORMANCE;
+      if (musicgen_decode_device.find("GPU") != std::string::npos)
+      {
+         if (m_executionModeChoice == 1)
+         {
+            execution_mode = ov_musicgen::MusicGenConfig::DecoderExecutionMode::ACCURACY;
+         }
+      }
+
       FilePath cache_folder = FileNames::MkDir(wxFileName(FileNames::DataDir(), wxT("openvino-model-cache")).GetFullPath());
       std::string cache_path = wstring_to_string(wxFileName(cache_folder).GetFullPath().ToStdWstring());
       std::cout << "cache path = " << cache_path << std::endl;
@@ -288,7 +304,7 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
 
       auto musicgen_pipeline_creation_future = std::async(std::launch::async,
          [this, &musicgen_model_folder, &cache_path, &encodec_device, &musicgen_decode_device,
-         &continuation_context, &model_selection, &bIsModelStereo]
+         &continuation_context, &model_selection, &bIsModelStereo, &execution_mode]
          {
 
             try
@@ -324,6 +340,14 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
                   _musicgen = {};
                }
 
+               if (musicgen_decode_device.find("GPU") != std::string::npos)
+               {
+                  if (execution_mode != _musicgen_config.decoder_execution_mode)
+                  {
+                     _musicgen = {};
+                  }
+               }
+
                if (!_musicgen)
                {
                   _musicgen_config.musicgen_decode_device0 = musicgen_decode_device;
@@ -340,6 +364,8 @@ bool EffectOVMusicGenerationLLM::Process(EffectInstance&, EffectSettings& settin
                   _musicgen_config.bStereo = bIsModelStereo;
 
                   _musicgen_config.model_selection = model_selection;
+
+                  _musicgen_config.decoder_execution_mode = execution_mode;
 
                   // WA for OpenVINO locale caching issue (https://github.com/openvinotoolkit/openvino/issues/24370)
                   OVLocaleWorkaround wa;
@@ -999,6 +1025,17 @@ void EffectOVMusicGenerationLLM::DoPopulateOrExchange(
             S.AddVariableText(XO(""));
             S.AddVariableText(XO(""));
 
+            mTypeExecutionModeSelection = S.Id(ID_Type_ExecutionMode)
+               .MinSize({ -1, -1 })
+               .Validator<wxGenericValidator>(&m_executionModeChoice)
+               .AddChoice(XXO("Execution Mode:"),
+                  Msgids(mGuiExecutionModeSelections.data(), mGuiExecutionModeSelections.size()));
+
+            S.AddVariableText(XO(""));
+            S.AddVariableText(XO(""));
+
+            ShowOrHideExecutionMode();
+
             auto device_info_button = S.Id(ID_Type_DeviceInfoButton).AddButton(XO("Device Details..."));
 
             S.SetStretchyCol(2);
@@ -1197,6 +1234,54 @@ void EffectOVMusicGenerationLLM::OnContextLengthChanged(wxCommandEvent& evt)
 {
    std::cout << "OnContextLengthChanged called" << std::endl;
    SetContinuationContextWarning();
+}
+
+void EffectOVMusicGenerationLLM::ShowOrHideExecutionMode()
+{
+   if (!mTypeChoiceDeviceCtrl_Decode0 || !mTypeExecutionModeSelection)
+      return;
+
+   int current_selection = mTypeChoiceDeviceCtrl_Decode0->GetCurrentSelection();
+   if (current_selection == -1)
+   {
+      current_selection = m_deviceSelectionChoice_MusicGenDecode;
+   }
+
+   auto musicgen_decode_device = audacity::ToUTF8(mTypeChoiceDeviceCtrl_Decode0->GetString(current_selection));
+
+   const std::string not_applicable_string = "Not applicable";
+
+   // For a GPU device, enable use of the selection. Otherwise, disable it.
+   if (musicgen_decode_device.find("GPU") != std::string::npos)
+   {
+      // When the decoder device is set to a GPU device, enable use of the drop-down
+      // list, and remove the 'not applicable' entry, if it exists.
+      auto na_string = mTypeExecutionModeSelection->GetString(0);
+      if (na_string == not_applicable_string)
+      {
+         mTypeExecutionModeSelection->Delete(0);
+         mTypeExecutionModeSelection->SetSelection(m_executionModeChoice);
+      }
+      mTypeExecutionModeSelection->Enable();
+   }
+   else
+   {
+      // When the decoder device is set to a non-GPU device, disable the execution mode
+      // selection, and set the displayed value to "Not applicable".
+      int current_mode_selection = mTypeExecutionModeSelection->GetCurrentSelection();
+      if (current_mode_selection >= 0)
+      {
+         m_executionModeChoice = current_mode_selection;
+      }
+      mTypeExecutionModeSelection->Insert(not_applicable_string, 0);
+      mTypeExecutionModeSelection->SetSelection(0);
+      mTypeExecutionModeSelection->Disable();
+   }
+}
+
+void EffectOVMusicGenerationLLM::OnDecoderDeviceSelectionChanged(wxCommandEvent& evt)
+{
+   ShowOrHideExecutionMode();
 }
 
 void EffectOVMusicGenerationLLM::OnUnloadModelsButtonClicked(wxCommandEvent& evt)

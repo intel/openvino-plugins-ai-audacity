@@ -9,7 +9,6 @@ call env.bat
 
 echo LIBTORCH_DIR=%LIBTORCH_DIR%
 echo OPENVINO_GENAI_DIR=%OPENVINO_GENAI_DIR%
-echo OPENCL_SDK_DIR=%OPENCL_SDK_DIR%
 echo AUDACITY_CLONE_DIR=%AUDACITY_CLONE_DIR%
 echo BUILD_FOLDER=%BUILD_FOLDER%
 echo CONAN_HOME=%CONAN_HOME%
@@ -26,11 +25,6 @@ IF "%OPENVINO_GENAI_DIR%"=="" (
 
 IF "%LIBTORCH_DIR%"=="" (
     echo LIBTORCH_DIR is not set. Exiting.
-    exit /b 1
-)
-
-IF "%OPENCL_SDK_DIR%"=="" (
-    echo OPENCL_SDK_DIR is not set. Exiting.
     exit /b 1
 )
 
@@ -64,10 +58,6 @@ call %OPENVINO_GENAI_DIR%\setupvars.bat || exit /b 1
 :: Setup Libtorch end.
 set LIBTORCH_ROOTDIR=%LIBTORCH_DIR%
 set Path=%LIBTORCH_ROOTDIR%\lib;%Path%
-
-:: Setup OpenCL env.
-set OCL_ROOT=%OPENCL_SDK_DIR%
-set Path=%OCL_ROOT%\bin;%Path%
 
 ::::::::::::::::::::::::::::::::::::::::::::
 :: Audacity  + OpenVINO AI Plugins build. ::

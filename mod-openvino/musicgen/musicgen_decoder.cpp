@@ -3,15 +3,74 @@
 #include "musicgen_decoder.h"
 #include "musicgen_utils.h"
 #include "musicgen_config.h"
-#include "static_kv_cache_manager_cl.h"
 
 using namespace std::chrono;
 using Clock = std::chrono::high_resolution_clock;
 
 #define MAX_PROMPT_TOKENS 64
-#define MAX_DECODER_HISTORY_TOKENS 1004
+
+// When the static decoder is used, we set the max generation tokens to 1004
+// 1004 = 20 seconds * 50 (encodec hz) + 4 (delay pattern compensation)
+#define MAX_STATIC_DECODER_HISTORY_TOKENS 1004
+
+// When the stateful decoder is used, we can generate the maximum number of tokens
+// allowed by the MusicGen model, which is 1504
+// 1504 = 30 seconds * 50 (encoded hz) + 4
+#define MAX_STATEFUL_DECODER_HISTORY_TOKENS 1504
+
 namespace ov_musicgen
 {
+   static inline bool IsInt8Decoder(const MusicGenConfig& config)
+   {
+      switch (config.model_selection)
+      {
+         case MusicGenConfig::ModelSelection::MUSICGEN_SMALL_FP16:
+         case MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_FP16:
+            return false;
+         case MusicGenConfig::ModelSelection::MUSICGEN_SMALL_INT8:
+         case MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_INT8:
+            return true;
+         default:
+            throw std::runtime_error("Invalid model selection " + std::to_string((int)config.model_selection));
+      }
+
+      // shouldn't be possible to reach here.
+      return false;
+   }
+
+   static inline std::string GetDecoderModelFolder(const MusicGenConfig& config)
+   {
+      auto model_folder = config.model_folder;
+
+      std::string subfolder;
+      switch (config.model_selection)
+      {
+      case MusicGenConfig::ModelSelection::MUSICGEN_SMALL_FP16:
+      case MusicGenConfig::ModelSelection::MUSICGEN_SMALL_INT8:
+         subfolder = "small";
+         break;
+      case MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_FP16:
+      case MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_INT8:
+         subfolder = "medium";
+         break;
+      default:
+         throw std::runtime_error("Invalid model selection: " + std::to_string((int)config.model_selection));
+         break;
+      }
+
+      if (config.bStereo)
+      {
+         subfolder += "-stereo";
+      }
+      else
+      {
+         subfolder += "-mono";
+      }
+
+      model_folder = FullPath(model_folder, subfolder);
+
+      return model_folder;
+   }
 
    StaticKVCacheManager::StaticKVCacheManager(ov::InferRequest infer_request_initial,
       ov::InferRequest infer_request_with_past,
@@ -219,63 +278,24 @@ namespace ov_musicgen
 	MusicgenDecoderStatic::MusicgenDecoderStatic(ov::Core& core, MusicGenConfig& config)
       : _decoder_config(GenerateDecoderConfig(config))
 	{
-		auto model_folder = config.model_folder;
-
       std::string device = config.musicgen_decode_device0;
 
       auto tensortype = device == "CPU" ? ov::element::f32 : ov::element::f16;
 
-      std::string subfolder;
-      if (config.model_selection == MusicGenConfig::ModelSelection::MUSICGEN_SMALL_FP16 ||
-         config.model_selection == MusicGenConfig::ModelSelection::MUSICGEN_SMALL_INT8)
-      {
-         subfolder = "small";
-      }
-      else
-      if (config.model_selection == MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_FP16 ||
-         config.model_selection == MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_INT8)
-      {
-         subfolder = "medium";
-      }
-      else
-      {
-         throw std::runtime_error("Invalid model selection: " + std::to_string((int)config.model_selection));
-      }
-
-      if (config.bStereo)
-      {
-         subfolder += "-stereo";
-      }
-      else
-      {
-         subfolder += "-mono";
-      }
-
-      model_folder = FullPath(model_folder, subfolder);
+      auto model_folder = GetDecoderModelFolder(config);
 
       {
-         std::string decoder_model_path;
-         std::string decoder_bin_path;
-         switch (config.model_selection)
+         std::string decoder_model_path = "musicgen_decoder.xml";
+         std::string decoder_bin_path = "musicgen_decoder_combined.bin";
+         if (IsInt8Decoder(config))
          {
-         case MusicGenConfig::ModelSelection::MUSICGEN_SMALL_FP16:
-         case MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_FP16:
-            decoder_model_path = FullPath(model_folder, "musicgen_decoder.xml");
-            decoder_bin_path = FullPath(model_folder, "musicgen_decoder_combined.bin");
-            break;
-
-         case  MusicGenConfig::ModelSelection::MUSICGEN_SMALL_INT8:
-         case  MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_INT8:
-            decoder_model_path = FullPath(model_folder, "musicgen_decoder_int8.xml");
-            decoder_bin_path = FullPath(model_folder, "musicgen_decoder_int8_combined.bin");
-            break;
-
-         default:
-            throw std::runtime_error("Invalid model selection");
-            break;
+            decoder_model_path = "musicgen_decoder_int8.xml";
+            decoder_bin_path = "musicgen_decoder_int8_combined.bin";
          }
+         decoder_model_path = FullPath(model_folder, decoder_model_path);
+         decoder_bin_path = FullPath(model_folder, decoder_bin_path);
 
-         std::cout << " Using model=" << decoder_model_path << std::endl;
+         std::cout << " Using decoder model =" << decoder_model_path << ", " << decoder_bin_path << std::endl;
          std::shared_ptr<ov::Model> model = core.read_model(decoder_model_path, decoder_bin_path);
 
          //reshape to static shapes
@@ -284,7 +304,7 @@ namespace ov_musicgen
             port_to_shape[model->input("encoder_attention_mask")] = { 2, MAX_PROMPT_TOKENS };
             port_to_shape[model->input("decoder_input_ids")] = { _decoder_config.num_codebooks*2, 1 };
             port_to_shape[model->input("encoder_hidden_states")] = { 2, MAX_PROMPT_TOKENS, 768 };
-            port_to_shape[model->input("decoder_attention_mask")] = { 2, MAX_DECODER_HISTORY_TOKENS + 1 };
+            port_to_shape[model->input("decoder_attention_mask")] = { 2, MAX_STATIC_DECODER_HISTORY_TOKENS + 1 };
             port_to_shape[model->input("past_key_length_tens")] = { 1 };
 
             for (int enci = 0; enci < _decoder_config.num_hidden_layers; enci++)
@@ -303,8 +323,8 @@ namespace ov_musicgen
                std::string key_name = iname + "key";
                std::string value_name = iname + "value";
 
-               port_to_shape[model->input(key_name)] = { 2, _decoder_config.num_attention_heads, MAX_DECODER_HISTORY_TOKENS, 64 };
-               port_to_shape[model->input(value_name)] = { 2, _decoder_config.num_attention_heads, MAX_DECODER_HISTORY_TOKENS, 64 };
+               port_to_shape[model->input(key_name)] = { 2, _decoder_config.num_attention_heads, MAX_STATIC_DECODER_HISTORY_TOKENS, 64 };
+               port_to_shape[model->input(value_name)] = { 2, _decoder_config.num_attention_heads, MAX_STATIC_DECODER_HISTORY_TOKENS, 64 };
             }
 
             model->reshape(port_to_shape);
@@ -392,29 +412,19 @@ namespace ov_musicgen
          _infer_request_initial = compiledModel.create_infer_request();
       }
 
-
       //prep large context model
       {
-         std::string decoder_model_path;
-         std::string decoder_bin_path;
-         switch (config.model_selection)
+         std::string decoder_model_path = "musicgen_decoder_nonkv.xml";
+         std::string decoder_bin_path = "musicgen_decoder_combined.bin";
+         if (IsInt8Decoder(config))
          {
-         case MusicGenConfig::ModelSelection::MUSICGEN_SMALL_FP16:
-         case MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_FP16:
-            decoder_model_path = FullPath(model_folder, "musicgen_decoder_nonkv.xml");
-            decoder_bin_path = FullPath(model_folder, "musicgen_decoder_combined.bin");
-            break;
-
-         case  MusicGenConfig::ModelSelection::MUSICGEN_SMALL_INT8:
-         case  MusicGenConfig::ModelSelection::MUSICGEN_MEDIUM_INT8:
-            decoder_model_path = FullPath(model_folder, "musicgen_decoder_nonkv_int8.xml");
-            decoder_bin_path = FullPath(model_folder, "musicgen_decoder_int8_combined.bin");
-            break;
-
-         default:
-            throw std::runtime_error("Invalid model selection");
-            break;
+            decoder_model_path = "musicgen_decoder_nonkv_int8.xml";
+            decoder_bin_path = "musicgen_decoder_int8_combined.bin";
          }
+         decoder_model_path = FullPath(model_folder, decoder_model_path);
+         decoder_bin_path = FullPath(model_folder, decoder_bin_path);
+
+         std::cout << " Using prefill decoder model =" << decoder_model_path << ", " << decoder_bin_path << std::endl;
 
          std::shared_ptr<ov::Model> model = core.read_model(decoder_model_path, decoder_bin_path);
 
@@ -492,14 +502,8 @@ namespace ov_musicgen
          _infer_request_nonkv = compiledModel.create_infer_request();
       }
 
-      if (device.find("GPU") != std::string::npos)
-      {
-         _kv_cache_manager = std::make_shared< StaticKVCacheManagerCL >(core, _infer_request_initial, _infer_request, _infer_request_nonkv, _decoder_config);
-      }
-      else
-      {
-         _kv_cache_manager = std::make_shared< StaticKVCacheManager >(_infer_request_initial, _infer_request, _infer_request_nonkv, _decoder_config);
-      }
+
+      _kv_cache_manager = std::make_shared< StaticKVCacheManager >(_infer_request_initial, _infer_request, _infer_request_nonkv, _decoder_config);
       _kv_cache_manager->Init();
 
       Reset();
@@ -661,4 +665,221 @@ namespace ov_musicgen
       auto past_decoder_key0 = _infer_request.get_tensor("past_key_values.0.decoder.key");
 		return past_decoder_key0.get_shape()[2];
 	}
+
+
+   MusicgenDecoderStateful::MusicgenDecoderStateful(ov::Core& core, MusicGenConfig& config)
+      : _decoder_config(GenerateDecoderConfig(config))
+   {
+      std::string device = config.musicgen_decode_device0;
+      _device = device;
+      if (device == "NPU") {
+         throw std::runtime_error("NPU does not support stateful decoding.");
+      }
+
+      auto model_folder = GetDecoderModelFolder(config);
+
+      {
+         std::string decoder_model_path = "musicgen_decoder_stateful.xml";
+         std::string decoder_bin_path = "musicgen_decoder_combined.bin";
+         if (IsInt8Decoder(config))
+         {
+            decoder_model_path = "musicgen_decoder_stateful_int8.xml";
+            decoder_bin_path = "musicgen_decoder_int8_combined.bin";
+         }
+         decoder_model_path = FullPath(model_folder, decoder_model_path);
+         decoder_bin_path = FullPath(model_folder, decoder_bin_path);
+
+         std::cout << " Using decoder model=" << decoder_model_path << ", " << decoder_bin_path << std::endl;
+         std::shared_ptr<ov::Model> model = core.read_model(decoder_model_path, decoder_bin_path);
+
+         std::cout << "STATEFUL MODEL:" << std::endl;
+         logBasicModelInfo(model);
+
+         //reshape
+         {
+            std::map<ov::Output<ov::Node>, ov::PartialShape> port_to_shape;
+            port_to_shape[model->input("encoder_attention_mask")] = { 2, MAX_PROMPT_TOKENS };
+            port_to_shape[model->input("decoder_input_ids")] = { _decoder_config.num_codebooks * 2, -1 };
+            port_to_shape[model->input("encoder_hidden_states")] = { 2, MAX_PROMPT_TOKENS, 768 };
+            //port_to_shape[model->input("past_key_length_tens")] = { 1 };
+
+            for (int enci = 0; enci < _decoder_config.num_hidden_layers; enci++)
+            {
+               std::string iname = "past_key_values." + std::to_string(enci) + ".encoder.";
+               std::string key_name = iname + "key";
+               std::string value_name = iname + "value";
+
+               port_to_shape[model->input(key_name)] = { 2, _decoder_config.num_attention_heads, MAX_PROMPT_TOKENS, 64 };
+               port_to_shape[model->input(value_name)] = { 2, _decoder_config.num_attention_heads, MAX_PROMPT_TOKENS, 64 };
+            }
+
+            model->reshape(port_to_shape);
+         }
+         std::cout << "AFTER RESHAPE:" << std::endl;
+         logBasicModelInfo(model);
+
+         ov::AnyMap properties = { ov::hint::performance_mode(ov::hint::PerformanceMode::LATENCY) };
+         if (config.decoder_execution_mode == MusicGenConfig::DecoderExecutionMode::ACCURACY)
+         {
+            std::cout << "Adding ov::hint::ExecutionMode::ACCURACY to compilation properties..." << std::endl;
+            properties.insert(ov::hint::execution_mode(ov::hint::ExecutionMode::ACCURACY));
+         }
+
+         ov::CompiledModel compiledModel = core.compile_model(model, device, properties);
+
+         _infer_request = compiledModel.create_infer_request();
+      }
+
+      //prep cross attn kv producer model. This is the thing that generates the
+      // encoder KV's
+      {
+         auto model_path = FullPath(model_folder, "initial_cross_attn_kv_producer.xml");
+         std::shared_ptr<ov::Model> model = core.read_model(model_path);
+
+         auto past_encoder_key0 = _infer_request.get_tensor("past_key_values.0.encoder.key");
+
+         auto tensortype = ov::element::f32;
+
+         std::map<ov::Output<ov::Node>, ov::PartialShape> port_to_shape;
+         port_to_shape[model->input("encoder_hidden_states")] = { 2, past_encoder_key0.get_shape()[2], 768 };
+         port_to_shape[model->input("attention_mask")] = { 2, past_encoder_key0.get_shape()[2] };
+         model->reshape(port_to_shape);
+
+         ov::preprocess::PrePostProcessor ppp(model);
+         for (size_t layeri = 0; layeri < _decoder_config.num_hidden_layers; layeri++)
+         {
+            std::string present_base_name = "present." + std::to_string(layeri) + ".encoder.";
+            std::string present_key_name = present_base_name + "key";
+            std::string present_value_name = present_base_name + "value";
+
+            ppp.output(present_key_name).tensor().set_element_type(tensortype);
+            ppp.output(present_value_name).tensor().set_element_type(tensortype);
+         }
+
+         model = ppp.build();
+
+         std::cout << "INITAL CROSS ATTN KV PRODUCER MODEL:" << std::endl;
+         logBasicModelInfo(model);
+
+         ov::CompiledModel compiledModel = core.compile_model(model, device);
+
+         _infer_request_initial = compiledModel.create_infer_request();
+      }
+
+      // share some tensors between initial kv model, and decoder model
+      _infer_request_initial.set_tensor("attention_mask", _infer_request.get_tensor("encoder_attention_mask"));
+      for (size_t layeri = 0; layeri < _decoder_config.num_hidden_layers; layeri++)
+      {
+         std::string present_base_name = "present." + std::to_string(layeri) + ".encoder.";
+         std::string present_key_name = present_base_name + "key";
+         std::string present_value_name = present_base_name + "value";
+
+         std::string past_base_name = "past_key_values." + std::to_string(layeri) + ".encoder.";
+         std::string past_key_name = past_base_name + "key";
+         std::string past_value_name = past_base_name + "value";
+
+         _infer_request_initial.set_tensor(present_key_name, _infer_request.get_tensor(past_key_name));
+         _infer_request_initial.set_tensor(present_value_name, _infer_request.get_tensor(past_value_name));
+      }
+
+      Reset();
+   }
+
+   void MusicgenDecoderStateful::Reset()
+   {
+      std::cout << "Reset: Previous Infer Time = " << _infer_time_us << " us" << std::endl;
+      _infer_time_us = 0;
+
+      _past_length = 0;
+
+      _infer_request.reset_state();
+
+      if (_device == "CPU")
+      {
+         // for some reason, CPU doesn't have the initial state tensors set with the right
+         // batch size by default. So we just explicitly set them to the right shape here.
+         auto states = _infer_request.query_state();
+         for (ov::VariableState& state : states)
+         {
+            auto tens = state.get_state();
+            auto right_batch_size_tens = ov::Tensor(tens.get_element_type(), { 2, _decoder_config.num_attention_heads, 0, 64 });
+            state.set_state(right_batch_size_tens);
+         }
+      }
+
+      //clear initial input tensor
+      {
+         auto encoder_hidden_states = _infer_request_initial.get_tensor("encoder_hidden_states");
+         memset(encoder_hidden_states.data(), 0, encoder_hidden_states.get_byte_size());
+      }
+
+      {
+         auto encoder_attention_mask = _infer_request_initial.get_tensor("attention_mask");
+         memset(encoder_attention_mask.data(), 0, encoder_attention_mask.get_byte_size());
+      }
+
+      //fill attention masks with 0's
+      for (auto& tensorname : { "encoder_attention_mask" })
+      {
+         auto tensor = _infer_request.get_tensor(tensorname);
+         memset(tensor.data(), 0, tensor.get_byte_size());
+      }
+   }
+
+   torch::Tensor MusicgenDecoderStateful::run(torch::Tensor input_ids,
+      std::optional<torch::Tensor> encoder_hidden_states,
+      std::optional<torch::Tensor> encoder_attention_mask)
+   {
+      using namespace torch::indexing;
+      if (_past_length == 0 && encoder_hidden_states && encoder_attention_mask)
+      {
+         auto input_encoder_attention_mask = wrap_ov_tensor_as_torch(_infer_request_initial.get_tensor("attention_mask"));
+         auto encoder_hidden_states_ov = wrap_ov_tensor_as_torch(_infer_request_initial.get_tensor("encoder_hidden_states"));
+
+         input_encoder_attention_mask.index_put_({ Slice(), Slice(0, encoder_attention_mask->sizes()[1]) }, *encoder_attention_mask);
+         encoder_hidden_states_ov.index_put_({ Slice(), Slice(0, encoder_hidden_states->sizes()[1]), Slice() }, *encoder_hidden_states);
+
+         //run inference, producing encoder kv values.
+         _infer_request_initial.infer();
+      }
+
+      torch::Tensor logits;
+
+      auto decoder_input_ids_from_torch = wrap_torch_tensor_as_ov(input_ids);
+      auto decoder_input_ids = ov::Tensor(ov::element::i64, decoder_input_ids_from_torch.get_shape());
+      decoder_input_ids_from_torch.copy_to(decoder_input_ids);
+      _infer_request.set_tensor("decoder_input_ids", decoder_input_ids);
+
+      //set encoder attention mask
+      auto encoder_attention_mask_ov = wrap_ov_tensor_as_torch(_infer_request.get_tensor("encoder_attention_mask"));
+      encoder_attention_mask_ov.index_put_({ Slice(), Slice(0, encoder_attention_mask->sizes()[1]) }, *encoder_attention_mask);
+
+      //set encoder hidden states
+      auto encoder_hidden_states_ov = wrap_ov_tensor_as_torch(_infer_request.get_tensor("encoder_hidden_states"));
+      encoder_hidden_states_ov.index_put_({ Slice(), Slice(0, encoder_hidden_states->sizes()[1]), Slice() }, *encoder_hidden_states);
+
+      {
+         uint64_t t0 = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
+         _infer_request.infer();
+         uint64_t t1 = duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
+         _infer_time_us += t1 - t0;
+      }
+
+      auto logits_ov = _infer_request.get_tensor("logits");
+      logits = wrap_ov_tensor_as_torch(logits_ov);
+
+      _past_length += input_ids.sizes()[1];
+
+      return logits;
+   }
+
+   int64_t MusicgenDecoderStateful::PastLength()
+   {
+      return _past_length;
+   }
+
+   int64_t MusicgenDecoderStateful::MaxNewTokens()
+   {
+      return MAX_STATEFUL_DECODER_HISTORY_TOKENS;
+   }
 }

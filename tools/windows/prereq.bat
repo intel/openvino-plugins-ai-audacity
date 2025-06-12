@@ -12,9 +12,6 @@ set LIBTORCH_PACKAGE_256SUM=e7b8d0b3b958d2215f52ff5385335f93aa78e42005727e44f104
 set OPENVINO_GENAI_PACKAGE_URL=https://storage.openvinotoolkit.org/repositories/openvino_genai/packages/pre-release/2025.2.0.0rc3/openvino_genai_windows_2025.2.0.0rc3_x86_64.zip
 set OPENVINO_GENAI_PACKAGE_256SUM=ac2cefec131d4faaaf217507693c5c1d5e8588bfcc3ac4ab56ea2b532ad80812
 
-set OPENCL_SDK_URL=https://github.com/KhronosGroup/OpenCL-SDK/releases/download/v2023.04.17/OpenCL-SDK-v2023.04.17-Win-x64.zip
-set OPENCL_SDK_256SUM=11844a1d69a71f82dc14ce66382c6b9fc8a4aee5840c21a786c5accb1d69bc0a
-
 :::::::::::::::::::::::::::::
 ::  GIT Repo Configuration ::
 :::::::::::::::::::::::::::::
@@ -44,13 +41,6 @@ exit /b
 
 set OPENVINO_GENAI_DIR=%EXTRACTED_PACKAGE_PATH%
 
-call :DownloadVerifyExtract %OPENCL_SDK_URL% %OPENCL_SDK_256SUM%
-IF "%EXTRACTED_PACKAGE_PATH%"=="" (
-echo Error in opencl tokenizers download routine..
-exit /b
-)
-
-set OPENCL_SDK_DIR=%EXTRACTED_PACKAGE_PATH%
 
 :: Clone the required repo's and check out the desired tags
 git clone --depth 1 --branch %AUDACITY_REPO_CHECKOUT% %AUDACITY_REPO_CLONE_URL%
@@ -64,7 +54,7 @@ call "build_env\Scripts\activate"
 echo "installing conan"
 pip install conan
 
-call %bat_path%\set_env.bat %LIBTORCH_DIR% %OPENVINO_GENAI_DIR% %OPENCL_SDK_DIR% audacity %CONAN_CACHE_PATH%
+call %bat_path%\set_env.bat %LIBTORCH_DIR% %OPENVINO_GENAI_DIR% audacity %CONAN_CACHE_PATH%
 
 goto :eof
 
