@@ -1,3 +1,35 @@
+# Audacity OpenVINO module support on Linux
+
+There are a few options for running the OpenVINO module on Linux:
+
+1. [Install the Audacity Snap](#install-the-audacity-snap)
+2. [Audacity OpenVINO module build for Linux (Ubuntu 22.04)](#audacity-openvino-module-build-for-linux-ubuntu-2204)
+
+## Install the Audacity Snap
+
+If your Linux distribution supports snaps (check [here](https://snapcraft.io/docs/distro-support)), the [Audacity snap](https://snapcraft.io/audacity) comes with support for the OpenVINO module out-of-the-box. To install the snap:
+```
+sudo snap install audacity
+```
+
+To enable NPU and GPU support, ensure you are in the `render` group and also install the `intel-npu-driver` snap:
+```
+sudo usermod -a -G render $USER # log out and log back in
+sudo snap install intel-npu-driver
+```
+
+Note that the AI models are **not** built into the snap. For convenience, there is an interactive command-line tool distributed with the snap that will download and install the models:
+```
+sudo audacity.fetch-models
+```
+
+To simply install all models with a single command:
+```
+sudo audacity.fetch-models --batch
+```
+
+More details about the snap and OpenVINO module can be found [here](https://github.com/snapcrafters/audacity?tab=readme-ov-file#openvino-ai-plugins).
+
 # Audacity OpenVINO module build for Linux (Ubuntu 22.04)
 
 Hi! The following is the process that we use when building the Audacity modules for Linux. These instructions are for Ubuntu 22.04, so you may need to adapt them slightly for other Linux distros.
