@@ -285,6 +285,21 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_whisper()
          "" // Distil-Medium models on HF are kind of broken... they don't include the _with_past models
       },
       {
+         "Distil-Whisper Large V2 (FP16)",
+         "distil-whisper-large-v2-fp16-ov",
+         "https://huggingface.co/OpenVINO/distil-whisper-large-v2-fp16-ov/resolve/main/"
+      },
+      {
+         "Distil-Whisper Large V2 (INT8)",
+         "distil-whisper-large-v2-int8-ov",
+         "https://huggingface.co/OpenVINO/distil-whisper-large-v2-int8-ov/resolve/main/"
+      },
+      {
+         "Distil-Whisper Large V2 (INT4)",
+         "distil-whisper-large-v2-int4-ov",
+         "https://huggingface.co/OpenVINO/distil-whisper-large-v2-int4-ov/resolve/main/"
+      },
+      {
          "Distil-Whisper Large V3 (FP16)",
          "distil-whisper-large-v3-fp16-ov",
          "https://huggingface.co/OpenVINO/distil-whisper-large-v3-fp16-ov/resolve/main/"
@@ -320,10 +335,6 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_whisper()
          "openvino_tokenizer.bin", "openvino_tokenizer.xml", "preprocessor_config.json", "special_tokens_map.json",
          "tokenizer.json", "tokenizer_config.json", "vocab.json"
       };
-
-      //TODO: This should go away once HF is updated with the latest conversions from optimum-cli.
-      whisper_info->fileList.push_back("openvino_decoder_with_past_model.bin");
-      whisper_info->fileList.push_back("openvino_decoder_with_past_model.xml");
 
       whisper_collection->models.push_back(whisper_info);
    }
