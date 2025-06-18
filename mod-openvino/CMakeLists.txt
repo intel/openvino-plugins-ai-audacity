@@ -27,6 +27,8 @@ include_directories( ittutils )
 
 find_package(OpenCL REQUIRED)
 
+pkg_search_module(CPPHTTPLIB REQUIRED cpp-httplib)
+
 add_subdirectory(musicgen)
 include_directories(musicgen)
 
@@ -88,6 +90,7 @@ set( LIBRARIES
       openvino::runtime
 	   OpenCL::OpenCL
       ${TORCH_LIBRARIES}
+      ${CPPHTTPLIB_LIBRARIES}
       ${whisper}
 )
 
