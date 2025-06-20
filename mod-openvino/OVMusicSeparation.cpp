@@ -12,7 +12,6 @@
 #include "ViewInfo.h"
 #include "TimeWarper.h"
 #include "LoadEffects.h"
-#include "htdemucs.h"
 
 #include <wx/intl.h>
 #include <wx/valgen.h>
@@ -32,6 +31,10 @@
 #include "OVModelManager.h"
 #include "OVModelManagerUI.h"
 
+#include "demix/demix.h"
+#include "demix/htdemucs.h"
+#include "demix/mel_band_roformer.h"
+
 const ComponentInterfaceSymbol EffectOVMusicSeparation::Symbol{ XO("OpenVINO Music Separation") };
 
 namespace { BuiltinEffectsModule::Registration< EffectOVMusicSeparation > reg; }
@@ -44,15 +47,18 @@ END_EVENT_TABLE()
 
 EffectOVMusicSeparation::EffectOVMusicSeparation()
 {
-   mSupportedDevices = ovdemucs::HTDemucs::GetSupportedDevices();
-
    ov::Core core;
 
-   for (auto d : mSupportedDevices)
+   auto ov_supported_device = core.get_available_devices();
+   for (auto d : ov_supported_device)
    {
-      mGuiDeviceSelections.push_back({ TranslatableString{ wxString(d), {}} });
+      //GNA devices are not supported
+      if (d.find("GNA") != std::string::npos) continue;
 
       m_simple_to_full_device_map.push_back({ d, core.get_property(d, "FULL_DEVICE_NAME").as<std::string>() });
+
+      mSupportedDevices.push_back(d);
+      mGuiDeviceSelections.push_back({ TranslatableString{ wxString(d), {}} });
    }
 
    mGuiSeparationModeSelections.push_back({ TranslatableString{ wxString("(2 Stem) Instrumental, Vocals"), {}} });
@@ -295,6 +301,10 @@ static bool HTDemucsProgressUpdate(double perc_complete, void* user)
 {
    EffectOVMusicSeparation* music_sep = (EffectOVMusicSeparation*)user;
 
+   perc_complete = perc_complete * 100;
+   if (perc_complete > 100)
+      perc_complete = 100;
+
    return music_sep->UpdateProgress(perc_complete);
 }
 
@@ -342,13 +352,72 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
          throw std::runtime_error("This model is not installed: " + retrieved_model_info->model_name);
       }
 
+      auto model_folder = retrieved_model_info->installation_path;
 
-      std::string xml_name;
+      std::shared_ptr< ov_demix::DemixModel > model;
+      {
+         auto device = mSupportedDevices[m_deviceSelectionChoice];
+         FilePath cache_folder = FileNames::MkDir(wxFileName(FileNames::DataDir(), wxT("openvino-model-cache")).GetFullPath());
+
+         //Note: Using a variant of wstring conversion that seems to work more reliably when there are special characters present in the path.
+         std::string cache_path = wstring_to_string(wxFileName(cache_folder).GetFullPath().ToStdWstring());
+
+         std::cout << "model_folder = " << model_folder << std::endl;
+         std::cout << "cache_path = " << cache_path << std::endl;
+         std::cout << "number of shifts = " << mNumberOfShifts << std::endl;
+
+         auto create_model_fut = std::async(std::launch::async, [&model_folder, &device, &cache_path, &model_selection_str]()
+         {
+            // WA for OpenVINO locale caching issue (https://github.com/openvinotoolkit/openvino/issues/24370)
+            OVLocaleWorkaround wa;
+
+            std::shared_ptr< ov_demix::DemixModel > ret;
+            if (model_selection_str.find("Demucs") != std::string::npos)
+            {
+               ret = std::make_shared<ov_demix::HTDemucs>(model_folder, device, cache_path);
+            }
+            else if (model_selection_str.find("MelBandRoformer") != std::string::npos)
+            {
+               ret = std::make_shared<ov_demix::MelBandRoformer>(model_folder, device, cache_path, ov_demix::DemixModel::PadMode::Reflect);
+            }
+            else
+            {
+               throw std::runtime_error("Only HTDemucs or MelBandRoformer models are supported right now. ");
+            }
+            return ret;
+
+         });
+
+         std::future_status status;
+         float total_time = 0.f;
+         do {
+            using namespace std::chrono_literals;
+            status = create_model_fut.wait_for(0.5s);
+            {
+               std::string message = "Loading " + model_selection_str + " AI Model to " + device + "...";
+               if (total_time > 10)
+               {
+                  message += " (This could take a while if this is the first time running this feature with this device)";
+               }
+               TotalProgress(0.01, TranslatableString{ wxString(message), {} });
+            }
+
+            total_time += 0.5;
+
+         } while (status != std::future_status::ready);
+
+         model = create_model_fut.get();
+
+         if (!model)
+         {
+            throw std::runtime_error("Error loading model to device...");
+         }
+
+      }
+
       std::vector<std::string> sourceLabels;
-      int64_t num_htdemucs_output_stems = 4;
       if (model_selection_str == "Demucs v4")
       {
-         xml_name = "htdemucs_v4.xml";
          if (m_separationModeSelectionChoice == 0)
          {
             sourceLabels = { "Instrumental", "Vocals" };
@@ -360,45 +429,28 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
       }
       else if (model_selection_str == "Demucs v4 FT Drums")
       {
-         xml_name = "htdemucs_v4_ft_drums.xml";
          sourceLabels = { "Drums", "dummy", "dummy", "dummy" };
       }
       else if (model_selection_str == "Demucs v4 FT Bass")
       {
-         xml_name = "htdemucs_v4_ft_bass.xml";
          sourceLabels = { "dummy", "Bass", "dummy", "dummy" };
       }
       else if (model_selection_str == "Demucs v4 FT Other Instruments")
       {
-         xml_name = "htdemucs_v4_ft_other.xml";
          sourceLabels = { "dummy", "dummy", "Other Instruments", "dummy" };
       }
       else if (model_selection_str == "Demucs v4 FT Vocals")
       {
-         xml_name = "htdemucs_v4_ft_vocals.xml";
          sourceLabels = { "dummy", "dummy", "dummy", "Vocals" };
       }
       else if (model_selection_str == "Demucs v4 6s")
       {
-         xml_name = "htdemucs_v4_6s.xml";
          sourceLabels = { "Drums", "Bass", "Other Instruments", "Vocals", "Guitar", "Piano" };
-         num_htdemucs_output_stems = 6;
       }
       else
       {
          throw std::runtime_error("Unsupported model: " + model_selection_str);
       }
-
-      std::string demucs_v4_path = audacity::ToUTF8(wxFileName(model_collection->models[0]->installation_path, xml_name).GetFullPath());
-
-      FilePath cache_folder = FileNames::MkDir(wxFileName(FileNames::DataDir(), wxT("openvino-model-cache")).GetFullPath());
-
-      //Note: Using a variant of wstring conversion that seems to work more reliably when there are special characters present in the path.
-      std::string cache_path = wstring_to_string(wxFileName(cache_folder).GetFullPath().ToStdWstring());
-
-      std::cout << "demucs_v4_path = " << demucs_v4_path << std::endl;
-      std::cout << "cache_path = " << cache_path << std::endl;
-      std::cout << "number of shifts = " << mNumberOfShifts << std::endl;
 
       if (m_deviceSelectionChoice >= mSupportedDevices.size())
       {
@@ -414,39 +466,6 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
 
       TotalProgress(0.01, XO("Compiling AI Model..."));
 
-      std::shared_ptr< ovdemucs::HTDemucs > pHTDemucs;
-      
-      {
-         auto device = mSupportedDevices[m_deviceSelectionChoice];
-         auto create_htdemucs_fut = std::async(std::launch::async, [&demucs_v4_path, &device, &cache_path, &num_htdemucs_output_stems]() {
-
-            // WA for OpenVINO locale caching issue (https://github.com/openvinotoolkit/openvino/issues/24370)
-            OVLocaleWorkaround wa;
-            return std::make_shared< ovdemucs::HTDemucs >(demucs_v4_path.c_str(), device, cache_path, num_htdemucs_output_stems);
-            });
-
-         std::future_status status;
-         float total_time = 0.f;
-         do {
-            using namespace std::chrono_literals;
-            status = create_htdemucs_fut.wait_for(0.5s);
-            {
-               std::string message = "Loading Music Separation AI Model to " + device + "...";
-               if (total_time > 10)
-               {
-                  message += " (This could take a while if this is the first time running this feature with this device)";
-               }
-               TotalProgress(0.01, TranslatableString{ wxString(message), {} });
-            }
-
-            total_time += 0.5;
-
-         } while (status != std::future_status::ready);
-
-         pHTDemucs = create_htdemucs_fut.get();
-      }
-
-      
       std::vector< WaveTrack::Holder > tracks_to_process;
       std::vector< int > orig_rates;
 
@@ -478,7 +497,6 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
 
          // create a temporary track list to append samples to
          auto pTmpTrack = track->EmptyCopy();
-
 
          bool bOkay = left->GetFloats(entire_input.get(), start_s, total_samples);
          if (!bOkay)
@@ -535,7 +553,6 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
          double trackStart = pTrack->GetStartTime();
          double trackEnd = pTrack->GetEndTime();
 
-
          // Set the current bounds to whichever left marker is
          // greater and whichever right marker is less:
          const double curT0 = trackStart;
@@ -551,16 +568,18 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
             auto len = (end - start).as_double();
 
             size_t total_samples = (end - start).as_size_t();
-            Floats entire_input{ total_samples * 2 };
 
-            bool bOkay = pLeftChannel->GetFloats(entire_input.get(), start, total_samples);
+            auto left_samples = std::make_shared<std::vector<float>>(total_samples);
+            auto right_samples = std::make_shared<std::vector<float>>(total_samples);
+
+            bool bOkay = pLeftChannel->GetFloats(left_samples->data(), start, total_samples);
             if (!bOkay)
             {
                throw std::runtime_error("unable to get all left samples. GetFloats() failed for " +
                   std::to_string(total_samples) + " samples");
             }
 
-            bOkay = pRightChannel->GetFloats(entire_input.get() + total_samples, start, total_samples);
+            bOkay = pRightChannel->GetFloats(right_samples->data(), start, total_samples);
             if (!bOkay)
             {
                throw std::runtime_error("unable to get all right samples. GetFloats() failed for " +
@@ -569,26 +588,8 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
 
             TotalProgress(0.01, XO("Applying Music Separation using OpenVINO"));
 
-            //0: drums
-            //1: bass
-            //2: other instruments
-            //3: vocals
-            float* pOut[6];
-            bool demucs_success = pHTDemucs->Apply(entire_input.get(),
-               total_samples,
-               pOut[0],
-               pOut[1],
-               pOut[2],
-               pOut[3],
-               pOut[4],
-               pOut[5],
-               mNumberOfShifts,
-               HTDemucsProgressUpdate, this);
-
-            if (!demucs_success)
-            {
-               return false;
-            }
+            ov_demix::AudioTrack input_channels = { left_samples, right_samples };
+            auto output_stems = ov_demix::Demix(model, input_channels, mNumberOfShifts, HTDemucsProgressUpdate, this);
 
             auto pProject = FindProject();
             const auto& selectedRegion =
@@ -597,22 +598,26 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
             //TODO: rework this.
             if (m_separationModeSelectionChoice == 0 && model_selection_str == "Demucs v4")
             {
-               // mix together drums, bass, and 'other instruments'.
-               for (size_t i = 0; i < total_samples * 2; i++)
-               {
-                  pOut[0][i] = (pOut[0][i] + pOut[1][i] + pOut[2][i]) * pLeftChannel->GetChannelVolume(0);
-               }
+               auto vocal_stem = output_stems[3];
+               ov_demix::GenerateInstrumental(vocal_stem, input_channels);
 
-               // replace output index 1 with index 3 (vocals), so that we use proper channel
-               // in the coming loop.
-               pOut[1] = pOut[3];
+               std::vector<ov_demix::AudioTrack> new_output_stems = { input_channels, vocal_stem };
+
+               output_stems = new_output_stems;
             }
-            
+
+            if (output_stems.size() != sourceLabels.size())
+            {
+               throw std::runtime_error("Expected Demix to return " + std::to_string(sourceLabels.size()) +
+                  " stems, but instead it returned " + std::to_string(output_stems.size()) + " stems.");
+            }
 
             auto orig_track_name = pTrack->GetName();
             for (int i = 0; i < sourceLabels.size(); i++)
             {
                if (sourceLabels[i] == "dummy") continue;
+
+               auto &stem_track = output_stems[i];
 
                // Workaround for 3.4.X issue where setting name of a new output track
                // retains the label of the track that it was copied from. So, we'll
@@ -629,12 +634,12 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
 
                //append output samples to L & R channels.
                auto& tmpLeft = **iter++;
-               tmpLeft.Append((samplePtr)pOut[i], floatSample, total_samples);
+               tmpLeft.Append((samplePtr)stem_track.first->data(), floatSample, total_samples);
 
                if (pTrack->Channels().size() > 1)
                {
                   auto& tmpRight = **iter;
-                  tmpRight.Append((samplePtr)(pOut[i] + total_samples), floatSample, total_samples);
+                  tmpRight.Append((samplePtr)stem_track.second->data(), floatSample, total_samples);
                }
 
                //flush it
@@ -643,11 +648,6 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
                // Clear & Paste into new output track
                newOutputTrack->ClearAndPaste(selectedRegion.t0() - pTmpTrack->GetStartTime(),
                   selectedRegion.t1() - pTmpTrack->GetStartTime(), *pTmpTrack);
-
-               // TODO: For Audacity 3.4.X, this doesn't seem to work as expected.
-               // The generated track will not have this name. Instead, it will retain
-               // whatever the inputTrack's name was.
-               //newOutputTrack->SetName(orig_track_name + wxString("-" + sourceLabels[i]));
 
                //Resample to original tracks rate
                newOutputTrack->Resample(orig_rates[ti]);

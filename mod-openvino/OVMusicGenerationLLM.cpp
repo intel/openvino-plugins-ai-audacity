@@ -14,7 +14,6 @@
 #include "ViewInfo.h"
 #include "TimeWarper.h"
 #include "LoadEffects.h"
-#include "htdemucs.h"
 #include "widgets/NumericTextCtrl.h"
 
 #include <wx/intl.h>
