@@ -119,6 +119,13 @@ void EffectOVMusicSeparation::_populate_model_to_separation_map()
       m_model_to_separation_modes.emplace("Demucs v4 6s", entry);
    }
 
+   {
+      SeparationModeEntry entry;
+      entry.stems = { "Vocals" };
+      entry.target_stem_for_instrumental = 0; //vocal stem
+      m_model_to_separation_modes.emplace("MelBandRoformer Vocals (Kimberly Jenson version)", entry);
+   }
+
    for (auto &pair : m_model_to_separation_modes)
    {
       // Count number of non-dummy stems
