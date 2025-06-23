@@ -43,26 +43,117 @@ BEGIN_EVENT_TABLE(EffectOVMusicSeparation, wxEvtHandler)
 EVT_CHECKBOX(ID_Type_AdvancedCheckbox, EffectOVMusicSeparation::OnAdvancedCheckboxChanged)
 EVT_BUTTON(ID_Type_DeviceInfoButton, EffectOVMusicSeparation::OnDeviceInfoButtonClicked)
 EVT_BUTTON(ID_Type_ModelManagerButton, EffectOVMusicSeparation::OnModelManagerButtonClicked)
+EVT_CHOICE(ID_Type_ModelSelection, EffectOVMusicSeparation::OnModelSelectionChanged)
 END_EVENT_TABLE()
+
 
 EffectOVMusicSeparation::EffectOVMusicSeparation()
 {
-   ov::Core core;
-
-   auto ov_supported_device = core.get_available_devices();
-   for (auto d : ov_supported_device)
+   try
    {
-      //GNA devices are not supported
-      if (d.find("GNA") != std::string::npos) continue;
+      ov::Core core;
+      auto ov_supported_device = core.get_available_devices();
+      for (auto d : ov_supported_device)
+      {
+         //GNA devices are not supported
+         if (d.find("GNA") != std::string::npos) continue;
 
-      m_simple_to_full_device_map.push_back({ d, core.get_property(d, "FULL_DEVICE_NAME").as<std::string>() });
+         m_simple_to_full_device_map.push_back({ d, core.get_property(d, "FULL_DEVICE_NAME").as<std::string>() });
 
-      mSupportedDevices.push_back(d);
-      mGuiDeviceSelections.push_back({ TranslatableString{ wxString(d), {}} });
+         mSupportedDevices.push_back(d);
+         mGuiDeviceSelections.push_back({ TranslatableString{ wxString(d), {}} });
+      }
+
+      mGuiSeparationModeSelections.push_back({ TranslatableString{ wxString(" "), {}} });
+      mGuiSeparationModeSelections.push_back({ TranslatableString{ wxString(" "), {}} });
+
+      _populate_model_to_separation_map();
+   }
+   catch (const std::exception& error)
+   {
+      wxLogError("In Music Separation initialization, exception: %s", error.what());
+   }
+}
+
+void EffectOVMusicSeparation::_populate_model_to_separation_map()
+{
+   {
+      SeparationModeEntry entry;
+      entry.stems = { "Drums", "Bass", "Others", "Vocals" };
+      entry.target_stem_for_instrumental = 3; //vocal stem
+      m_model_to_separation_modes.emplace("Demucs v4", entry);
    }
 
-   mGuiSeparationModeSelections.push_back({ TranslatableString{ wxString("(2 Stem) Instrumental, Vocals"), {}} });
-   mGuiSeparationModeSelections.push_back({ TranslatableString{ wxString("(4 Stem) Drums, Bass, Vocals, Others"), {}} });
+   {
+      SeparationModeEntry entry;
+      entry.stems = { "Drums", "dummy", "dummy", "dummy" };
+      entry.target_stem_for_instrumental = 0; //drums stem
+      m_model_to_separation_modes.emplace("Demucs v4 FT Drums", entry);
+   }
+
+   {
+      SeparationModeEntry entry;
+      entry.stems = { "dummy", "Bass", "dummy", "dummy" };
+      entry.target_stem_for_instrumental = 1; //bass stem
+      m_model_to_separation_modes.emplace("Demucs v4 FT Bass", entry);
+   }
+
+   {
+      SeparationModeEntry entry;
+      entry.stems = { "dummy", "dummy", "Other Instruments", "dummy" };
+      entry.target_stem_for_instrumental = 2; //others stem
+      m_model_to_separation_modes.emplace("Demucs v4 FT Other Instruments", entry);
+   }
+
+   {
+      SeparationModeEntry entry;
+      entry.stems = { "dummy", "dummy", "dummy", "Vocals" };
+      entry.target_stem_for_instrumental = 3; //vocal stem
+      m_model_to_separation_modes.emplace("Demucs v4 FT Vocals", entry);
+   }
+
+   {
+      SeparationModeEntry entry;
+      entry.stems = { "Drums", "Bass", "Others", "Vocals", "Guitar", "Piano"};
+      entry.target_stem_for_instrumental = 3; //vocal stem
+      m_model_to_separation_modes.emplace("Demucs v4 6s", entry);
+   }
+
+   for (auto &pair : m_model_to_separation_modes)
+   {
+      // Count number of non-dummy stems
+      int non_dummy_stems = 0;
+      for (auto &s : pair.second.stems)
+          if (s != "dummy") non_dummy_stems++;
+
+      // Generate the 'all stems' selection string.
+      std::string all_stems_mode = "(" + std::to_string(non_dummy_stems) + " Stem) ";
+      int stems_added = 1;
+      for (auto& s : pair.second.stems)
+      {
+         if (s != "dummy")
+         {
+            all_stems_mode += s;
+            if (stems_added < non_dummy_stems)
+               all_stems_mode += ", ";
+            stems_added++;
+         }
+      }
+
+      if (pair.second.target_stem_for_instrumental >= pair.second.stems.size())
+      {
+         throw std::runtime_error("_populate_model_to_separation_map: pair.second.target_stem_for_instrumental >= pair.second.stems.size");
+      }
+      std::string instrumental_mode = "(2 Stem) " + pair.second.stems[pair.second.target_stem_for_instrumental]
+         + ", Instrumental";
+
+      std::cout << pair.first << ":" << std::endl;
+      std::cout << "  " << all_stems_mode << std::endl;
+      std::cout << "  " << instrumental_mode << std::endl;
+
+      pair.second.guiSeparationModeSelections.push_back({ TranslatableString{ wxString(all_stems_mode), {}} });
+      pair.second.guiSeparationModeSelections.push_back({ TranslatableString{ wxString(instrumental_mode), {}} });
+   }
 }
 
 EffectOVMusicSeparation::~EffectOVMusicSeparation()
@@ -180,6 +271,8 @@ std::unique_ptr<EffectEditor> EffectOVMusicSeparation::PopulateOrExchange(
       }
       S.EndMultiColumn();
 
+      SetModelSeparationModeSelections();
+
       S.StartStatic(XO(""), wxLEFT);
       {
          S.StartMultiColumn(4, wxEXPAND);
@@ -236,26 +329,29 @@ void EffectOVMusicSeparation::show_or_hide_advanced_options()
    }
 }
 
-void EffectOVMusicSeparation::OnAdvancedCheckboxChanged(wxCommandEvent& evt)
+void EffectOVMusicSeparation::FitWindowToCorrectSize()
 {
-   mbAdvanced = mShowAdvancedOptionsCheckbox->GetValue();
-
-   show_or_hide_advanced_options();
-
    if (mUIParent)
    {
       mUIParent->Layout();
       mUIParent->SetMinSize(mUIParent->GetSizer()->GetMinSize());
       mUIParent->SetSize(mUIParent->GetSizer()->GetMinSize());
       mUIParent->Fit();
-
       auto p = mUIParent->GetParent();
       if (p)
       {
          p->Fit();
       }
-
    }
+}
+
+void EffectOVMusicSeparation::OnAdvancedCheckboxChanged(wxCommandEvent& evt)
+{
+   mbAdvanced = mShowAdvancedOptionsCheckbox->GetValue();
+
+   show_or_hide_advanced_options();
+
+   FitWindowToCorrectSize();
 }
 
 void EffectOVMusicSeparation::OnModelManagerButtonClicked(wxCommandEvent& evt)
@@ -277,6 +373,47 @@ void EffectOVMusicSeparation::OnDeviceInfoButtonClicked(wxCommandEvent& evt)
       v,
       wxICON_INFORMATION,
       XO("OpenVINO Device Details"));
+}
+
+void EffectOVMusicSeparation::SetModelSeparationModeSelections()
+{
+   if (!mTypeChoiceSeparationModeCtrl || !mTypeChoiceModelSelection)
+      return;
+
+   int current_selection = mTypeChoiceModelSelection->GetCurrentSelection();
+   if (current_selection == -1)
+   {
+      current_selection = m_modelSelectionChoice;
+   }
+
+   auto selected_model = audacity::ToUTF8(mTypeChoiceModelSelection->GetString(current_selection));
+
+   auto it = m_model_to_separation_modes.find(selected_model);
+   if (it == m_model_to_separation_modes.end())
+   {
+      wxLogError("SetModelSeparationModeSelections: No model entry for selected_model=", selected_model);
+      return;
+   }
+
+   // First, clear the list
+   mTypeChoiceSeparationModeCtrl->Clear();
+
+   for (auto& mode_selection : it->second.guiSeparationModeSelections)
+   {
+      mTypeChoiceSeparationModeCtrl->AppendString(mode_selection.StrippedTranslation());
+   }
+
+   mTypeChoiceSeparationModeCtrl->SetSelection(m_separationModeSelectionChoice);
+
+   FitWindowToCorrectSize();
+}
+
+void EffectOVMusicSeparation::OnModelSelectionChanged(wxCommandEvent& evt)
+{
+   // reset separation mode choice to the first entry in the list.
+   m_separationModeSelectionChoice = 0;
+
+   SetModelSeparationModeSelections();
 }
 
 static std::vector<WaveTrack::Holder> CreateSourceTracks
@@ -318,7 +455,6 @@ bool EffectOVMusicSeparation::UpdateProgress(double perc)
    }
 
    return true;
-
 }
 
 bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
@@ -415,42 +551,13 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
 
       }
 
-      std::vector<std::string> sourceLabels;
-      if (model_selection_str == "Demucs v4")
+      auto sep_mode_it = m_model_to_separation_modes.find(model_selection_str);
+      if (sep_mode_it == m_model_to_separation_modes.end())
       {
-         if (m_separationModeSelectionChoice == 0)
-         {
-            sourceLabels = { "Instrumental", "Vocals" };
-         }
-         else
-         {
-            sourceLabels = { "Drums", "Bass", "Other Instruments", "Vocals" };
-         }
+         throw std::runtime_error("Did not find separation mode entry for model_selection_str=" + model_selection_str);
       }
-      else if (model_selection_str == "Demucs v4 FT Drums")
-      {
-         sourceLabels = { "Drums", "dummy", "dummy", "dummy" };
-      }
-      else if (model_selection_str == "Demucs v4 FT Bass")
-      {
-         sourceLabels = { "dummy", "Bass", "dummy", "dummy" };
-      }
-      else if (model_selection_str == "Demucs v4 FT Other Instruments")
-      {
-         sourceLabels = { "dummy", "dummy", "Other Instruments", "dummy" };
-      }
-      else if (model_selection_str == "Demucs v4 FT Vocals")
-      {
-         sourceLabels = { "dummy", "dummy", "dummy", "Vocals" };
-      }
-      else if (model_selection_str == "Demucs v4 6s")
-      {
-         sourceLabels = { "Drums", "Bass", "Other Instruments", "Vocals", "Guitar", "Piano" };
-      }
-      else
-      {
-         throw std::runtime_error("Unsupported model: " + model_selection_str);
-      }
+
+      auto stem_labels = sep_mode_it->second.stems;
 
       if (m_deviceSelectionChoice >= mSupportedDevices.size())
       {
@@ -595,27 +702,37 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
             const auto& selectedRegion =
                ViewInfo::Get(*pProject).selectedRegion;
 
-            //TODO: rework this.
-            if (m_separationModeSelectionChoice == 0 && model_selection_str == "Demucs v4")
+            if (output_stems.size() != stem_labels.size())
             {
-               auto vocal_stem = output_stems[3];
-               ov_demix::GenerateInstrumental(vocal_stem, input_channels);
-
-               std::vector<ov_demix::AudioTrack> new_output_stems = { input_channels, vocal_stem };
-
-               output_stems = new_output_stems;
-            }
-
-            if (output_stems.size() != sourceLabels.size())
-            {
-               throw std::runtime_error("Expected Demix to return " + std::to_string(sourceLabels.size()) +
+               throw std::runtime_error("Expected Demix to return " + std::to_string(stem_labels.size()) +
                   " stems, but instead it returned " + std::to_string(output_stems.size()) + " stems.");
             }
 
-            auto orig_track_name = pTrack->GetName();
-            for (int i = 0; i < sourceLabels.size(); i++)
+            // m_separationModeSelectionChoice==1 means instrumental mode is being used.
+            if (m_separationModeSelectionChoice == 1)
             {
-               if (sourceLabels[i] == "dummy") continue;
+               auto target_stem_for_instrumental = sep_mode_it->second.target_stem_for_instrumental;
+               if (target_stem_for_instrumental >= output_stems.size())
+               {
+                  throw std::runtime_error("Specified target_stem_for_instrumental out of range");
+               }
+
+               auto target_stem = output_stems[target_stem_for_instrumental];
+               ov_demix::GenerateInstrumental(target_stem, input_channels);
+
+               // replace output stems vector
+               std::vector<ov_demix::AudioTrack> new_output_stems = { target_stem, input_channels};
+               output_stems = new_output_stems;
+
+               // replace stem_labels vector
+               stem_labels = { sep_mode_it->second.stems[target_stem_for_instrumental], "Instrumental" };
+            }
+
+            auto orig_track_name = pTrack->GetName();
+            for (int i = 0; i < stem_labels.size(); i++)
+            {
+               // If it's a dummy stem, skip it.
+               if (stem_labels[i] == "dummy") continue;
 
                auto &stem_track = output_stems[i];
 
@@ -623,7 +740,7 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
                // retains the label of the track that it was copied from. So, we'll
                // change the name of the input track here, copy it, and then change it
                // back later.
-               pTrack->SetName(orig_track_name + wxString(" - " + model_selection_str + " - " + sourceLabels[i]));
+               pTrack->SetName(orig_track_name + wxString(" - " + model_selection_str + " - " + stem_labels[i]));
 
                //Create new output track from input track.
                auto newOutputTrack = pTrack->EmptyCopy();
