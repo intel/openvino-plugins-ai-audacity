@@ -60,17 +60,25 @@ set( AUDIO_SR_SOURCES
 
 include_directories(audio_sr)
 
+set( DEMIX_SOURCES
+     demix/demix.cpp
+     demix/demix.h
+     demix/htdemucs.cpp
+     demix/htdemucs.h
+     demix/mel_band_roformer.cpp
+     demix/mel_band_roformer.h
+)
+
 set( SOURCES
       ${NOISE_SUPPRESSION_SOURCES}
       ${AUDIO_SR_SOURCES}
+      ${DEMIX_SOURCES}
       OVMusicSeparation.cpp
       OVMusicSeparation.h
       OVMusicGenerationLLM.cpp
       OVMusicGenerationLLM.h
       OVWhisperTranscriptionGenAI.cpp
       OVWhisperTranscriptionGenAI.h
-      htdemucs.cpp
-      htdemucs.h
       ${OV_MUSICGEN_SOURCES}
       OpenVINO.cpp
       OVStringUtils.h

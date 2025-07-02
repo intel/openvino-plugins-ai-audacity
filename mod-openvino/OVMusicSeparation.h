@@ -45,6 +45,7 @@ class EffectOVMusicSeparation final : public StatefulEffect, public StatefulEffe
 
       void OnAdvancedCheckboxChanged(wxCommandEvent& evt);
       void OnDeviceInfoButtonClicked(wxCommandEvent& evt);
+      void OnModelSelectionChanged(wxCommandEvent& evt);
       void OnModelManagerButtonClicked(wxCommandEvent& evt);
 
    protected:
@@ -59,14 +60,22 @@ class EffectOVMusicSeparation final : public StatefulEffect, public StatefulEffe
           ID_Type = 10000,
           ID_Type_AdvancedCheckbox,
           ID_Type_DeviceInfoButton,
-          ID_Type_ModelManagerButton
+          ID_Type_ModelManagerButton,
+          ID_Type_ModelSelection
        };
+
+       std::vector< std::string > mSupportedModels;
+       std::vector< EnumValueSymbol > mGuiModelSelections;
+       int m_modelSelectionChoice = 0;
+       wxChoice* mTypeChoiceModelSelection;
 
        std::vector< std::string > mSupportedDevices;
        std::vector< EnumValueSymbol > mGuiDeviceSelections;
 
        wxChoice* mTypeChoiceSeparationModeCtrl;
        int m_separationModeSelectionChoice = 0;
+
+       // There are dummy values only used for wxChoice creation.
        std::vector< EnumValueSymbol > mGuiSeparationModeSelections;
 
        wxWeakRef<wxWindow> mUIParent{};
@@ -81,6 +90,21 @@ class EffectOVMusicSeparation final : public StatefulEffect, public StatefulEffe
        bool mbAdvanced = false;
 
        std::vector<std::pair<std::string, std::string>> m_simple_to_full_device_map;
+
+       struct SeparationModeEntry
+       {
+          int separationModeSelectionChoice = 0;
+          std::vector< EnumValueSymbol > guiSeparationModeSelections;
+
+          std::vector<std::string> stems;
+          int target_stem_for_instrumental = 0;
+       };
+
+       std::unordered_map< std::string, SeparationModeEntry > m_model_to_separation_modes;
+       void _populate_model_to_separation_map();
+
+       void SetModelSeparationModeSelections();
+       void FitWindowToCorrectSize();
 
        DECLARE_EVENT_TABLE()
 };

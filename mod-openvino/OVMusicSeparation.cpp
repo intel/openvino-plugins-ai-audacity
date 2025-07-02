@@ -12,7 +12,6 @@
 #include "ViewInfo.h"
 #include "TimeWarper.h"
 #include "LoadEffects.h"
-#include "htdemucs.h"
 
 #include <wx/intl.h>
 #include <wx/valgen.h>
@@ -32,6 +31,10 @@
 #include "OVModelManager.h"
 #include "OVModelManagerUI.h"
 
+#include "demix/demix.h"
+#include "demix/htdemucs.h"
+#include "demix/mel_band_roformer.h"
+
 const ComponentInterfaceSymbol EffectOVMusicSeparation::Symbol{ XO("OpenVINO Music Separation") };
 
 namespace { BuiltinEffectsModule::Registration< EffectOVMusicSeparation > reg; }
@@ -40,23 +43,124 @@ BEGIN_EVENT_TABLE(EffectOVMusicSeparation, wxEvtHandler)
 EVT_CHECKBOX(ID_Type_AdvancedCheckbox, EffectOVMusicSeparation::OnAdvancedCheckboxChanged)
 EVT_BUTTON(ID_Type_DeviceInfoButton, EffectOVMusicSeparation::OnDeviceInfoButtonClicked)
 EVT_BUTTON(ID_Type_ModelManagerButton, EffectOVMusicSeparation::OnModelManagerButtonClicked)
+EVT_CHOICE(ID_Type_ModelSelection, EffectOVMusicSeparation::OnModelSelectionChanged)
 END_EVENT_TABLE()
+
 
 EffectOVMusicSeparation::EffectOVMusicSeparation()
 {
-   mSupportedDevices = ovdemucs::HTDemucs::GetSupportedDevices();
-
-   ov::Core core;
-
-   for (auto d : mSupportedDevices)
+   try
    {
-      mGuiDeviceSelections.push_back({ TranslatableString{ wxString(d), {}} });
+      ov::Core core;
+      auto ov_supported_device = core.get_available_devices();
+      for (auto d : ov_supported_device)
+      {
+         //GNA devices are not supported
+         if (d.find("GNA") != std::string::npos) continue;
 
-      m_simple_to_full_device_map.push_back({ d, core.get_property(d, "FULL_DEVICE_NAME").as<std::string>() });
+         m_simple_to_full_device_map.push_back({ d, core.get_property(d, "FULL_DEVICE_NAME").as<std::string>() });
+
+         mSupportedDevices.push_back(d);
+         mGuiDeviceSelections.push_back({ TranslatableString{ wxString(d), {}} });
+      }
+
+      mGuiSeparationModeSelections.push_back({ TranslatableString{ wxString(" "), {}} });
+      mGuiSeparationModeSelections.push_back({ TranslatableString{ wxString(" "), {}} });
+
+      _populate_model_to_separation_map();
+   }
+   catch (const std::exception& error)
+   {
+      wxLogError("In Music Separation initialization, exception: %s", error.what());
+   }
+}
+
+void EffectOVMusicSeparation::_populate_model_to_separation_map()
+{
+   {
+      SeparationModeEntry entry;
+      entry.stems = { "Drums", "Bass", "Others", "Vocals" };
+      entry.target_stem_for_instrumental = 3; //vocal stem
+      m_model_to_separation_modes.emplace("Demucs v4", entry);
    }
 
-   mGuiSeparationModeSelections.push_back({ TranslatableString{ wxString("(2 Stem) Instrumental, Vocals"), {}} });
-   mGuiSeparationModeSelections.push_back({ TranslatableString{ wxString("(4 Stem) Drums, Bass, Vocals, Others"), {}} });
+   {
+      SeparationModeEntry entry;
+      entry.stems = { "Drums", "dummy", "dummy", "dummy" };
+      entry.target_stem_for_instrumental = 0; //drums stem
+      m_model_to_separation_modes.emplace("Demucs v4 FT Drums", entry);
+   }
+
+   {
+      SeparationModeEntry entry;
+      entry.stems = { "dummy", "Bass", "dummy", "dummy" };
+      entry.target_stem_for_instrumental = 1; //bass stem
+      m_model_to_separation_modes.emplace("Demucs v4 FT Bass", entry);
+   }
+
+   {
+      SeparationModeEntry entry;
+      entry.stems = { "dummy", "dummy", "Other Instruments", "dummy" };
+      entry.target_stem_for_instrumental = 2; //others stem
+      m_model_to_separation_modes.emplace("Demucs v4 FT Other Instruments", entry);
+   }
+
+   {
+      SeparationModeEntry entry;
+      entry.stems = { "dummy", "dummy", "dummy", "Vocals" };
+      entry.target_stem_for_instrumental = 3; //vocal stem
+      m_model_to_separation_modes.emplace("Demucs v4 FT Vocals", entry);
+   }
+
+   {
+      SeparationModeEntry entry;
+      entry.stems = { "Drums", "Bass", "Others", "Vocals", "Guitar", "Piano"};
+      entry.target_stem_for_instrumental = 3; //vocal stem
+      m_model_to_separation_modes.emplace("Demucs v4 6s", entry);
+   }
+
+   {
+      SeparationModeEntry entry;
+      entry.stems = { "Vocals" };
+      entry.target_stem_for_instrumental = 0; //vocal stem
+      m_model_to_separation_modes.emplace("MelBandRoformer Vocals (Kimberly Jenson version)", entry);
+   }
+
+   for (auto &pair : m_model_to_separation_modes)
+   {
+      // Count number of non-dummy stems
+      int non_dummy_stems = 0;
+      for (auto &s : pair.second.stems)
+          if (s != "dummy") non_dummy_stems++;
+
+      // Generate the 'all stems' selection string.
+      std::string all_stems_mode = "(" + std::to_string(non_dummy_stems) + " Stem) ";
+      int stems_added = 1;
+      for (auto& s : pair.second.stems)
+      {
+         if (s != "dummy")
+         {
+            all_stems_mode += s;
+            if (stems_added < non_dummy_stems)
+               all_stems_mode += ", ";
+            stems_added++;
+         }
+      }
+
+      if (pair.second.target_stem_for_instrumental >= pair.second.stems.size())
+      {
+         throw std::runtime_error("_populate_model_to_separation_map: pair.second.target_stem_for_instrumental >= pair.second.stems.size");
+      }
+      std::string instrumental_mode = "(2 Stem) " + pair.second.stems[pair.second.target_stem_for_instrumental]
+         + ", Instrumental";
+
+      std::cout << pair.first << ":" << std::endl;
+      std::cout << "  " << all_stems_mode << std::endl;
+      std::cout << "  " << instrumental_mode << std::endl;
+
+      pair.second.guiSeparationModeSelections.push_back({ TranslatableString{ wxString(all_stems_mode), {}} });
+      pair.second.guiSeparationModeSelections.push_back({ TranslatableString{ wxString(instrumental_mode), {}} });
+   }
 }
 
 EffectOVMusicSeparation::~EffectOVMusicSeparation()
@@ -103,12 +207,63 @@ std::unique_ptr<EffectEditor> EffectOVMusicSeparation::PopulateOrExchange(
 {
    mUIParent = S.GetParent();
 
+   auto collection = OVModelManager::instance().GetModelCollection(OVModelManager::MusicSepName());
+   for (auto& model_info : collection->models) {
+      if (model_info->installed) {
+         if (std::find(mSupportedModels.begin(), mSupportedModels.end(), model_info->model_name) == mSupportedModels.end()) {
+            mSupportedModels.push_back(model_info->model_name);
+         }
+      }
+   }
+
+   mGuiModelSelections.clear();
+   for (auto& m : mSupportedModels)
+   {
+      mGuiModelSelections.push_back({ TranslatableString{ wxString(m), {}} });
+   }
+
+   OVModelManager::InstalledCallback callback =
+      [this](const std::string& model_name) {
+      wxTheApp->CallAfter([=]() {
+         if (std::find(mSupportedModels.begin(), mSupportedModels.end(), model_name) == mSupportedModels.end()) {
+            mSupportedModels.push_back(model_name);
+            mGuiModelSelections.push_back({ TranslatableString{ wxString(model_name), {}} });
+         }
+
+         if (mUIParent)
+         {
+            EffectEditor::EnableApply(mUIParent, true);
+            EffectEditor::EnablePreview(mUIParent, false);
+            if (mTypeChoiceModelSelection)
+            {
+               mTypeChoiceModelSelection->Append(wxString(model_name));
+
+               if (mTypeChoiceModelSelection->GetCount() == 1) {
+                  mTypeChoiceModelSelection->SetSelection(mTypeChoiceModelSelection->GetCount() - 1);
+               }
+            }
+         }
+         });
+      };
+
+   OVModelManager::instance().register_installed_callback(OVModelManager::MusicSepName(), callback);
+
    S.AddSpace(0, 5);
    S.StartVerticalLay();
    {
       S.StartMultiColumn(1, wxLEFT);
       {
          auto model_manager_button = S.Id(ID_Type_ModelManagerButton).AddButton(XO("Open Model Manager"));
+      }
+      S.EndMultiColumn();
+
+      S.StartMultiColumn(2, wxLEFT);
+      {
+         mTypeChoiceModelSelection = S.Id(ID_Type_ModelSelection)
+            .MinSize({ -1, -1 })
+            .Validator<wxGenericValidator>(&m_modelSelectionChoice)
+            .AddChoice(XXO("Model Selection:"),
+               Msgids(mGuiModelSelections.data(), mGuiModelSelections.size()));
       }
       S.EndMultiColumn();
 
@@ -122,6 +277,8 @@ std::unique_ptr<EffectEditor> EffectOVMusicSeparation::PopulateOrExchange(
                Msgids(mGuiSeparationModeSelections.data(), mGuiSeparationModeSelections.size()));
       }
       S.EndMultiColumn();
+
+      SetModelSeparationModeSelections();
 
       S.StartStatic(XO(""), wxLEFT);
       {
@@ -179,26 +336,29 @@ void EffectOVMusicSeparation::show_or_hide_advanced_options()
    }
 }
 
-void EffectOVMusicSeparation::OnAdvancedCheckboxChanged(wxCommandEvent& evt)
+void EffectOVMusicSeparation::FitWindowToCorrectSize()
 {
-   mbAdvanced = mShowAdvancedOptionsCheckbox->GetValue();
-
-   show_or_hide_advanced_options();
-
    if (mUIParent)
    {
       mUIParent->Layout();
       mUIParent->SetMinSize(mUIParent->GetSizer()->GetMinSize());
       mUIParent->SetSize(mUIParent->GetSizer()->GetMinSize());
       mUIParent->Fit();
-
       auto p = mUIParent->GetParent();
       if (p)
       {
          p->Fit();
       }
-
    }
+}
+
+void EffectOVMusicSeparation::OnAdvancedCheckboxChanged(wxCommandEvent& evt)
+{
+   mbAdvanced = mShowAdvancedOptionsCheckbox->GetValue();
+
+   show_or_hide_advanced_options();
+
+   FitWindowToCorrectSize();
 }
 
 void EffectOVMusicSeparation::OnModelManagerButtonClicked(wxCommandEvent& evt)
@@ -220,6 +380,47 @@ void EffectOVMusicSeparation::OnDeviceInfoButtonClicked(wxCommandEvent& evt)
       v,
       wxICON_INFORMATION,
       XO("OpenVINO Device Details"));
+}
+
+void EffectOVMusicSeparation::SetModelSeparationModeSelections()
+{
+   if (!mTypeChoiceSeparationModeCtrl || !mTypeChoiceModelSelection)
+      return;
+
+   int current_selection = mTypeChoiceModelSelection->GetCurrentSelection();
+   if (current_selection == -1)
+   {
+      current_selection = m_modelSelectionChoice;
+   }
+
+   auto selected_model = audacity::ToUTF8(mTypeChoiceModelSelection->GetString(current_selection));
+
+   auto it = m_model_to_separation_modes.find(selected_model);
+   if (it == m_model_to_separation_modes.end())
+   {
+      wxLogError("SetModelSeparationModeSelections: No model entry for selected_model=", selected_model);
+      return;
+   }
+
+   // First, clear the list
+   mTypeChoiceSeparationModeCtrl->Clear();
+
+   for (auto& mode_selection : it->second.guiSeparationModeSelections)
+   {
+      mTypeChoiceSeparationModeCtrl->AppendString(mode_selection.StrippedTranslation());
+   }
+
+   mTypeChoiceSeparationModeCtrl->SetSelection(m_separationModeSelectionChoice);
+
+   FitWindowToCorrectSize();
+}
+
+void EffectOVMusicSeparation::OnModelSelectionChanged(wxCommandEvent& evt)
+{
+   // reset separation mode choice to the first entry in the list.
+   m_separationModeSelectionChoice = 0;
+
+   SetModelSeparationModeSelections();
 }
 
 static std::vector<WaveTrack::Holder> CreateSourceTracks
@@ -244,6 +445,10 @@ static bool HTDemucsProgressUpdate(double perc_complete, void* user)
 {
    EffectOVMusicSeparation* music_sep = (EffectOVMusicSeparation*)user;
 
+   perc_complete = perc_complete * 100;
+   if (perc_complete > 100)
+      perc_complete = 100;
+
    return music_sep->UpdateProgress(perc_complete);
 }
 
@@ -257,35 +462,109 @@ bool EffectOVMusicSeparation::UpdateProgress(double perc)
    }
 
    return true;
-
 }
 
 bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
 {
    try
    {
+      std::string model_selection_str = mSupportedModels[m_modelSelectionChoice];
+
       auto model_collection = OVModelManager::instance().GetModelCollection(OVModelManager::MusicSepName());
 
       // It shouldn't be possible for this condition to be true (User shoudn't have been able to click 'Apply'),
       // but double check anyway..
-      if (!model_collection || model_collection->models.empty() || !model_collection->models[0]->installed)
+      if (!model_collection || model_collection->models.empty())
       {
-         throw std::runtime_error("Music Separation model has not been installed.");
+         throw std::runtime_error("Music Separation models have not been installed.");
       }
 
-      FilePath model_folder = FileNames::MkDir(wxFileName(FileNames::BaseDir(), wxT("openvino-models")).GetFullPath());
+      std::shared_ptr< OVModelManager::ModelInfo > retrieved_model_info;
+      for (auto model_info : model_collection->models) {
+         if (model_info && model_info->installed && model_info->model_name == model_selection_str)
+         {
+            retrieved_model_info = model_info;
+         }
+      }
 
-      std::string demucs_v4_path = audacity::ToUTF8(wxFileName(model_collection->models[0]->installation_path, wxT("htdemucs_v4.xml"))
-         .GetFullPath());
+      if (!retrieved_model_info) {
+         throw std::runtime_error("Couldn't retrieve installed model info for " + model_selection_str);
+      }
 
-      FilePath cache_folder = FileNames::MkDir(wxFileName(FileNames::DataDir(), wxT("openvino-model-cache")).GetFullPath());
+      if (!retrieved_model_info->installed) {
+         throw std::runtime_error("This model is not installed: " + retrieved_model_info->model_name);
+      }
 
-      //Note: Using a variant of wstring conversion that seems to work more reliably when there are special characters present in the path.
-      std::string cache_path = wstring_to_string(wxFileName(cache_folder).GetFullPath().ToStdWstring());
+      auto model_folder = retrieved_model_info->installation_path;
 
-      std::cout << "demucs_v4_path = " << demucs_v4_path << std::endl;
-      std::cout << "cache_path = " << cache_path << std::endl;
-      std::cout << "number of shifts = " << mNumberOfShifts << std::endl;
+      std::shared_ptr< ov_demix::DemixModel > model;
+      {
+         auto device = mSupportedDevices[m_deviceSelectionChoice];
+         FilePath cache_folder = FileNames::MkDir(wxFileName(FileNames::DataDir(), wxT("openvino-model-cache")).GetFullPath());
+
+         //Note: Using a variant of wstring conversion that seems to work more reliably when there are special characters present in the path.
+         std::string cache_path = wstring_to_string(wxFileName(cache_folder).GetFullPath().ToStdWstring());
+
+         std::cout << "model_folder = " << model_folder << std::endl;
+         std::cout << "cache_path = " << cache_path << std::endl;
+         std::cout << "number of shifts = " << mNumberOfShifts << std::endl;
+
+         auto create_model_fut = std::async(std::launch::async, [&model_folder, &device, &cache_path, &model_selection_str]()
+         {
+            // WA for OpenVINO locale caching issue (https://github.com/openvinotoolkit/openvino/issues/24370)
+            OVLocaleWorkaround wa;
+
+            std::shared_ptr< ov_demix::DemixModel > ret;
+            if (model_selection_str.find("Demucs") != std::string::npos)
+            {
+               ret = std::make_shared<ov_demix::HTDemucs>(model_folder, device, cache_path);
+            }
+            else if (model_selection_str.find("MelBandRoformer") != std::string::npos)
+            {
+               ret = std::make_shared<ov_demix::MelBandRoformer>(model_folder, device, cache_path, ov_demix::DemixModel::PadMode::Reflect);
+            }
+            else
+            {
+               throw std::runtime_error("Only HTDemucs or MelBandRoformer models are supported right now. ");
+            }
+            return ret;
+
+         });
+
+         std::future_status status;
+         float total_time = 0.f;
+         do {
+            using namespace std::chrono_literals;
+            status = create_model_fut.wait_for(0.5s);
+            {
+               std::string message = "Loading " + model_selection_str + " AI Model to " + device + "...";
+               if (total_time > 10)
+               {
+                  message += " (This could take a while if this is the first time running this feature with this device)";
+               }
+               TotalProgress(0.01, TranslatableString{ wxString(message), {} });
+            }
+
+            total_time += 0.5;
+
+         } while (status != std::future_status::ready);
+
+         model = create_model_fut.get();
+
+         if (!model)
+         {
+            throw std::runtime_error("Error loading model to device...");
+         }
+
+      }
+
+      auto sep_mode_it = m_model_to_separation_modes.find(model_selection_str);
+      if (sep_mode_it == m_model_to_separation_modes.end())
+      {
+         throw std::runtime_error("Did not find separation mode entry for model_selection_str=" + model_selection_str);
+      }
+
+      auto stem_labels = sep_mode_it->second.stems;
 
       if (m_deviceSelectionChoice >= mSupportedDevices.size())
       {
@@ -301,39 +580,6 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
 
       TotalProgress(0.01, XO("Compiling AI Model..."));
 
-      std::shared_ptr< ovdemucs::HTDemucs > pHTDemucs;
-      
-      {
-         auto device = mSupportedDevices[m_deviceSelectionChoice];
-         auto create_htdemucs_fut = std::async(std::launch::async, [&demucs_v4_path, &device, &cache_path]() {
-
-            // WA for OpenVINO locale caching issue (https://github.com/openvinotoolkit/openvino/issues/24370)
-            OVLocaleWorkaround wa;
-            return std::make_shared< ovdemucs::HTDemucs >(demucs_v4_path.c_str(), device, cache_path);
-            });
-
-         std::future_status status;
-         float total_time = 0.f;
-         do {
-            using namespace std::chrono_literals;
-            status = create_htdemucs_fut.wait_for(0.5s);
-            {
-               std::string message = "Loading Music Separation AI Model to " + device + "...";
-               if (total_time > 10)
-               {
-                  message += " (This could take a while if this is the first time running this feature with this device)";
-               }
-               TotalProgress(0.01, TranslatableString{ wxString(message), {} });
-            }
-
-            total_time += 0.5;
-
-         } while (status != std::future_status::ready);
-
-         pHTDemucs = create_htdemucs_fut.get();
-      }
-
-      
       std::vector< WaveTrack::Holder > tracks_to_process;
       std::vector< int > orig_rates;
 
@@ -365,7 +611,6 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
 
          // create a temporary track list to append samples to
          auto pTmpTrack = track->EmptyCopy();
-
 
          bool bOkay = left->GetFloats(entire_input.get(), start_s, total_samples);
          if (!bOkay)
@@ -422,7 +667,6 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
          double trackStart = pTrack->GetStartTime();
          double trackEnd = pTrack->GetEndTime();
 
-
          // Set the current bounds to whichever left marker is
          // greater and whichever right marker is less:
          const double curT0 = trackStart;
@@ -438,16 +682,18 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
             auto len = (end - start).as_double();
 
             size_t total_samples = (end - start).as_size_t();
-            Floats entire_input{ total_samples * 2 };
 
-            bool bOkay = pLeftChannel->GetFloats(entire_input.get(), start, total_samples);
+            auto left_samples = std::make_shared<std::vector<float>>(total_samples);
+            auto right_samples = std::make_shared<std::vector<float>>(total_samples);
+
+            bool bOkay = pLeftChannel->GetFloats(left_samples->data(), start, total_samples);
             if (!bOkay)
             {
                throw std::runtime_error("unable to get all left samples. GetFloats() failed for " +
                   std::to_string(total_samples) + " samples");
             }
 
-            bOkay = pRightChannel->GetFloats(entire_input.get() + total_samples, start, total_samples);
+            bOkay = pRightChannel->GetFloats(right_samples->data(), start, total_samples);
             if (!bOkay)
             {
                throw std::runtime_error("unable to get all right samples. GetFloats() failed for " +
@@ -456,57 +702,52 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
 
             TotalProgress(0.01, XO("Applying Music Separation using OpenVINO"));
 
-            //0: drums
-            //1: bass
-            //2: other instruments
-            //3: vocals
-            float* pOut[4];
-            bool demucs_success = pHTDemucs->Apply(entire_input.get(),
-               total_samples,
-               pOut[0],
-               pOut[1],
-               pOut[2],
-               pOut[3],
-               mNumberOfShifts,
-               HTDemucsProgressUpdate, this);
-
-            if (!demucs_success)
-            {
-               return false;
-            }
+            ov_demix::AudioTrack input_channels = { left_samples, right_samples };
+            auto output_stems = ov_demix::Demix(model, input_channels, mNumberOfShifts, HTDemucsProgressUpdate, this);
 
             auto pProject = FindProject();
             const auto& selectedRegion =
                ViewInfo::Get(*pProject).selectedRegion;
 
-            std::vector<std::string> sourceLabels;
-            if (m_separationModeSelectionChoice == 0)
+            if (output_stems.size() != stem_labels.size())
             {
-               sourceLabels = { "Instrumental", "Vocals" };
+               throw std::runtime_error("Expected Demix to return " + std::to_string(stem_labels.size()) +
+                  " stems, but instead it returned " + std::to_string(output_stems.size()) + " stems.");
+            }
 
-               // mix together drums, bass, and 'other instruments'.
-               for (size_t i = 0; i < total_samples * 2; i++)
+            // m_separationModeSelectionChoice==1 means instrumental mode is being used.
+            if (m_separationModeSelectionChoice == 1)
+            {
+               auto target_stem_for_instrumental = sep_mode_it->second.target_stem_for_instrumental;
+               if (target_stem_for_instrumental >= output_stems.size())
                {
-                  pOut[0][i] = (pOut[0][i] + pOut[1][i] + pOut[2][i]) * pLeftChannel->GetChannelVolume(0);
+                  throw std::runtime_error("Specified target_stem_for_instrumental out of range");
                }
 
-               // replace output index 1 with index 3 (vocals), so that we use proper channel
-               // in the coming loop.
-               pOut[1] = pOut[3];
-            }
-            else
-            {
-               sourceLabels = { "Drums", "Bass", "Other Instruments", "Vocals" };
+               auto target_stem = output_stems[target_stem_for_instrumental];
+               ov_demix::GenerateInstrumental(target_stem, input_channels);
+
+               // replace output stems vector
+               std::vector<ov_demix::AudioTrack> new_output_stems = { target_stem, input_channels};
+               output_stems = new_output_stems;
+
+               // replace stem_labels vector
+               stem_labels = { sep_mode_it->second.stems[target_stem_for_instrumental], "Instrumental" };
             }
 
             auto orig_track_name = pTrack->GetName();
-            for (int i = 0; i < sourceLabels.size(); i++)
+            for (int i = 0; i < stem_labels.size(); i++)
             {
+               // If it's a dummy stem, skip it.
+               if (stem_labels[i] == "dummy") continue;
+
+               auto &stem_track = output_stems[i];
+
                // Workaround for 3.4.X issue where setting name of a new output track
                // retains the label of the track that it was copied from. So, we'll
                // change the name of the input track here, copy it, and then change it
                // back later.
-               pTrack->SetName(orig_track_name + wxString("-" + sourceLabels[i]));
+               pTrack->SetName(orig_track_name + wxString(" - " + model_selection_str + " - " + stem_labels[i]));
 
                //Create new output track from input track.
                auto newOutputTrack = pTrack->EmptyCopy();
@@ -517,12 +758,12 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
 
                //append output samples to L & R channels.
                auto& tmpLeft = **iter++;
-               tmpLeft.Append((samplePtr)pOut[i], floatSample, total_samples);
+               tmpLeft.Append((samplePtr)stem_track.first->data(), floatSample, total_samples);
 
                if (pTrack->Channels().size() > 1)
                {
                   auto& tmpRight = **iter;
-                  tmpRight.Append((samplePtr)(pOut[i] + total_samples), floatSample, total_samples);
+                  tmpRight.Append((samplePtr)stem_track.second->data(), floatSample, total_samples);
                }
 
                //flush it
@@ -531,11 +772,6 @@ bool EffectOVMusicSeparation::Process(EffectInstance&, EffectSettings&)
                // Clear & Paste into new output track
                newOutputTrack->ClearAndPaste(selectedRegion.t0() - pTmpTrack->GetStartTime(),
                   selectedRegion.t1() - pTmpTrack->GetStartTime(), *pTmpTrack);
-
-               // TODO: For Audacity 3.4.X, this doesn't seem to work as expected.
-               // The generated track will not have this name. Instead, it will retain
-               // whatever the inputTrack's name was.
-               //newOutputTrack->SetName(orig_track_name + wxString("-" + sourceLabels[i]));
 
                //Resample to original tracks rate
                newOutputTrack->Resample(orig_rates[ti]);
