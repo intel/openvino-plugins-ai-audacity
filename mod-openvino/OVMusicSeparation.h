@@ -4,12 +4,10 @@
 #pragma once
 
 #include "OVDemixerEffect.h"
-#include <wx/weakref.h>
 
 class EffectOVMusicSeparation final : public EffectOVDemixerEffect
 {
    public:
-
       static const ComponentInterfaceSymbol Symbol;
 
       EffectOVMusicSeparation();
@@ -18,5 +16,10 @@ class EffectOVMusicSeparation final : public EffectOVDemixerEffect
       // ComponentInterface implementation
       ComponentInterfaceSymbol GetSymbol() const override;
       TranslatableString GetDescription() const override;
+
+protected:
+
+      const std::string ModelManagerName() const override;
+      std::unordered_map< std::string, SeparationModeEntry > GetModelMap() override;
 };
 

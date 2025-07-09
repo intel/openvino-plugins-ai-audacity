@@ -13,13 +13,10 @@ class wxCheckBox;
 class wxTextCtrl;
 class wxSizer;
 
-
 class EffectOVDemixerEffect : public StatefulEffect, public StatefulEffectUIServices
 {
 public:
-
-    EffectOVDemixerEffect();
-    virtual ~EffectOVDemixerEffect();
+    bool Init() override;
 
     VendorSymbol GetVendor() const override;
 
@@ -46,10 +43,23 @@ public:
 
 protected:
 
-    wxChoice* mTypeChoiceDeviceCtrl;
-    int m_deviceSelectionChoice = 0;
+    virtual const std::string ModelManagerName() const = 0;
+
+    struct SeparationModeEntry
+    {
+       int separationModeSelectionChoice = 0;
+       std::vector< EnumValueSymbol > guiSeparationModeSelections;
+
+       std::vector<std::string> stems;
+       int target_stem_for_instrumental = 0;
+    };
+
+    virtual std::unordered_map<std::string, SeparationModeEntry> GetModelMap() = 0;
 
 private:
+
+    wxChoice* mTypeChoiceDeviceCtrl;
+    int m_deviceSelectionChoice = 0;
 
     enum control
     {
@@ -87,20 +97,13 @@ private:
 
     std::vector<std::pair<std::string, std::string>> m_simple_to_full_device_map;
 
-    struct SeparationModeEntry
-    {
-        int separationModeSelectionChoice = 0;
-        std::vector< EnumValueSymbol > guiSeparationModeSelections;
-
-        std::vector<std::string> stems;
-        int target_stem_for_instrumental = 0;
-    };
-
     std::unordered_map< std::string, SeparationModeEntry > m_model_to_separation_modes;
-    void _populate_model_to_separation_map();
 
     void SetModelSeparationModeSelections();
     void FitWindowToCorrectSize();
+
+    std::string m_effectName = "Unknown Effect";
+    std::string m_modelManagerName = "Unknown Name";
 
     DECLARE_EVENT_TABLE()
 };

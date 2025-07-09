@@ -44,17 +44,17 @@ EVT_CHOICE(ID_Type_ModelSelection, EffectOVDemixerEffect::OnModelSelectionChange
 END_EVENT_TABLE()
 
 
-EffectOVDemixerEffect::EffectOVDemixerEffect()
+bool EffectOVDemixerEffect::Init()
 {
     try
     {
+        m_effectName = GetSymbol().Internal().ToStdString();
+        m_modelManagerName = ModelManagerName();
+
         ov::Core core;
         auto ov_supported_device = core.get_available_devices();
         for (auto d : ov_supported_device)
         {
-            //GNA devices are not supported
-            if (d.find("GNA") != std::string::npos) continue;
-
             m_simple_to_full_device_map.push_back({ d, core.get_property(d, "FULL_DEVICE_NAME").as<std::string>() });
 
             mSupportedDevices.push_back(d);
@@ -64,112 +64,14 @@ EffectOVDemixerEffect::EffectOVDemixerEffect()
         mGuiSeparationModeSelections.push_back({ TranslatableString{ wxString(" "), {}} });
         mGuiSeparationModeSelections.push_back({ TranslatableString{ wxString(" "), {}} });
 
-        _populate_model_to_separation_map();
+        m_model_to_separation_modes = GetModelMap();
     }
     catch (const std::exception& error)
     {
-        wxLogError("In Music Separation initialization, exception: %s", error.what());
-    }
-}
-
-void EffectOVDemixerEffect::_populate_model_to_separation_map()
-{
-    {
-        SeparationModeEntry entry;
-        entry.stems = { "Drums", "Bass", "Others", "Vocals" };
-        entry.target_stem_for_instrumental = 3; //vocal stem
-        m_model_to_separation_modes.emplace("Demucs v4", entry);
+        wxLogError("In %s Init, exception: %s", m_effectName, error.what());
     }
 
-    {
-        SeparationModeEntry entry;
-        entry.stems = { "Drums", "dummy", "dummy", "dummy" };
-        entry.target_stem_for_instrumental = 0; //drums stem
-        m_model_to_separation_modes.emplace("Demucs v4 FT Drums", entry);
-    }
-
-    {
-        SeparationModeEntry entry;
-        entry.stems = { "dummy", "Bass", "dummy", "dummy" };
-        entry.target_stem_for_instrumental = 1; //bass stem
-        m_model_to_separation_modes.emplace("Demucs v4 FT Bass", entry);
-    }
-
-    {
-        SeparationModeEntry entry;
-        entry.stems = { "dummy", "dummy", "Other Instruments", "dummy" };
-        entry.target_stem_for_instrumental = 2; //others stem
-        m_model_to_separation_modes.emplace("Demucs v4 FT Other Instruments", entry);
-    }
-
-    {
-        SeparationModeEntry entry;
-        entry.stems = { "dummy", "dummy", "dummy", "Vocals" };
-        entry.target_stem_for_instrumental = 3; //vocal stem
-        m_model_to_separation_modes.emplace("Demucs v4 FT Vocals", entry);
-    }
-
-    {
-        SeparationModeEntry entry;
-        entry.stems = { "Drums", "Bass", "Others", "Vocals", "Guitar", "Piano" };
-        entry.target_stem_for_instrumental = 3; //vocal stem
-        m_model_to_separation_modes.emplace("Demucs v4 6s", entry);
-    }
-
-    {
-        SeparationModeEntry entry;
-        entry.stems = { "Vocals" };
-        entry.target_stem_for_instrumental = 0; //vocal stem
-        m_model_to_separation_modes.emplace("MelBandRoformer Vocals (Kimberly Jenson version)", entry);
-    }
-
-    {
-        SeparationModeEntry entry;
-        entry.stems = { "Crowd" };
-        entry.target_stem_for_instrumental = 0; //crowd stem
-        m_model_to_separation_modes.emplace("MelBandRoformer Crowd", entry);
-    }
-
-    for (auto& pair : m_model_to_separation_modes)
-    {
-        // Count number of non-dummy stems
-        int non_dummy_stems = 0;
-        for (auto& s : pair.second.stems)
-            if (s != "dummy") non_dummy_stems++;
-
-        // Generate the 'all stems' selection string.
-        std::string all_stems_mode = "(" + std::to_string(non_dummy_stems) + " Stem) ";
-        int stems_added = 1;
-        for (auto& s : pair.second.stems)
-        {
-            if (s != "dummy")
-            {
-                all_stems_mode += s;
-                if (stems_added < non_dummy_stems)
-                    all_stems_mode += ", ";
-                stems_added++;
-            }
-        }
-
-        if (pair.second.target_stem_for_instrumental >= pair.second.stems.size())
-        {
-            throw std::runtime_error("_populate_model_to_separation_map: pair.second.target_stem_for_instrumental >= pair.second.stems.size");
-        }
-        std::string instrumental_mode = "(2 Stem) " + pair.second.stems[pair.second.target_stem_for_instrumental]
-            + ", Instrumental";
-
-        std::cout << pair.first << ":" << std::endl;
-        std::cout << "  " << all_stems_mode << std::endl;
-        std::cout << "  " << instrumental_mode << std::endl;
-
-        pair.second.guiSeparationModeSelections.push_back({ TranslatableString{ wxString(all_stems_mode), {}} });
-        pair.second.guiSeparationModeSelections.push_back({ TranslatableString{ wxString(instrumental_mode), {}} });
-    }
-}
-
-EffectOVDemixerEffect::~EffectOVDemixerEffect()
-{
-
+    return true;
 }
 
 VendorSymbol EffectOVDemixerEffect::GetVendor() const
@@ -200,7 +102,7 @@ std::unique_ptr<EffectEditor> EffectOVDemixerEffect::PopulateOrExchange(
 {
     mUIParent = S.GetParent();
 
-    auto collection = OVModelManager::instance().GetModelCollection(OVModelManager::MusicSepName());
+    auto collection = OVModelManager::instance().GetModelCollection(m_modelManagerName);
     for (auto& model_info : collection->models) {
         if (model_info->installed) {
             if (std::find(mSupportedModels.begin(), mSupportedModels.end(), model_info->model_name) == mSupportedModels.end()) {
@@ -239,7 +141,7 @@ std::unique_ptr<EffectEditor> EffectOVDemixerEffect::PopulateOrExchange(
             });
         };
 
-    OVModelManager::instance().register_installed_callback(OVModelManager::MusicSepName(), callback);
+    OVModelManager::instance().register_installed_callback(m_modelManagerName, callback);
 
     S.AddSpace(0, 5);
     S.StartVerticalLay();
@@ -436,13 +338,13 @@ static std::vector<WaveTrack::Holder> CreateSourceTracks
 
 static bool HTDemucsProgressUpdate(double perc_complete, void* user)
 {
-   EffectOVDemixerEffect* music_sep = (EffectOVDemixerEffect*)user;
+   EffectOVDemixerEffect* demixer = (EffectOVDemixerEffect*)user;
 
     perc_complete = perc_complete * 100;
     if (perc_complete > 100)
         perc_complete = 100;
 
-    return music_sep->UpdateProgress(perc_complete);
+    return demixer->UpdateProgress(perc_complete);
 }
 
 bool EffectOVDemixerEffect::UpdateProgress(double perc)
@@ -463,13 +365,13 @@ bool EffectOVDemixerEffect::Process(EffectInstance&, EffectSettings&)
     {
         std::string model_selection_str = mSupportedModels[m_modelSelectionChoice];
 
-        auto model_collection = OVModelManager::instance().GetModelCollection(OVModelManager::MusicSepName());
+        auto model_collection = OVModelManager::instance().GetModelCollection(m_modelManagerName);
 
         // It shouldn't be possible for this condition to be true (User shoudn't have been able to click 'Apply'),
         // but double check anyway..
         if (!model_collection || model_collection->models.empty())
         {
-            throw std::runtime_error("Music Separation models have not been installed.");
+            throw std::runtime_error(m_effectName + " models have not been installed.");
         }
 
         std::shared_ptr< OVModelManager::ModelInfo > retrieved_model_info;
@@ -693,7 +595,7 @@ bool EffectOVDemixerEffect::Process(EffectInstance&, EffectSettings&)
                         std::to_string(total_samples) + " samples");
                 }
 
-                TotalProgress(0.01, XO("Applying Music Separation using OpenVINO"));
+                TotalProgress(0.01, TranslatableString{ wxString("Applying " + m_effectName), {} });
 
                 ov_demix::AudioTrack input_channels = { left_samples, right_samples };
                 auto output_stems = ov_demix::Demix(model, input_channels, mNumberOfShifts, HTDemucsProgressUpdate, this);
@@ -800,9 +702,10 @@ bool EffectOVDemixerEffect::Process(EffectInstance&, EffectSettings&)
         return bGoodResult;
     }
     catch (const std::exception& error) {
-        wxLogError("In Music Separation, exception: %s", error.what());
+       std::string message = m_effectName + " failed. See details in Help->Diagnostics->Show Log...";
+        wxLogError("In %s, exception: %s", m_effectName, error.what());
         EffectUIServices::DoMessageBox(*this,
-            XO("Music Separation failed. See details in Help->Diagnostics->Show Log..."),
+           TranslatableString{ wxString(message), {} },
             wxICON_STOP,
             XO("Error"));
     }
@@ -824,9 +727,9 @@ bool EffectOVDemixerEffect::TransferDataToWindow(const EffectSettings&)
             EffectEditor::EnablePreview(mUIParent, false);
             });
         };
-    OVModelManager::instance().register_installed_callback(OVModelManager::MusicSepName(), callback);
+    OVModelManager::instance().register_installed_callback(m_modelManagerName, callback);
 
-    auto model_collection = OVModelManager::instance().GetModelCollection(OVModelManager::MusicSepName());
+    auto model_collection = OVModelManager::instance().GetModelCollection(m_modelManagerName);
     if (!model_collection || model_collection->models.empty() || !model_collection->models[0]->installed)
     {
         EffectEditor::EnableApply(mUIParent, false);

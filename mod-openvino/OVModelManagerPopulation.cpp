@@ -85,6 +85,16 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_separat
          mel_model_info->fileList = fileList;
          music_sep_collection->models.emplace_back(mel_model_info);
       }
+
+      {
+         std::shared_ptr<OVModelManager::ModelInfo> mel_model_info = std::make_shared<OVModelManager::ModelInfo>();
+         mel_model_info->model_name = "MelBandRoformer Crowd";
+         mel_model_info->info = "A MelBandRoformer-based crowd extraction model.";
+         mel_model_info->baseUrl = "";
+         mel_model_info->relative_path = relative_path + "melband_roformer_crowd";
+         mel_model_info->fileList = fileList;
+         music_sep_collection->models.emplace_back(mel_model_info);
+      }
    }
 
    return music_sep_collection;
