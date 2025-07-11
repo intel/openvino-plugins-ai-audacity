@@ -16,7 +16,7 @@ public:
       // The information that pops up when user clicks 'info' on the UI.
       std::string info;
 
-      // The 'base' URL where each of the files in 'fileList' can be downloaded from. 
+      // The 'base' URL where each of the files in 'fileList' can be downloaded from.
       std::string baseUrl;
 
       // The complete URL for each file is generated as:
@@ -33,7 +33,7 @@ public:
       bool installed = false;
 
       //This will be set to absolute path of openvino-models + relative_path, but only
-      // if 'installed' is true. 
+      // if 'installed' is true.
       std::string installation_path;
 
       // This is used for multiple models to have a common subset of files
@@ -53,9 +53,10 @@ public:
    static const std::string NoiseSuppressName() { return "Noise Suppression"; }
    static const std::string SuperResName() { return "Super Resolution"; }
    static const std::string WhisperName() { return "Whisper Transcription"; }
+   static const std::string ReverbRemovalName() { return "Reverb Removal"; }
 
    static OVModelManager& instance() {
-      static OVModelManager instance;  
+      static OVModelManager instance;
       return instance;
    }
 

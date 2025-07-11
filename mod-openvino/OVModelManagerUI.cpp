@@ -137,7 +137,8 @@ ModelManagerDialog::ModelManagerDialog(wxWindow* parent)
       OVModelManager::MusicSepName(),
       OVModelManager::NoiseSuppressName(),
       OVModelManager::SuperResName(),
-      OVModelManager::WhisperName() };
+      OVModelManager::WhisperName(),
+      OVModelManager::ReverbRemovalName() };
 
    for (const auto& s : allSections) {
       auto collection = OVModelManager::instance().GetModelCollection(s);
@@ -154,7 +155,7 @@ ModelManagerDialog::ModelManagerDialog(wxWindow* parent)
       wxFont font = staticBox->GetFont();
       font.SetWeight(wxFONTWEIGHT_BOLD);
       staticBox->SetFont(font);
-      
+
       wxBoxSizer* currentSectionInner = new wxBoxSizer(wxVERTICAL);
 
       currentSectionBox->Add(currentSectionInner, 0, wxEXPAND | wxALL, 5);

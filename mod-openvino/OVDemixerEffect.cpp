@@ -392,6 +392,12 @@ bool EffectOVDemixerEffect::Process(EffectInstance&, EffectSettings&)
 
         auto model_folder = retrieved_model_info->installation_path;
 
+        auto sep_mode_it = m_model_to_separation_modes.find(model_selection_str);
+        if (sep_mode_it == m_model_to_separation_modes.end())
+        {
+            throw std::runtime_error("Did not find separation mode entry for model_selection_str=" + model_selection_str);
+        }
+
         std::shared_ptr< ov_demix::DemixModel > model;
         {
             auto device = mSupportedDevices[m_deviceSelectionChoice];
@@ -404,7 +410,7 @@ bool EffectOVDemixerEffect::Process(EffectInstance&, EffectSettings&)
             std::cout << "cache_path = " << cache_path << std::endl;
             std::cout << "number of shifts = " << mNumberOfShifts << std::endl;
 
-            auto create_model_fut = std::async(std::launch::async, [&model_folder, &device, &cache_path, &model_selection_str]()
+            auto create_model_fut = std::async(std::launch::async, [&model_folder, &device, &cache_path, &model_selection_str, &sep_mode_it]()
                 {
                     // WA for OpenVINO locale caching issue (https://github.com/openvinotoolkit/openvino/issues/24370)
                     OVLocaleWorkaround wa;
@@ -416,7 +422,14 @@ bool EffectOVDemixerEffect::Process(EffectInstance&, EffectSettings&)
                     }
                     else if (model_selection_str.find("MelBandRoformer") != std::string::npos)
                     {
-                        ret = std::make_shared<ov_demix::MelBandRoformer>(model_folder, device, cache_path, ov_demix::DemixModel::PadMode::Reflect);
+                        auto pad_mode = ov_demix::DemixModel::PadMode::Reflect;
+
+                        if (sep_mode_it->second.bZeroPad)
+                        {
+                            pad_mode = ov_demix::DemixModel::PadMode::Constant0;
+                        }
+
+                        ret = std::make_shared<ov_demix::MelBandRoformer>(model_folder, device, cache_path, pad_mode);
                     }
                     else
                     {
@@ -451,12 +464,6 @@ bool EffectOVDemixerEffect::Process(EffectInstance&, EffectSettings&)
                 throw std::runtime_error("Error loading model to device...");
             }
 
-        }
-
-        auto sep_mode_it = m_model_to_separation_modes.find(model_selection_str);
-        if (sep_mode_it == m_model_to_separation_modes.end())
-        {
-            throw std::runtime_error("Did not find separation mode entry for model_selection_str=" + model_selection_str);
         }
 
         auto stem_labels = sep_mode_it->second.stems;

@@ -100,6 +100,33 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_separat
    return music_sep_collection;
 }
 
+
+static std::shared_ptr< OVModelManager::ModelCollection > populate_reverb_removal()
+{
+   auto collection = std::make_shared< OVModelManager::ModelCollection >();
+
+   std::string relative_path = "reverb_removal/";
+
+   //mel band roformer models
+   {
+      std::vector< std::string > fileList = { "mel_band_pre.xml", "mel_band_pre.bin",
+                                              "mel_band_post.xml", "mel_band_post.bin",
+                                              "mel_band_fwd.xml", "mel_band_fwd.bin" };
+
+      {
+         std::shared_ptr<OVModelManager::ModelInfo> mel_model_info = std::make_shared<OVModelManager::ModelInfo>();
+         mel_model_info->model_name = "MelBandRoformer Dereverb Mono (@anvuew)";
+         mel_model_info->info = "A MelBandRoformer-based Reverb Removal model that works well with spoken audio";
+         mel_model_info->baseUrl = "";
+         mel_model_info->relative_path = relative_path + "mel_band_roformer_mono_anvuew";
+         mel_model_info->fileList = fileList;
+         collection->models.emplace_back(mel_model_info);
+      }
+   }
+
+   return collection;
+}
+
 static std::shared_ptr< OVModelManager::ModelCollection > populate_music_generation()
 {
    //TODO: Change 'main' to specific commit-id
@@ -532,4 +559,5 @@ void OVModelManager::_populate_model_collection()
    mModelCollection.insert({ MusicGenName(), populate_music_generation() });
    mModelCollection.insert({ SuperResName(), populate_super_resolution() });
    mModelCollection.insert({ WhisperName(), populate_whisper() });
+   mModelCollection.insert({ ReverbRemovalName(), populate_reverb_removal() });
 }

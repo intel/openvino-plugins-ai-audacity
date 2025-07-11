@@ -77,6 +77,8 @@ set( SOURCES
       OVDemixerEffect.h
       OVMusicSeparation.cpp
       OVMusicSeparation.h
+      OVReverbRemoval.cpp
+      OVReverbRemoval.h
       OVMusicGenerationLLM.cpp
       OVMusicGenerationLLM.h
       OVWhisperTranscriptionGenAI.cpp

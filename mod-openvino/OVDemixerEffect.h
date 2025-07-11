@@ -52,6 +52,9 @@ protected:
 
        std::vector<std::string> stems;
        int target_stem_for_instrumental = 0;
+
+       //TODO: Move this someplace else. It's specific to MelBandRoformer models.
+       bool bZeroPad = false;
     };
 
     virtual std::unordered_map<std::string, SeparationModeEntry> GetModelMap() = 0;
