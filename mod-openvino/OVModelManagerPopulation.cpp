@@ -127,6 +127,40 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_reverb_remova
    return collection;
 }
 
+static std::shared_ptr< OVModelManager::ModelCollection > populate_music_restoration()
+{
+   auto collection = std::make_shared< OVModelManager::ModelCollection >();
+
+   std::string relative_path = "music_restoration/";
+
+   //apollo models
+   {
+      std::vector< std::string > fileList = { "apollo_fwd.xml", "apollo_fwd.bin"};
+
+      {
+         std::shared_ptr<OVModelManager::ModelInfo> mel_model_info = std::make_shared<OVModelManager::ModelInfo>();
+         mel_model_info->model_name = "Apollo MP3 Restore (@JusperLee)";
+         mel_model_info->info = "A Apollo-based lossy restoration model that works well with low-bitrate MP3s";
+         mel_model_info->baseUrl = "";
+         mel_model_info->relative_path = relative_path + "apollo_jusperlee";
+         mel_model_info->fileList = fileList;
+         collection->models.emplace_back(mel_model_info);
+      }
+
+      {
+         std::shared_ptr<OVModelManager::ModelInfo> mel_model_info = std::make_shared<OVModelManager::ModelInfo>();
+         mel_model_info->model_name = "Apollo Universal Restore (@Lew)";
+         mel_model_info->info = "A Apollo-based lossy restoration model that works well, universally (TODO)";
+         mel_model_info->baseUrl = "";
+         mel_model_info->relative_path = relative_path + "apollo_universal";
+         mel_model_info->fileList = fileList;
+         collection->models.emplace_back(mel_model_info);
+      }
+   }
+
+   return collection;
+}
+
 static std::shared_ptr< OVModelManager::ModelCollection > populate_music_generation()
 {
    //TODO: Change 'main' to specific commit-id
@@ -560,4 +594,5 @@ void OVModelManager::_populate_model_collection()
    mModelCollection.insert({ SuperResName(), populate_super_resolution() });
    mModelCollection.insert({ WhisperName(), populate_whisper() });
    mModelCollection.insert({ ReverbRemovalName(), populate_reverb_removal() });
+   mModelCollection.insert({ MusicRestorationName(), populate_music_restoration() });
 }

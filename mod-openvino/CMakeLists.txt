@@ -67,6 +67,8 @@ set( DEMIX_SOURCES
      demix/htdemucs.h
      demix/mel_band_roformer.cpp
      demix/mel_band_roformer.h
+     demix/apollo.h
+     demix/apollo.cpp
 )
 
 set( SOURCES
@@ -79,6 +81,8 @@ set( SOURCES
       OVMusicSeparation.h
       OVReverbRemoval.cpp
       OVReverbRemoval.h
+      OVMusicRestoration.cpp
+      OVMusicRestoration.h
       OVMusicGenerationLLM.cpp
       OVMusicGenerationLLM.h
       OVWhisperTranscriptionGenAI.cpp

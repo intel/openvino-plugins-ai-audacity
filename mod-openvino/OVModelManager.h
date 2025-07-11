@@ -54,6 +54,7 @@ public:
    static const std::string SuperResName() { return "Super Resolution"; }
    static const std::string WhisperName() { return "Whisper Transcription"; }
    static const std::string ReverbRemovalName() { return "Reverb Removal"; }
+   static const std::string MusicRestorationName() { return "Music Restoration"; }
 
    static OVModelManager& instance() {
       static OVModelManager instance;

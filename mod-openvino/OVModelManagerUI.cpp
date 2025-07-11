@@ -138,7 +138,8 @@ ModelManagerDialog::ModelManagerDialog(wxWindow* parent)
       OVModelManager::NoiseSuppressName(),
       OVModelManager::SuperResName(),
       OVModelManager::WhisperName(),
-      OVModelManager::ReverbRemovalName() };
+      OVModelManager::ReverbRemovalName(),
+      OVModelManager::MusicRestorationName()};
 
    for (const auto& s : allSections) {
       auto collection = OVModelManager::instance().GetModelCollection(s);
