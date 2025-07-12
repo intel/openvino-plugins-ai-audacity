@@ -69,6 +69,8 @@ set( DEMIX_SOURCES
      demix/mel_band_roformer.h
      demix/apollo.h
      demix/apollo.cpp
+     demix/mdx23c.h
+     demix/mdx23c.cpp
 )
 
 set( SOURCES
