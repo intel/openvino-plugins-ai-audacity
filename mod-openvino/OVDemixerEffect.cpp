@@ -47,6 +47,9 @@ END_EVENT_TABLE()
 
 bool EffectOVDemixerEffect::Init()
 {
+    if (_bInitAlreadySuccessful)
+        return true;
+
     try
     {
         m_effectName = GetSymbol().Internal().ToStdString();
@@ -66,10 +69,13 @@ bool EffectOVDemixerEffect::Init()
         mGuiSeparationModeSelections.push_back({ TranslatableString{ wxString(" "), {}} });
 
         m_model_to_separation_modes = GetModelMap();
+
+        _bInitAlreadySuccessful = true;
     }
     catch (const std::exception& error)
     {
         wxLogError("In %s Init, exception: %s", m_effectName, error.what());
+        return false;
     }
 
     return true;

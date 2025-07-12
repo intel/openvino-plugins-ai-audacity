@@ -108,5 +108,6 @@ private:
     std::string m_effectName = "Unknown Effect";
     std::string m_modelManagerName = "Unknown Name";
 
+    bool _bInitAlreadySuccessful = false;
     DECLARE_EVENT_TABLE()
 };
