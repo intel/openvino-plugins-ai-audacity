@@ -150,7 +150,7 @@ namespace ov_demix
     {
         auto x = _stft->apply(arr);
 
-        _forward_ir.set_input_tensor(wrap_torch_tensor_as_ov(x));
+        _forward_ir.set_input_tensor(wrap_torch_tensor_as_ov(x.contiguous()));
 
         using namespace std::chrono;
         using Clock = std::chrono::high_resolution_clock;
