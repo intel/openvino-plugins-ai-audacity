@@ -97,6 +97,21 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_separat
       }
    }
 
+   //MDX23C models
+   {
+      std::vector< std::string > fileList = { "mdx23c_fwd.xml", "mdx23c_fwd.bin"};
+
+      {
+         std::shared_ptr<OVModelManager::ModelInfo> mdx_model_info = std::make_shared<OVModelManager::ModelInfo>();
+         mdx_model_info->model_name = "MDX23C Drum Separation (@jarredou)";
+         mdx_model_info->info = "A Drum Separation model that can produce 5 stems: kick, snare, toms, hi-hat, cymbals";
+         mdx_model_info->baseUrl = "";
+         mdx_model_info->relative_path = relative_path + "drumsep_jarredou_mdx23c";
+         mdx_model_info->fileList = fileList;
+         music_sep_collection->models.emplace_back(mdx_model_info);
+      }
+   }
+
    return music_sep_collection;
 }
 

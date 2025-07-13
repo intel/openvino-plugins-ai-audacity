@@ -126,6 +126,13 @@ std::unordered_map<std::string, EffectOVDemixerEffect::SeparationModeEntry> Effe
       model_to_separation_map.emplace("MelBandRoformer Crowd", entry);
    }
 
+   {
+      SeparationModeEntry entry;
+      entry.stems = { "Kick", "Snare", "Toms", "Hi-hat", "Cymbals" };
+      entry.target_stem_for_instrumental = 0; //kick stem (this should be removed)
+      model_to_separation_map.emplace("MDX23C Drum Separation (@jarredou)", entry);
+   }
+
    for (auto& pair : model_to_separation_map)
    {
       // Count number of non-dummy stems

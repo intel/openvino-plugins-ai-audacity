@@ -36,6 +36,7 @@
 #include "demix/htdemucs.h"
 #include "demix/mel_band_roformer.h"
 #include "demix/apollo.h"
+#include "demix/mdx23c.h"
 
 BEGIN_EVENT_TABLE(EffectOVDemixerEffect, wxEvtHandler)
 EVT_CHECKBOX(ID_Type_AdvancedCheckbox, EffectOVDemixerEffect::OnAdvancedCheckboxChanged)
@@ -441,6 +442,10 @@ bool EffectOVDemixerEffect::Process(EffectInstance&, EffectSettings&)
                     else if (model_selection_str.find("Apollo") != std::string::npos)
                     {
                         ret = std::make_shared<ov_demix::Apollo>(model_folder, device, cache_path);
+                    }
+                    else if (model_selection_str.find("MDX23C") != std::string::npos)
+                    {
+                        ret = std::make_shared<ov_demix::MDX23C>(model_folder, device, cache_path);
                     }
                     else
                     {
