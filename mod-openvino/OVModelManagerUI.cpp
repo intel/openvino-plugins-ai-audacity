@@ -135,11 +135,12 @@ ModelManagerDialog::ModelManagerDialog(wxWindow* parent)
    std::vector < std::string > allSections = {
       OVModelManager::MusicGenName(),
       OVModelManager::MusicSepName(),
+      OVModelManager::MusicRestorationName(),
       OVModelManager::NoiseSuppressName(),
-      OVModelManager::SuperResName(),
-      OVModelManager::WhisperName(),
       OVModelManager::ReverbRemovalName(),
-      OVModelManager::MusicRestorationName()};
+      OVModelManager::SuperResName(),
+      OVModelManager::WhisperName()
+      };
 
    for (const auto& s : allSections) {
       auto collection = OVModelManager::instance().GetModelCollection(s);
