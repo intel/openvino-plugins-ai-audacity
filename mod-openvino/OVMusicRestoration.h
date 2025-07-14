@@ -5,13 +5,13 @@
 
 #include "OVDemixerEffect.h"
 
-class EffectOVMusicSeparation final : public EffectOVDemixerEffect
+class EffectOVMusicRestoration final : public EffectOVDemixerEffect
 {
    public:
       static const ComponentInterfaceSymbol Symbol;
 
-      EffectOVMusicSeparation();
-      virtual ~EffectOVMusicSeparation();
+      EffectOVMusicRestoration();
+      virtual ~EffectOVMusicRestoration();
 
       // ComponentInterface implementation
       ComponentInterfaceSymbol GetSymbol() const override;

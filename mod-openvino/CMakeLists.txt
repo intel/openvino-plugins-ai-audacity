@@ -43,7 +43,7 @@ set( NOISE_SUPPRESSION_SOURCES
 include_directories(noise_suppression)
 include_directories(noise_suppression/deepfilternet)
 
-set( AUDIO_SR_SOURCES 
+set( AUDIO_SR_SOURCES
      OVAudioSR.cpp
      OVAudioSR.h
      audio_sr/audiosr_common.h
@@ -67,14 +67,24 @@ set( DEMIX_SOURCES
      demix/htdemucs.h
      demix/mel_band_roformer.cpp
      demix/mel_band_roformer.h
+     demix/apollo.h
+     demix/apollo.cpp
+     demix/mdx23c.h
+     demix/mdx23c.cpp
 )
 
 set( SOURCES
       ${NOISE_SUPPRESSION_SOURCES}
       ${AUDIO_SR_SOURCES}
       ${DEMIX_SOURCES}
+      OVDemixerEffect.cpp
+      OVDemixerEffect.h
       OVMusicSeparation.cpp
       OVMusicSeparation.h
+      OVReverbRemoval.cpp
+      OVReverbRemoval.h
+      OVMusicRestoration.cpp
+      OVMusicRestoration.h
       OVMusicGenerationLLM.cpp
       OVMusicGenerationLLM.h
       OVWhisperTranscriptionGenAI.cpp

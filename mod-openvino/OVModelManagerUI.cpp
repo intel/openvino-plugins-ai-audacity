@@ -135,9 +135,12 @@ ModelManagerDialog::ModelManagerDialog(wxWindow* parent)
    std::vector < std::string > allSections = {
       OVModelManager::MusicGenName(),
       OVModelManager::MusicSepName(),
+      OVModelManager::MusicRestorationName(),
       OVModelManager::NoiseSuppressName(),
+      OVModelManager::ReverbRemovalName(),
       OVModelManager::SuperResName(),
-      OVModelManager::WhisperName() };
+      OVModelManager::WhisperName()
+      };
 
    for (const auto& s : allSections) {
       auto collection = OVModelManager::instance().GetModelCollection(s);
@@ -154,7 +157,7 @@ ModelManagerDialog::ModelManagerDialog(wxWindow* parent)
       wxFont font = staticBox->GetFont();
       font.SetWeight(wxFONTWEIGHT_BOLD);
       staticBox->SetFont(font);
-      
+
       wxBoxSizer* currentSectionInner = new wxBoxSizer(wxVERTICAL);
 
       currentSectionBox->Add(currentSectionInner, 0, wxEXPAND | wxALL, 5);

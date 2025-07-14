@@ -78,16 +78,102 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_separat
 
       {
          std::shared_ptr<OVModelManager::ModelInfo> mel_model_info = std::make_shared<OVModelManager::ModelInfo>();
-         mel_model_info->model_name = "MelBandRoformer Vocals (Kimberly Jenson version)";
-         mel_model_info->info = "A MelBandRoformer-based vocal extraction model. Trained by Kimberly Jenson";
+         mel_model_info->model_name = "MelBandRoformer Vocals (@KimberleyJensen)";
+         mel_model_info->info = "A MelBandRoformer-based vocal extraction model. Trained by @KimberlyJenson";
          mel_model_info->baseUrl = "";
          mel_model_info->relative_path = relative_path + "melband_roformer_kimberley_jenson";
          mel_model_info->fileList = fileList;
          music_sep_collection->models.emplace_back(mel_model_info);
       }
+
+      {
+         std::shared_ptr<OVModelManager::ModelInfo> mel_model_info = std::make_shared<OVModelManager::ModelInfo>();
+         mel_model_info->model_name = "MelBandRoformer Crowd (@aufr33 & @viperx)";
+         mel_model_info->info = "A MelBandRoformer-based crowd extraction model.";
+         mel_model_info->baseUrl = "";
+         mel_model_info->relative_path = relative_path + "melband_roformer_crowd";
+         mel_model_info->fileList = fileList;
+         music_sep_collection->models.emplace_back(mel_model_info);
+      }
+   }
+
+   //MDX23C models
+   {
+      std::vector< std::string > fileList = { "mdx23c_fwd.xml", "mdx23c_fwd.bin"};
+
+      {
+         std::shared_ptr<OVModelManager::ModelInfo> mdx_model_info = std::make_shared<OVModelManager::ModelInfo>();
+         mdx_model_info->model_name = "MDX23C Drum Separation (@jarredou)";
+         mdx_model_info->info = "A Drum Separation model that can produce 5 stems: kick, snare, toms, hi-hat, cymbals";
+         mdx_model_info->baseUrl = "";
+         mdx_model_info->relative_path = relative_path + "drumsep_jarredou_mdx23c";
+         mdx_model_info->fileList = fileList;
+         music_sep_collection->models.emplace_back(mdx_model_info);
+      }
    }
 
    return music_sep_collection;
+}
+
+
+static std::shared_ptr< OVModelManager::ModelCollection > populate_reverb_removal()
+{
+   auto collection = std::make_shared< OVModelManager::ModelCollection >();
+
+   std::string relative_path = "reverb_removal/";
+
+   //mel band roformer models
+   {
+      std::vector< std::string > fileList = { "mel_band_pre.xml", "mel_band_pre.bin",
+                                              "mel_band_post.xml", "mel_band_post.bin",
+                                              "mel_band_fwd.xml", "mel_band_fwd.bin" };
+
+      {
+         std::shared_ptr<OVModelManager::ModelInfo> mel_model_info = std::make_shared<OVModelManager::ModelInfo>();
+         mel_model_info->model_name = "MelBandRoformer Dereverb Mono (@anvuew)";
+         mel_model_info->info = "A MelBandRoformer-based Reverb Removal model that works well with spoken audio";
+         mel_model_info->baseUrl = "";
+         mel_model_info->relative_path = relative_path + "mel_band_roformer_mono_anvuew";
+         mel_model_info->fileList = fileList;
+         collection->models.emplace_back(mel_model_info);
+      }
+   }
+
+   return collection;
+}
+
+static std::shared_ptr< OVModelManager::ModelCollection > populate_music_restoration()
+{
+   auto collection = std::make_shared< OVModelManager::ModelCollection >();
+
+   std::string relative_path = "music_restoration/";
+
+   //apollo models
+   {
+      std::vector< std::string > fileList = { "apollo_fwd.xml", "apollo_fwd.bin"};
+
+      {
+         std::shared_ptr<OVModelManager::ModelInfo> mel_model_info = std::make_shared<OVModelManager::ModelInfo>();
+         mel_model_info->model_name = "Apollo MP3 Restore (@JusperLee)";
+         mel_model_info->info = "A Apollo-based lossy restoration model that works well with low-bitrate MP3s";
+         mel_model_info->baseUrl = "";
+         mel_model_info->relative_path = relative_path + "apollo_jusperlee";
+         mel_model_info->fileList = fileList;
+         collection->models.emplace_back(mel_model_info);
+      }
+
+      {
+         std::shared_ptr<OVModelManager::ModelInfo> mel_model_info = std::make_shared<OVModelManager::ModelInfo>();
+         mel_model_info->model_name = "Apollo Universal Restore (@Lew)";
+         mel_model_info->info = "A Apollo-based lossy restoration model that works well, universally (TODO)";
+         mel_model_info->baseUrl = "";
+         mel_model_info->relative_path = relative_path + "apollo_universal";
+         mel_model_info->fileList = fileList;
+         collection->models.emplace_back(mel_model_info);
+      }
+   }
+
+   return collection;
 }
 
 static std::shared_ptr< OVModelManager::ModelCollection > populate_music_generation()
@@ -522,4 +608,6 @@ void OVModelManager::_populate_model_collection()
    mModelCollection.insert({ MusicGenName(), populate_music_generation() });
    mModelCollection.insert({ SuperResName(), populate_super_resolution() });
    mModelCollection.insert({ WhisperName(), populate_whisper() });
+   mModelCollection.insert({ ReverbRemovalName(), populate_reverb_removal() });
+   mModelCollection.insert({ MusicRestorationName(), populate_music_restoration() });
 }
