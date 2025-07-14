@@ -116,14 +116,14 @@ std::unordered_map<std::string, EffectOVDemixerEffect::SeparationModeEntry> Effe
       SeparationModeEntry entry;
       entry.stems = { "Vocals" };
       entry.target_stem_for_instrumental = 0; //vocal stem
-      model_to_separation_map.emplace("MelBandRoformer Vocals (Kimberly Jenson version)", entry);
+      model_to_separation_map.emplace("MelBandRoformer Vocals (@KimberleyJensen)", entry);
    }
 
    {
       SeparationModeEntry entry;
       entry.stems = { "Crowd" };
       entry.target_stem_for_instrumental = 0; //crowd stem
-      model_to_separation_map.emplace("MelBandRoformer Crowd", entry);
+      model_to_separation_map.emplace("MelBandRoformer Crowd (@aufr33 & @viperx)", entry);
    }
 
    {

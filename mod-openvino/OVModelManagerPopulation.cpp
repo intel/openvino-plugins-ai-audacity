@@ -78,8 +78,8 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_separat
 
       {
          std::shared_ptr<OVModelManager::ModelInfo> mel_model_info = std::make_shared<OVModelManager::ModelInfo>();
-         mel_model_info->model_name = "MelBandRoformer Vocals (Kimberly Jenson version)";
-         mel_model_info->info = "A MelBandRoformer-based vocal extraction model. Trained by Kimberly Jenson";
+         mel_model_info->model_name = "MelBandRoformer Vocals (@KimberleyJensen)";
+         mel_model_info->info = "A MelBandRoformer-based vocal extraction model. Trained by @KimberlyJenson";
          mel_model_info->baseUrl = "";
          mel_model_info->relative_path = relative_path + "melband_roformer_kimberley_jenson";
          mel_model_info->fileList = fileList;
@@ -88,7 +88,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_separat
 
       {
          std::shared_ptr<OVModelManager::ModelInfo> mel_model_info = std::make_shared<OVModelManager::ModelInfo>();
-         mel_model_info->model_name = "MelBandRoformer Crowd";
+         mel_model_info->model_name = "MelBandRoformer Crowd (@aufr33 & @viperx)";
          mel_model_info->info = "A MelBandRoformer-based crowd extraction model.";
          mel_model_info->baseUrl = "";
          mel_model_info->relative_path = relative_path + "melband_roformer_crowd";
