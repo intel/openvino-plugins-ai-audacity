@@ -1,4 +1,5 @@
 #include "OVModelManager.h"
+#include "model_md_card_info.h"
 
 static std::shared_ptr< OVModelManager::ModelCollection > populate_music_separation()
 {
@@ -12,7 +13,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_separat
       {
          std::shared_ptr<OVModelManager::ModelInfo> demucs_model_info = std::make_shared<OVModelManager::ModelInfo>();
          demucs_model_info->model_name = "Demucs v4";
-         demucs_model_info->info = "Demucs-v4 is a state-of-the-art music source separation model that can separate drums, bass, vocals, and other stems from any song.";
+         demucs_model_info->info = music_separation_demucs_v4;
          demucs_model_info->baseUrl = "";
          demucs_model_info->relative_path = relative_path + "htdemucs_v4";
          demucs_model_info->fileList = fileList;
@@ -22,7 +23,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_separat
       {
          std::shared_ptr<OVModelManager::ModelInfo> demucs_model_info = std::make_shared<OVModelManager::ModelInfo>();
          demucs_model_info->model_name = "Demucs v4 FT Drums";
-         demucs_model_info->info = "A fine-tuned variant of Demucs-v4 that gives slightly better results for drums";
+         demucs_model_info->info = music_separation_demucs_v4_ft_drums;
          demucs_model_info->baseUrl = "";
          demucs_model_info->relative_path = relative_path + "htdemucs_v4_ht_drums";
          demucs_model_info->fileList = fileList;
@@ -32,7 +33,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_separat
       {
          std::shared_ptr<OVModelManager::ModelInfo> demucs_model_info = std::make_shared<OVModelManager::ModelInfo>();
          demucs_model_info->model_name = "Demucs v4 FT Bass";
-         demucs_model_info->info = "A fine-tuned variant of Demucs-v4 that gives slightly better results for bass";
+         demucs_model_info->info = music_separation_demucs_v4_ft_bass;
          demucs_model_info->baseUrl = "";
          demucs_model_info->relative_path = relative_path + "htdemucs_v4_ht_bass";
          demucs_model_info->fileList = fileList;
@@ -42,7 +43,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_separat
       {
          std::shared_ptr<OVModelManager::ModelInfo> demucs_model_info = std::make_shared<OVModelManager::ModelInfo>();
          demucs_model_info->model_name = "Demucs v4 FT Other Instruments";
-         demucs_model_info->info = "A fine-tuned variant of Demucs-v4 that gives slightly better results for 'other instruments'";
+         demucs_model_info->info = music_separation_demucs_v4_ft_other;
          demucs_model_info->baseUrl = "";
          demucs_model_info->relative_path = relative_path + "htdemucs_v4_ht_other";
          demucs_model_info->fileList = fileList;
@@ -52,7 +53,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_separat
       {
          std::shared_ptr<OVModelManager::ModelInfo> demucs_model_info = std::make_shared<OVModelManager::ModelInfo>();
          demucs_model_info->model_name = "Demucs v4 FT Vocals";
-         demucs_model_info->info = "A fine-tuned variant of Demucs-v4 that gives slightly better results for vocals";
+         demucs_model_info->info = music_separation_demucs_v4_ft_vocals;
          demucs_model_info->baseUrl = "";
          demucs_model_info->relative_path = relative_path + "htdemucs_v4_ht_vocals";
          demucs_model_info->fileList = fileList;
@@ -62,7 +63,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_separat
       {
          std::shared_ptr<OVModelManager::ModelInfo> demucs_model_info = std::make_shared<OVModelManager::ModelInfo>();
          demucs_model_info->model_name = "Demucs v4 6s";
-         demucs_model_info->info = "A 6-stem variant of Demucs v4 that can separate drums, bass, vocals, guitar, piano, and others";
+         demucs_model_info->info = music_separation_demucs_v4_6s;
          demucs_model_info->baseUrl = "";
          demucs_model_info->relative_path = relative_path + "htdemucs_v4_6s";
          demucs_model_info->fileList = fileList;
@@ -79,7 +80,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_separat
       {
          std::shared_ptr<OVModelManager::ModelInfo> mel_model_info = std::make_shared<OVModelManager::ModelInfo>();
          mel_model_info->model_name = "MelBandRoformer Vocals (@KimberleyJensen)";
-         mel_model_info->info = "A MelBandRoformer-based vocal extraction model. Trained by @KimberlyJenson";
+         mel_model_info->info = music_separation_mel_vocals_kimberley_jenson;
          mel_model_info->baseUrl = "";
          mel_model_info->relative_path = relative_path + "melband_roformer_kimberley_jenson";
          mel_model_info->fileList = fileList;
@@ -89,7 +90,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_separat
       {
          std::shared_ptr<OVModelManager::ModelInfo> mel_model_info = std::make_shared<OVModelManager::ModelInfo>();
          mel_model_info->model_name = "MelBandRoformer Crowd (@aufr33 & @viperx)";
-         mel_model_info->info = "A MelBandRoformer-based crowd extraction model.";
+         mel_model_info->info = music_separation_mel_crowd_aufr33_viperx;
          mel_model_info->baseUrl = "";
          mel_model_info->relative_path = relative_path + "melband_roformer_crowd";
          mel_model_info->fileList = fileList;
@@ -104,7 +105,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_separat
       {
          std::shared_ptr<OVModelManager::ModelInfo> mdx_model_info = std::make_shared<OVModelManager::ModelInfo>();
          mdx_model_info->model_name = "MDX23C Drum Separation (@jarredou)";
-         mdx_model_info->info = "A Drum Separation model that can produce 5 stems: kick, snare, toms, hi-hat, cymbals";
+         mdx_model_info->info = music_separation_msdx23c_drum_sep_jarredou;
          mdx_model_info->baseUrl = "";
          mdx_model_info->relative_path = relative_path + "drumsep_jarredou_mdx23c";
          mdx_model_info->fileList = fileList;
@@ -131,7 +132,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_reverb_remova
       {
          std::shared_ptr<OVModelManager::ModelInfo> mel_model_info = std::make_shared<OVModelManager::ModelInfo>();
          mel_model_info->model_name = "MelBandRoformer Dereverb Mono (@anvuew)";
-         mel_model_info->info = "A MelBandRoformer-based Reverb Removal model that works well with spoken audio";
+         mel_model_info->info = reverb_removal_mel_band_dereverb_mono_anvuew;
          mel_model_info->baseUrl = "";
          mel_model_info->relative_path = relative_path + "mel_band_roformer_mono_anvuew";
          mel_model_info->fileList = fileList;
@@ -155,7 +156,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_restora
       {
          std::shared_ptr<OVModelManager::ModelInfo> mel_model_info = std::make_shared<OVModelManager::ModelInfo>();
          mel_model_info->model_name = "Apollo MP3 Restore (@JusperLee)";
-         mel_model_info->info = "A Apollo-based lossy restoration model that works well with low-bitrate MP3s";
+         mel_model_info->info = music_restoration_apollo_mp3_jusperlee;
          mel_model_info->baseUrl = "";
          mel_model_info->relative_path = relative_path + "apollo_jusperlee";
          mel_model_info->fileList = fileList;
@@ -165,7 +166,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_restora
       {
          std::shared_ptr<OVModelManager::ModelInfo> mel_model_info = std::make_shared<OVModelManager::ModelInfo>();
          mel_model_info->model_name = "Apollo Universal Restore (@Lew)";
-         mel_model_info->info = "A Apollo-based lossy restoration model that works well, universally (TODO)";
+         mel_model_info->info = music_restoration_apollo_universal_lew;
          mel_model_info->baseUrl = "";
          mel_model_info->relative_path = relative_path + "apollo_universal";
          mel_model_info->fileList = fileList;
@@ -210,7 +211,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_generat
       {
          std::shared_ptr<OVModelManager::ModelInfo> model = std::make_shared<OVModelManager::ModelInfo>();
          model->model_name = "Small Mono (FP16)";
-         model->info = "FP16-quantized variant of facebook/musicgen-small model. This is a mono model, therefore it will produce a mono track.";
+         model->info = music_generation_music_gen_small_mono_fp16;
          model->baseUrl = baseUrl;
          model->relative_path = "musicgen";
          model->dependencies.push_back(common);
@@ -226,7 +227,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_generat
       {
          std::shared_ptr<OVModelManager::ModelInfo> model = std::make_shared<OVModelManager::ModelInfo>();
          model->model_name = "Small Mono (INT8)";
-         model->info = "INT8-quantized variant of facebook/musicgen-small model. This is a mono model, therefore it will produce a mono track.";
+         model->info = music_generation_music_gen_small_mono_int8;
          model->baseUrl = baseUrl;
          model->relative_path = "musicgen";
          model->dependencies.push_back(common);
@@ -254,7 +255,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_generat
       {
          std::shared_ptr<OVModelManager::ModelInfo> model = std::make_shared<OVModelManager::ModelInfo>();
          model->model_name = "Small Stereo (FP16)";
-         model->info = "FP16-quantized variant of facebook/musicgen-stereo-small model. This is a stereo model, therefore it will produce a stereo track.";
+         model->info = music_generation_music_gen_small_stereo_fp16;
          model->baseUrl = baseUrl;
          model->relative_path = "musicgen";
          model->dependencies.push_back(common);
@@ -270,7 +271,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_generat
       {
          std::shared_ptr<OVModelManager::ModelInfo> model = std::make_shared<OVModelManager::ModelInfo>();
          model->model_name = "Small Stereo (INT8)";
-         model->info = "INT8-quantized variant of facebook/musicgen-stereo-small model. This is a stereo model, therefore it will produce a stereo track.";
+         model->info = music_generation_music_gen_small_stereo_int8;
          model->baseUrl = baseUrl;
          model->relative_path = "musicgen";
          model->dependencies.push_back(common);
@@ -298,7 +299,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_generat
       {
          std::shared_ptr<OVModelManager::ModelInfo> model = std::make_shared<OVModelManager::ModelInfo>();
          model->model_name = "Medium Mono (FP16)";
-         model->info = "FP16-quantized variant of facebook/musicgen-medium model. This is a mono model, therefore it will produce a mono track.";
+         model->info = music_generation_music_gen_medium_mono_fp16;
          model->baseUrl = baseUrl;
          model->relative_path = "musicgen";
          model->dependencies.push_back(common);
@@ -314,7 +315,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_generat
       {
          std::shared_ptr<OVModelManager::ModelInfo> model = std::make_shared<OVModelManager::ModelInfo>();
          model->model_name = "Medium Mono (INT8)";
-         model->info = "INT8-quantized variant of facebook/musicgen-medium model. This is a mono model, therefore it will produce a mono track.";
+         model->info = music_generation_music_gen_medium_mono_int8;
          model->baseUrl = baseUrl;
          model->relative_path = "musicgen";
          model->dependencies.push_back(common);
@@ -335,158 +336,138 @@ struct WhisperInfo
    std::string ui_name;
    std::string relative_path;
    std::string base_url;
+   std::string quick_description;
 };
 
 static std::shared_ptr< OVModelManager::ModelCollection > populate_whisper()
 {
-   const std::vector< WhisperInfo> whisper_model_info
+   const std::vector<WhisperInfo> whisper_model_infos
    {
       {
          "Whisper Base (FP16)",
          "whisper-base-fp16-ov",
-         "https://huggingface.co/OpenVINO/whisper-base-fp16-ov/resolve/main/"
+         "https://huggingface.co/OpenVINO/whisper-base-fp16-ov/resolve/main/",
+         "FP16-quantized version of Whisper-Base. See Quantization / Model Variant Guides below for more information."
       },
       {
          "Whisper Base (INT8)",
          "whisper-base-int8-ov",
-         "https://huggingface.co/OpenVINO/whisper-base-int8-ov/resolve/main/"
+         "https://huggingface.co/OpenVINO/whisper-base-int8-ov/resolve/main/",
+         "INT8-quantized version of Whisper-Base. See Quantization / Model Variant Guides below for more information."
       },
       {
          "Whisper Base (INT4)",
          "whisper-base-int4-ov",
-         "https://huggingface.co/OpenVINO/whisper-base-int4-ov/resolve/main/"
+         "https://huggingface.co/OpenVINO/whisper-base-int4-ov/resolve/main/",
+         "INT4-quantized version of Whisper-Base. See Quantization / Model Variant Guides below for more information."
       },
       {
          "Whisper Medium (FP16)",
          "whisper-medium-fp16-ov",
-         "https://huggingface.co/OpenVINO/whisper-medium-fp16-ov/resolve/main/"
+         "https://huggingface.co/OpenVINO/whisper-medium-fp16-ov/resolve/main/",
+         "FP16-quantized version of Whisper-Medium. See Quantization / Model Variant Guides below for more information."
       },
       {
          "Whisper Medium (INT8)",
          "whisper-medium-int8-ov",
-         "https://huggingface.co/OpenVINO/whisper-medium-int8-ov/resolve/main/"
+         "https://huggingface.co/OpenVINO/whisper-medium-int8-ov/resolve/main/",
+         "INT8-quantized version of Whisper-Medium. See Quantization / Model Variant Guides below for more information."
       },
       {
          "Whisper Medium (INT4)",
          "whisper-medium-int4-ov",
-         "https://huggingface.co/OpenVINO/whisper-medium-int4-ov/resolve/main/"
+         "https://huggingface.co/OpenVINO/whisper-medium-int4-ov/resolve/main/",
+         "INT4-quantized version of Whisper-Medium. See Quantization / Model Variant Guides below for more information."
       },
       {
          "Whisper Large V2 (FP16)",
          "whisper-large-v2-fp16-ov",
-         "" //Not yet on HF. Hopefully soon!
+         "", //Not yet on HF. Hopefully soon!
+         "FP16-quantized version of Whisper-Large-V2. See Quantization / Model Variant Guides below for more information."
       },
       {
          "Whisper Large V2 (INT8)",
          "whisper-large-v2-int8-ov",
-         "" //Not yet on HF. Hopefully soon!
+         "", //Not yet on HF. Hopefully soon!
+         "INT8-quantized version of Whisper-Large-V2. See Quantization / Model Variant Guides below for more information."
       },
       {
          "Whisper Large V2 (INT4)",
          "whisper-large-v2-int4-ov",
-         "" //Not yet on HF. Hopefully soon!
+         "", //Not yet on HF. Hopefully soon!
+         "INT4-quantized version of Whisper-Large-V2. See Quantization / Model Variant Guides below for more information."
       },
       {
          "Whisper Large V3 (FP16)",
          "whisper-large-v3-fp16-ov",
-         "https://huggingface.co/OpenVINO/whisper-large-v3-fp16-ov/resolve/main/"
+         "https://huggingface.co/OpenVINO/whisper-large-v3-fp16-ov/resolve/main/",
+         "FP16-quantized version of Whisper-Large-V3. See Quantization / Model Variant Guides below for more information."
       },
       {
          "Whisper Large V3 (INT8)",
          "whisper-large-v3-int8-ov",
-         "https://huggingface.co/OpenVINO/whisper-large-v3-int8-ov/resolve/main/"
+         "https://huggingface.co/OpenVINO/whisper-large-v3-int8-ov/resolve/main/",
+         "INT8-quantized version of Whisper-Large-V3. See Quantization / Model Variant Guides below for more information."
       },
       {
          "Whisper Large V3 (INT4)",
          "whisper-large-v3-int4-ov",
-         "https://huggingface.co/OpenVINO/whisper-large-v3-int4-ov/resolve/main/"
-      },
-      {
-         "Whisper Large V3 Turbo (FP16)",
-         "whisper-large-v3-turbo-fp16-ov",
-         "" //Not yet on HF. Hopefully soon!
-      },
-      {
-         "Whisper Large V3 Turbo (INT8)",
-         "whisper-large-v3-turbo-int8-ov",
-         "" //Not yet on HF. Hopefully soon!
-      },
-      {
-         "Whisper Large V3 Turbo (INT4)",
-         "whisper-large-v3-turbo-int4-ov",
-         "" //Not yet on HF. Hopefully soon!
-      },
-      {
-         "Distil-Whisper Base (FP16)",
-         "distil-whisper-base-fp16-ov",
-         "" // Distil-Base models on HF are kind of broken... they don't include the _with_past models
-      },
-      {
-         "Distil-Whisper Base (INT8)",
-         "distil-whisper-base-int8-ov",
-         "" // Distil-Base models on HF are kind of broken... they don't include the _with_past models
-      },
-      {
-         "Distil-Whisper Base (INT4)",
-         "distil-whisper-base-int4-ov",
-         "" // Distil-Base models on HF are kind of broken... they don't include the _with_past models
-      },
-      {
-         "Distil-Whisper Medium (FP16)",
-         "distil-whisper-medium-fp16-ov",
-         "" // Distil-Medium models on HF are kind of broken... they don't include the _with_past models
-      },
-      {
-         "Distil-Whisper Medium (INT8)",
-         "distil-whisper-medium-int8-ov",
-         "" // Distil-Medium models on HF are kind of broken... they don't include the _with_past models
-      },
-      {
-         "Distil-Whisper Medium (INT4)",
-         "distil-whisper-medium-int4-ov",
-         "" // Distil-Medium models on HF are kind of broken... they don't include the _with_past models
-      },
-      {
-         "Distil-Whisper Large V2 (FP16)",
-         "distil-whisper-large-v2-fp16-ov",
-         "https://huggingface.co/OpenVINO/distil-whisper-large-v2-fp16-ov/resolve/main/"
-      },
-      {
-         "Distil-Whisper Large V2 (INT8)",
-         "distil-whisper-large-v2-int8-ov",
-         "https://huggingface.co/OpenVINO/distil-whisper-large-v2-int8-ov/resolve/main/"
-      },
-      {
-         "Distil-Whisper Large V2 (INT4)",
-         "distil-whisper-large-v2-int4-ov",
-         "https://huggingface.co/OpenVINO/distil-whisper-large-v2-int4-ov/resolve/main/"
+         "https://huggingface.co/OpenVINO/whisper-large-v3-int4-ov/resolve/main/",
+         "INT4-quantized version of Whisper-Large-V3. See Quantization / Model Variant Guides below for more information."
       },
       {
          "Distil-Whisper Large V3 (FP16)",
          "distil-whisper-large-v3-fp16-ov",
-         "https://huggingface.co/OpenVINO/distil-whisper-large-v3-fp16-ov/resolve/main/"
+         "https://huggingface.co/OpenVINO/distil-whisper-large-v3-fp16-ov/resolve/main/",
+         "FP16-quantized version of Distil=Whisper-Large-V3. See Quantization / Model Variant Guides below for more information."
       },
       {
          "Distil-Whisper Large V3 (INT8)",
          "distil-whisper-large-v3-int8-ov",
-         "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int8-ov/resolve/main/"
+         "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int8-ov/resolve/main/",
+         "INT8-quantized version of Distil-Whisper-Large-V3. See Quantization / Model Variant Guides below for more information."
       },
       {
          "Distil-Whisper Large V3 (INT4)",
          "distil-whisper-large-v3-int4-ov",
-         "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int4-ov/resolve/main/"
+         "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int4-ov/resolve/main/",
+         "INT4-quantized version of Distil-Whisper-Large-V3. See Quantization / Model Variant Guides below for more information."
       },
+      {
+         "Whisper Large V3 Turbo (FP16)",
+         "whisper-large-v3-turbo-fp16-ov",
+         "", //Not yet on HF. Hopefully soon!
+         "FP16-quantized version of Whisper-Large-V3-Turbo. See Quantization / Model Variant Guides below for more information."
+      },
+      {
+         "Whisper Large V3 Turbo (INT8)",
+         "whisper-large-v3-turbo-int8-ov",
+         "", //Not yet on HF. Hopefully soon!
+         "INT8-quantized version of Whisper-Large-V3-Turbo. See Quantization / Model Variant Guides below for more information."
+      },
+      {
+         "Whisper Large V3 Turbo (INT4)",
+         "whisper-large-v3-turbo-int4-ov",
+         "", //Not yet on HF. Hopefully soon!
+         "INT4-quantized version of Whisper-Large-V3-Turbo. See Quantization / Model Variant Guides below for more information."
+      }
    };
 
    auto whisper_collection = std::make_shared< OVModelManager::ModelCollection >();
 
-   for (auto& whisper_model_info : whisper_model_info)
+   for (auto& whisper_model_info : whisper_model_infos)
    {
       std::shared_ptr<OVModelManager::ModelInfo> whisper_info = std::make_shared<OVModelManager::ModelInfo>();
       whisper_info->model_name = whisper_model_info.ui_name;
 
+      std::string info = "<h1>" + whisper_model_info.ui_name + "</h1>\n\n";
+      info += "<p>" + whisper_model_info.quick_description + "</p>";
+
+      // Add the 'general' info from whisper/info.md
+      info += whisper_transcription_info;
+
       //TODO: add some more detailed info here..
-      whisper_info->info = whisper_model_info.ui_name + " TODO: Add more info!";
+      whisper_info->info = info;
 
       whisper_info->baseUrl = whisper_model_info.base_url;
       whisper_info->relative_path = "whisper/" + whisper_model_info.relative_path;
@@ -523,7 +504,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_super_resolut
    {
       std::shared_ptr<OVModelManager::ModelInfo> model = std::make_shared<OVModelManager::ModelInfo>();
       model->model_name = "Basic (General) (FP16)";
-      model->info = "Use for enhancing all types of audio including music and environmental sounds.";
+      model->info = super_resolution_basic_general;
       model->baseUrl = baseUrl;
       model->relative_path = "audiosr";
       model->dependencies.push_back(common);
@@ -535,7 +516,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_super_resolut
    {
       std::shared_ptr<OVModelManager::ModelInfo> model = std::make_shared<OVModelManager::ModelInfo>();
       model->model_name = "Speech (FP16)";
-      model->info = "Optimized for enhancing audio with isolated speech.";
+      model->info = super_resolution_speech;
       model->baseUrl = baseUrl;
       model->relative_path = "audiosr";
       model->dependencies.push_back(common);
@@ -559,7 +540,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_noise_suppres
       {
          std::shared_ptr<OVModelManager::ModelInfo> model = std::make_shared<OVModelManager::ModelInfo>();
          model->model_name = "DeepFilterNet2";
-         model->info = "DeepFilterNet2 model";
+         model->info = noise_suppression_deepfilternet2;
          model->baseUrl = baseUrl;
          model->fileList = { "df_dec.bin", "df_dec.xml", "enc.xml", "enc.bin", "erb_dec.xml", "erb_dec.bin" };
 
@@ -574,7 +555,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_noise_suppres
       {
          std::shared_ptr<OVModelManager::ModelInfo> model = std::make_shared<OVModelManager::ModelInfo>();
          model->model_name = "DeepFilterNet3";
-         model->info = "DeepFilterNet3 model";
+         model->info = noise_suppression_deepfilternet3;
          model->baseUrl = baseUrl;
          model->fileList = { "df_dec.bin", "df_dec.xml", "enc.xml", "enc.bin", "erb_dec.xml", "erb_dec.bin" };
 
@@ -590,7 +571,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_noise_suppres
    {
       std::shared_ptr<OVModelManager::ModelInfo> model = std::make_shared<OVModelManager::ModelInfo>();
       model->model_name = "DenseUNet";
-      model->info = "DenseUNet model";
+      model->info = noise_suppression_denseunet;
       model->baseUrl = "https://storage.openvinotoolkit.org/repositories/open_model_zoo/2023.0/models_bin/1/noise-suppression-denseunet-ll-0001/FP16/";
       model->postUrl = "";
       model->fileList = { "noise-suppression-denseunet-ll-0001.xml", "noise-suppression-denseunet-ll-0001.bin" };
