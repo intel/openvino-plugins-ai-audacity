@@ -1,6 +1,37 @@
 #include "OVModelManagerUI.h"
 #include <thread>
+#include <wx/html/htmlwin.h>
+#include <wx/regex.h>
 
+class ModelCardDialog : public wxDialog {
+public:
+   ModelCardDialog(wxWindow* parent, const wxString& title, const wxString& htmlContent)
+      : wxDialog(parent, wxID_ANY, title, wxDefaultPosition, wxSize(600, 500),
+         wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
+   {
+      wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+
+      wxHtmlWindow* htmlWindow = new wxHtmlWindow(this, wxID_ANY,
+         wxDefaultPosition,
+         wxDefaultSize,
+         wxHW_SCROLLBAR_AUTO);
+      htmlWindow->SetPage(htmlContent);
+
+      // Make <a href="..."> links clickable
+      htmlWindow->Bind(wxEVT_HTML_LINK_CLICKED, [=](wxHtmlLinkEvent& event) {
+         wxLaunchDefaultBrowser(event.GetLinkInfo().GetHref());
+         });
+
+      sizer->Add(htmlWindow, 1, wxEXPAND | wxALL, 10);
+
+      wxButton* closeBtn = new wxButton(this, wxID_OK, "Close");
+      sizer->Add(closeBtn, 0, wxALIGN_RIGHT | wxALL, 10);
+
+      SetSizer(sizer);
+      Layout();
+      CentreOnParent();
+   }
+};
 
 ModelEntryPanel::ModelEntryPanel(wxWindow* parent, const std::string peffect, std::shared_ptr<OVModelManager::ModelInfo> minfo, ModelManagerDialog* mgr)
    : wxPanel(parent), effect(peffect), model(minfo), manager(mgr)
@@ -13,7 +44,7 @@ ModelEntryPanel::ModelEntryPanel(wxWindow* parent, const std::string peffect, st
    wxStaticText* nameText = new wxStaticText(this, wxID_ANY, wxString(model->model_name));
    sizer->Add(nameText, 1, wxEXPAND | wxALIGN_CENTER_VERTICAL);
 
-   wxButton* infoBtn = new wxButton(this, wxID_ANY, "Info");
+   wxButton* infoBtn = new wxButton(this, wxID_ANY, "Model Card");
    sizer->Add(infoBtn, 0, wxALIGN_CENTER_VERTICAL);
 
    installButton = new wxButton(this, wxID_ANY, model->installed ? "Installed" : "Install");
@@ -33,7 +64,13 @@ ModelEntryPanel::ModelEntryPanel(wxWindow* parent, const std::string peffect, st
 }
 
 void ModelEntryPanel::OnInfo(wxCommandEvent&) {
-   wxMessageBox(wxString(model->info), "Model Info", wxOK | wxICON_INFORMATION, this);
+   // Assuming `model` is a member variable or otherwise accessible
+   wxString html = model->info;  // model->info is a markdown string
+
+   // Create and show the dialog
+   ModelCardDialog* dlg = new ModelCardDialog(this, "Model Card", html);
+   dlg->ShowModal();
+   dlg->Destroy();
 }
 
 void ModelEntryPanel::OnInstall(wxCommandEvent&) {
