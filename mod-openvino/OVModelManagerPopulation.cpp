@@ -419,7 +419,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_whisper()
          "Distil-Whisper Large V3 (FP16)",
          "distil-whisper-large-v3-fp16-ov",
          "https://huggingface.co/OpenVINO/distil-whisper-large-v3-fp16-ov/resolve/main/",
-         "FP16-quantized version of Distil=Whisper-Large-V3. See Quantization / Model Variant Guides below for more information."
+         "FP16-quantized version of Distil-Whisper-Large-V3. See Quantization / Model Variant Guides below for more information."
       },
       {
          "Distil-Whisper Large V3 (INT8)",
