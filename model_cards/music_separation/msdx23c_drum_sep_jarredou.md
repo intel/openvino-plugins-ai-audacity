@@ -19,4 +19,4 @@ The original pytorch checkpoint / config were downloaded from their GitHub relea
 
 For use with [OpenVINO AI Plugins for Audacity](https://github.com/intel/openvino-plugins-ai-audacity), the pytorch source models were converted to OpenVINO IR format, and stored here: TODO
 
-License: [Attribution-NonCommercial-NoDerivatives 4.0 International](https://github.com/jarredou/models?tab=License-1-ov-file#readme)
+License: [Attribution-NonCommercial-ShareAlike 4.0 International](https://github.com/jarredou/models?tab=License-1-ov-file#readme)
