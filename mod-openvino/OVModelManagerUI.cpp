@@ -175,7 +175,6 @@ ModelManagerDialog::ModelManagerDialog(wxWindow* parent)
    scrollPanel->SetSizer(modelSizer);
 
    std::vector < std::string > allSections = {
-      OVModelManager::MusicGenName(),
       OVModelManager::MusicSepName(),
       OVModelManager::MusicRestorationName(),
       OVModelManager::NoiseSuppressName(),
