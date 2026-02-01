@@ -1,54 +1,6 @@
 // Auto-generated header containing model card HTML strings
 #pragma once
 
-const char* music_generation_music_gen_medium_mono_fp16 = R"md(
-<h1>Music Gen Medium Mono (FP16)</h1>
-<p>FP16 variant of facebook/musicgen-medium model. This is a mono model, therefore it will produce a mono track.</p>
-<p>Source Model: <a href="https://huggingface.co/facebook/musicgen-medium">facebook/musicgen-medium</a></p>
-<p>For use with <a href="https://github.com/intel/openvino-plugins-ai-audacity">OpenVINO AI Plugins for Audacity</a>, the pytorch models source models were converted to OpenVINO IR format, and stored here: <a href="https://huggingface.co/Intel/musicgen-static-openvino">https://huggingface.co/Intel/musicgen-static-openvino</a> </p>
-<p>License: <a href="https://spdx.org/licenses/CC-BY-NC-4.0">cc-by-nc-4.0</a></p>
-)md";
-
-const char* music_generation_music_gen_medium_mono_int8 = R"md(
-<h1>Music Gen Medium Mono (INT8)</h1>
-<p>INT8-quantized variant of facebook/musicgen-medium model. This is a mono model, therefore it will produce a mono track.</p>
-<p>Source Model: <a href="https://huggingface.co/facebook/musicgen-medium">facebook/musicgen-medium</a></p>
-<p>For use with <a href="https://github.com/intel/openvino-plugins-ai-audacity">OpenVINO AI Plugins for Audacity</a>, the pytorch models source models were converted to OpenVINO IR format, and stored here: <a href="https://huggingface.co/Intel/musicgen-static-openvino">https://huggingface.co/Intel/musicgen-static-openvino</a> </p>
-<p>License: <a href="https://spdx.org/licenses/CC-BY-NC-4.0">cc-by-nc-4.0</a></p>
-)md";
-
-const char* music_generation_music_gen_small_mono_fp16 = R"md(
-<h1>Music Gen Small Mono (FP16)</h1>
-<p>FP16 variant of facebook/musicgen-small model. This is a mono model, therefore it will produce a mono track.</p>
-<p>Source Model: <a href="https://huggingface.co/facebook/musicgen-small">facebook/musicgen-small</a></p>
-<p>For use with <a href="https://github.com/intel/openvino-plugins-ai-audacity">OpenVINO AI Plugins for Audacity</a>, the pytorch models source models were converted to OpenVINO IR format, and stored here: <a href="https://huggingface.co/Intel/musicgen-static-openvino">https://huggingface.co/Intel/musicgen-static-openvino</a> </p>
-<p>License: <a href="https://spdx.org/licenses/CC-BY-NC-4.0">cc-by-nc-4.0</a></p>
-)md";
-
-const char* music_generation_music_gen_small_mono_int8 = R"md(
-<h1>Music Gen Small Mono (INT8)</h1>
-<p>INT8-quantized variant of facebook/musicgen-small model. This is a mono model, therefore it will produce a mono track.</p>
-<p>Source Model: <a href="https://huggingface.co/facebook/musicgen-small">facebook/musicgen-small</a></p>
-<p>For use with <a href="https://github.com/intel/openvino-plugins-ai-audacity">OpenVINO AI Plugins for Audacity</a>, the pytorch models source models were converted to OpenVINO IR format, and stored here: <a href="https://huggingface.co/Intel/musicgen-static-openvino">https://huggingface.co/Intel/musicgen-static-openvino</a> </p>
-<p>License: <a href="https://spdx.org/licenses/CC-BY-NC-4.0">cc-by-nc-4.0</a></p>
-)md";
-
-const char* music_generation_music_gen_small_stereo_fp16 = R"md(
-<h1>Music Gen Small Stereo (FP16)</h1>
-<p>FP16 variant of facebook/musicgen-stereo-small model. This is a stereo model, therefore it will produce a stereo track.</p>
-<p>Source Model: <a href="https://huggingface.co/facebook/musicgen-stereo-small">facebook/musicgen-stereo-small</a></p>
-<p>For use with <a href="https://github.com/intel/openvino-plugins-ai-audacity">OpenVINO AI Plugins for Audacity</a>, the pytorch models source models were converted to OpenVINO IR format, and stored here: <a href="https://huggingface.co/Intel/musicgen-static-openvino">https://huggingface.co/Intel/musicgen-static-openvino</a> </p>
-<p>License: <a href="https://spdx.org/licenses/CC-BY-NC-4.0">cc-by-nc-4.0</a></p>
-)md";
-
-const char* music_generation_music_gen_small_stereo_int8 = R"md(
-<h1>Music Gen Small Stereo (INT8)</h1>
-<p>INT8-quantized variant of facebook/musicgen-stereo-small model. This is a stereo model, therefore it will produce a stereo track.</p>
-<p>Source Model: <a href="https://huggingface.co/facebook/musicgen-stereo-small">facebook/musicgen-stereo-small</a></p>
-<p>For use with <a href="https://github.com/intel/openvino-plugins-ai-audacity">OpenVINO AI Plugins for Audacity</a>, the pytorch models source models were converted to OpenVINO IR format, and stored here: <a href="https://huggingface.co/Intel/musicgen-static-openvino">https://huggingface.co/Intel/musicgen-static-openvino</a> </p>
-<p>License: <a href="https://spdx.org/licenses/CC-BY-NC-4.0">cc-by-nc-4.0</a></p>
-)md";
-
 const char* music_restoration_apollo_mp3_jusperlee = R"md(
 <h1>Apollo MP3 Restore (@JusperLee)</h1>
 <p>An Apollo-based lossy restoration model that works well to restore quality of low-bitrate MP3s.</p>

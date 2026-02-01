@@ -521,8 +521,12 @@ bool EffectOVWhisperTranscriptionGenAI::Whisper(std::vector<float>& mono_samples
    std::string cache_path = wstring_to_string(wxFileName(cache_folder).GetFullPath().ToStdWstring());
 
    std::shared_ptr< ov::genai::WhisperPipeline > pipeline;
-   std::cout << "Setting cache_dir to " << cache_path << std::endl;
-   ov::AnyMap properties = { ov::cache_dir(cache_path) };
+
+   ov::AnyMap properties;
+   if (device_name != "CPU") {
+      std::cout << "Setting cache_dir to " << cache_path << std::endl;
+      properties = { ov::cache_dir(cache_path) };
+   }
 
    {
       std::future_status status;

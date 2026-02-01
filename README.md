@@ -6,7 +6,6 @@ A set of AI-enabled effects, generators, and analyzers for [Audacity®](https://
 
 - [**Music Separation**](doc/feature_doc/music_separation/README.md):musical_note: -- Separate a mono or stereo track into individual stems -- Drums, Bass, Vocals, & Other Instruments. 
 - [**Noise Suppression**](doc/feature_doc/noise_suppression/README.md):broom: -- Removes background noise from an audio sample.
-- [**Music Generation & Continuation**](doc/feature_doc/music_generation/README.md):notes: -- Uses MusicGen LLM to generate snippets of music, or to generate a continuation of an existing snippet of music.
 - [**Whisper Transcription**](doc/feature_doc/whisper_transcription/README.md):microphone: -- Uses [whisper.cpp](https://github.com/ggerganov/whisper.cpp) to generate a label track containing the transcription or translation for a given selection of spoken audio or vocals.
 - [**Super Resolution**](doc/feature_doc/super_resolution/README.md):sparkles: -- Upscales and enriches audio for improved clarity and detail.
 
@@ -31,9 +30,6 @@ A set of AI-enabled effects, generators, and analyzers for [Audacity®](https://
 * Audacity® development team & Muse Group-- Thank you for your support!  
 * Audacity® GitHub -- https://github.com/audacity/audacity  
 * Whisper transcription & translation analyzer uses whisper.cpp (with OpenVINO™ backend): https://github.com/ggerganov/whisper.cpp  
-* Music Generation & Continuation use MusicGen model, from Meta.
-  - We currently have support for [MusicGen-Small](https://huggingface.co/facebook/musicgen-small), and [MusicGen-Small-Stereo](https://huggingface.co/facebook/musicgen-stereo-small)
-  - The txt-to-music pipelines were ported from python to C++, referencing logic from the Hugging Face transformers project: https://github.com/huggingface/transformers 
 * Music Separation effect uses Meta's Demucs v4 model (https://github.com/facebookresearch/demucs), which has been ported to work with OpenVINO™
 * Noise Suppression:
   * noise-suppression-denseunet-ll:  from OpenVINO™'s Open Model Zoo: https://github.com/openvinotoolkit/open_model_zoo   

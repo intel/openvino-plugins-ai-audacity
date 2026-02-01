@@ -48,7 +48,6 @@ public:
    };
 
    // strings to be passed into various functions below that take 'effect' as parameter.
-   static const std::string MusicGenName() { return "Music Generation"; }
    static const std::string MusicSepName() { return "Music Separation"; };
    static const std::string NoiseSuppressName() { return "Noise Suppression"; }
    static const std::string SuperResName() { return "Super Resolution"; }

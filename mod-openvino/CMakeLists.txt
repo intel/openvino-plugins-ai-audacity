@@ -21,9 +21,6 @@ message("torch libraries = ${TORCH_LIBRARIES}")
 # That header file will implement the preprocessor logic to *actually* enable ITT or not.
 include_directories( ittutils )
 
-add_subdirectory(musicgen)
-include_directories(musicgen)
-
 set( NOISE_SUPPRESSION_SOURCES
       OVNoiseSuppression.cpp
       OVNoiseSuppression.h
@@ -86,11 +83,8 @@ set( SOURCES
       OVReverbRemoval.h
       OVMusicRestoration.cpp
       OVMusicRestoration.h
-      OVMusicGenerationLLM.cpp
-      OVMusicGenerationLLM.h
       OVWhisperTranscriptionGenAI.cpp
       OVWhisperTranscriptionGenAI.h
-      ${OV_MUSICGEN_SOURCES}
       OpenVINO.cpp
       OVStringUtils.h
       OVModelManagerUI.h
