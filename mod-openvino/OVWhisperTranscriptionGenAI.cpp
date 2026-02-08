@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 #include "OVWhisperTranscriptionGenAI.h"
+#include "OpenVINOPluginPrefs.h"
 #include "LoadEffects.h"
 #include "WaveTrack.h"
 #include "EffectOutputTracks.h"
@@ -515,15 +516,12 @@ bool EffectOVWhisperTranscriptionGenAI::Whisper(std::vector<float>& mono_samples
    auto whisper_model_path = retrieved_model_info->installation_path;
    std::cout << "whisper_model_path = " << whisper_model_path << std::endl;
 
-   FilePath cache_folder = FileNames::MkDir(wxFileName(FileNames::DataDir(), wxT("openvino-model-cache")).GetFullPath());
-
-   //Note: Using a variant of wstring conversion that seems to work more reliably when there are special characters present in the path.
-   std::string cache_path = wstring_to_string(wxFileName(cache_folder).GetFullPath().ToStdWstring());
-
    std::shared_ptr< ov::genai::WhisperPipeline > pipeline;
 
    ov::AnyMap properties;
-   if (device_name != "CPU") {
+   if (OpenVINOPluginSettings::ReadEnableCache() && device_name != "CPU") {
+      auto cache_folder = FileNames::MkDir(wxFileName(OpenVINOPluginSettings::GetOrCreateCompiledModelCacheDir()).GetFullPath());
+      auto cache_path = wstring_to_string(wxFileName(cache_folder).GetFullPath().ToStdWstring());
       std::cout << "Setting cache_dir to " << cache_path << std::endl;
       properties = { ov::cache_dir(cache_path) };
    }

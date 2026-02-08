@@ -136,7 +136,9 @@ void NoiseSuppressionOMZModel::_compile_noise_suppression_model(std::string mode
 {
    _core = std::make_shared< ov::Core >();
 
-   _core->set_property(ov::cache_dir(cache_dir));
+   if (!cache_dir.empty()) {
+      _core->set_property(ov::cache_dir(cache_dir));
+   }
 
    std::shared_ptr<ov::Model> model = _core->read_model(model_path);
 
