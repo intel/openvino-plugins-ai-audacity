@@ -86,6 +86,8 @@ set( SOURCES
       OVWhisperTranscriptionGenAI.cpp
       OVWhisperTranscriptionGenAI.h
       OpenVINO.cpp
+      OpenVINOPluginPrefs.h
+      OpenVINOPluginPrefs.cpp
       OVStringUtils.h
       OVModelManagerUI.h
       OVModelManagerUI.cpp
