@@ -18,6 +18,7 @@
 #include <wx/button.h>
 #include <wx/checkbox.h>
 #include <wx/dirdlg.h>
+#include <wx/log.h>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -67,7 +68,13 @@ namespace OpenVINOPluginSettings
       if (value.empty())
          value = defaultPath;
 
+      const wxString requestedPath = value;
       value = FileNames::MkDir(value);
+
+      if (value.empty() || !wxFileName::DirExists(value)) {
+         wxLogWarning("OpenVINO preferences: unable to ensure directory exists for key '%s'. Requested='%s', Result='%s'",
+            wxString(prefKey), requestedPath, value);
+      }
 
       if (persistIfMissing) {
          const wxString current = gPrefs->Read(prefKey, wxString{});
@@ -119,6 +126,20 @@ namespace {
          : PrefsPanel(parent, winid, XO("OpenVINO Plugins"))
       {
          Populate();
+
+         mHostDialog = wxGetTopLevelParent(this);
+         if (mHostDialog) {
+            mHostDialog->Bind(wxEVT_BUTTON, &OpenVINOPluginsPrefs::OnDialogConfirm, this, wxID_OK);
+            mHostDialog->Bind(wxEVT_BUTTON, &OpenVINOPluginsPrefs::OnDialogConfirm, this, wxID_APPLY);
+         }
+      }
+
+      ~OpenVINOPluginsPrefs() override
+      {
+         if (mHostDialog) {
+            mHostDialog->Unbind(wxEVT_BUTTON, &OpenVINOPluginsPrefs::OnDialogConfirm, this, wxID_OK);
+            mHostDialog->Unbind(wxEVT_BUTTON, &OpenVINOPluginsPrefs::OnDialogConfirm, this, wxID_APPLY);
+         }
       }
 
       ComponentInterfaceSymbol GetSymbol() const override
@@ -214,6 +235,9 @@ namespace {
 
       bool Commit() override
       {
+         if (!ValidatePendingDirectories(/*reportErrors=*/true))
+            return false;
+
          ShuttleGui S(this, eIsSavingToPrefs);
          PopulateOrExchange(S);
 
@@ -251,6 +275,66 @@ namespace {
       }
 
    private:
+      bool ValidatePendingDirectories(bool reportErrors)
+      {
+         const wxString pendingModelDir = mModelDirText ? mModelDirText->GetValue() : wxString{};
+         const wxString pendingCacheDir = mCacheDirText ? mCacheDirText->GetValue() : wxString{};
+         const bool pendingEnableCache = mEnableCacheCheck ? mEnableCacheCheck->GetValue() : true;
+
+         auto validateDirOrReport = [this, reportErrors](const wchar_t* prefKey,
+            const wxString& path,
+            const TranslatableString& label,
+            wxTextCtrl* controlToFocus) -> bool
+            {
+               if (IsDirectoryWritable(path))
+                  return true;
+
+               if (reportErrors) {
+                  wxLogWarning("OpenVINO preferences: selected path for key '%s' is not writable: '%s'",
+                     wxString(prefKey), path);
+
+                  AudacityMessageBox(
+                     XO("The selected %s is not writable (or cannot be created). Please choose a writable directory.")
+                     .Format(label),
+                     XO("Invalid Directory"),
+                     wxOK | wxCENTRE | wxICON_WARNING
+                  );
+
+                  if (controlToFocus)
+                     controlToFocus->SetFocus();
+               }
+
+               return false;
+            };
+
+         if (!validateDirOrReport(OpenVINOPluginSettings::kPrefModelDir,
+            pendingModelDir,
+            XO("model install directory"),
+            mModelDirText))
+            return false;
+
+         if (pendingEnableCache &&
+            !validateDirOrReport(OpenVINOPluginSettings::kPrefCompiledCache,
+               pendingCacheDir,
+               XO("compiled model cache directory"),
+               mCacheDirText))
+            return false;
+
+         return true;
+      }
+
+      static bool IsDirectoryWritable(wxString path)
+      {
+         path.Trim(true).Trim(false);
+         if (path.empty())
+            return false;
+
+         const wxString ensuredPath = FileNames::MkDir(path);
+         return !ensuredPath.empty() &&
+            wxFileName::DirExists(ensuredPath) &&
+            wxFileName::IsDirWritable(ensuredPath);
+      }
+
       void UpdateCacheControls()
       {
          const bool enabled = mEnableCacheCheck && mEnableCacheCheck->GetValue();
@@ -298,10 +382,19 @@ namespace {
          ShowModelManagerDialog();
       }
 
+      void OnDialogConfirm(wxCommandEvent& event)
+      {
+         if (!ValidatePendingDirectories(/*reportErrors=*/true))
+            return;
+
+         event.Skip();
+      }
+
    private:
       wxTextCtrl* mModelDirText{ nullptr };
       wxCheckBox* mEnableCacheCheck{ nullptr };
       wxTextCtrl* mCacheDirText{ nullptr };
+      wxWindow* mHostDialog{ nullptr };
 
       wxString mOriginalModelDir;
 
