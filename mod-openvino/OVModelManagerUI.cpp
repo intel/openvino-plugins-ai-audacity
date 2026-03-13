@@ -355,17 +355,17 @@ void ModelManagerDialog::QueueInstall(ModelEntryPanel* panel) {
       StartNextInstall();
 }
 
-void ModelManagerDialog::BeginInstallFor(ModelEntryPanel* panel) {
-   std::thread([this, panel]() {
+void ModelManagerDialog::BeginInstallFor(ModelEntryPanel* panel, InstallQueueEntryPanel* queueEntry) {
+   std::thread([this, panel, queueEntry]() {
 
       auto effect = panel->GetEffect();
       auto model_name = panel->GetModel()->model_name;
 
       OVModelManager::ProgressCallback callback =
-         [this](float perc_complete) {
+         [this, queueEntry](float perc_complete) {
          wxTheApp->CallAfter([=]() {
-            if (activeQueueEntry)
-               activeQueueEntry->UpdateProgress(static_cast<int>(perc_complete * 100));
+            if (queueEntry)
+               queueEntry->UpdateProgress(static_cast<int>(perc_complete * 100));
             });
          };
 
@@ -373,22 +373,27 @@ void ModelManagerDialog::BeginInstallFor(ModelEntryPanel* panel) {
 
       wxTheApp->CallAfter([=]() {
          if (installResult) {
-            activeInstall->SetInstalled();
+            panel->SetInstalled();
 
-            auto* completedPanel = activeQueueEntry;
-            if (completedPanel) {
-               RemoveQueueEntry(completedPanel);
+            if (queueEntry) {
+               RemoveQueueEntry(queueEntry);
             }
          }
          else {
-            activeInstall->SetFailed(wxString(installResult.summary));
-            if (activeQueueEntry) {
-               activeQueueEntry->SetAsFailed(installResult);
+            panel->SetFailed(wxString(installResult.summary));
+            if (queueEntry) {
+               queueEntry->SetAsFailed(installResult);
             }
          }
 
-         activeInstall = nullptr;
-         activeQueueEntry = nullptr;
+         if (activeInstall == panel) {
+            activeInstall = nullptr;
+         }
+
+         if (activeQueueEntry == queueEntry) {
+            activeQueueEntry = nullptr;
+         }
+
          StartNextInstall();  // recursively process queue
          });
       }).detach();
@@ -406,7 +411,7 @@ void ModelManagerDialog::StartNextInstall() {
       activeQueueEntry->SetAsInstalling();
    }
 
-   BeginInstallFor(activeInstall);
+   BeginInstallFor(activeInstall, activeQueueEntry);
 
    queueSizer->Layout();
    Layout();
