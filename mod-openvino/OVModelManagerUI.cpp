@@ -5,6 +5,7 @@
 #include <wx/clipbrd.h>
 #include <wx/dataobj.h>
 #include <wx/html/htmlwin.h>
+#include <wx/log.h>
 #include <wx/regex.h>
 #include <wx/settings.h>
 #include <wx/textctrl.h>
@@ -295,7 +296,7 @@ ModelManagerDialog::ModelManagerDialog(wxWindow* parent)
    for (const auto& s : allSections) {
       auto collection = OVModelManager::instance().GetModelCollection(s);
       if (collection->models.empty()) {
-         std::cout << "Empty collection for section=" << s << std::endl;
+         wxLogInfo("OVModelManagerUI: skipping empty model collection section '%s'.", s);
          continue;
       }
 
