@@ -1,8 +1,13 @@
 #include "OVModelManagerUI.h"
 #include "OpenVINOPluginPrefs.h"
+#include <algorithm>
 #include <thread>
+#include <wx/clipbrd.h>
+#include <wx/dataobj.h>
 #include <wx/html/htmlwin.h>
 #include <wx/regex.h>
+#include <wx/settings.h>
+#include <wx/textctrl.h>
 
 class ModelCardDialog : public wxDialog {
 public:
@@ -29,6 +34,44 @@ public:
       sizer->Add(closeBtn, 0, wxALIGN_RIGHT | wxALL, 10);
 
       SetSizer(sizer);
+      Layout();
+      CentreOnParent();
+   }
+};
+
+class InstallFailureDialog : public wxDialog {
+public:
+   InstallFailureDialog(wxWindow* parent, const wxString& title, const wxString& details)
+      : wxDialog(parent, wxID_ANY, title, wxDefaultPosition, wxSize(700, 420),
+         wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
+   {
+      wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
+
+      auto* detailsText = new wxTextCtrl(
+         this,
+         wxID_ANY,
+         details,
+         wxDefaultPosition,
+         wxDefaultSize,
+         wxTE_MULTILINE | wxTE_READONLY | wxTE_DONTWRAP);
+      mainSizer->Add(detailsText, 1, wxEXPAND | wxALL, 10);
+
+      wxBoxSizer* buttonSizer = new wxBoxSizer(wxHORIZONTAL);
+      auto* copyButton = new wxButton(this, wxID_ANY, "Copy Details");
+      auto* closeButton = new wxButton(this, wxID_OK, "Close");
+
+      copyButton->Bind(wxEVT_BUTTON, [details, this](wxCommandEvent&) {
+         if (wxTheClipboard && wxTheClipboard->Open()) {
+            wxTheClipboard->SetData(new wxTextDataObject(details));
+            wxTheClipboard->Close();
+         }
+      });
+
+      buttonSizer->Add(copyButton, 0, wxRIGHT, 8);
+      buttonSizer->Add(closeButton, 0);
+      mainSizer->Add(buttonSizer, 0, wxALIGN_RIGHT | wxLEFT | wxRIGHT | wxBOTTOM, 10);
+
+      SetSizer(mainSizer);
       Layout();
       CentreOnParent();
    }
@@ -93,11 +136,13 @@ void ModelEntryPanel::UpdateStatus() {
    if (restartRequired && !model->installed) {
       installButton->SetLabelText("Restart Required");
       installButton->Enable(false);
+      installButton->SetToolTip({});
       return;
    }
 
    installButton->SetLabelText(model->installed ? "Installed" : "Install");
    installButton->Enable(!model->installed);
+   installButton->SetToolTip({});
 }
 
 void ModelEntryPanel::SetQueued() {
@@ -113,6 +158,18 @@ void ModelEntryPanel::SetInstalling() {
 void ModelEntryPanel::SetInstalled() {
    UpdateStatus();
 }
+
+void ModelEntryPanel::SetFailed(const wxString& summary) {
+   if (restartRequired && !model->installed) {
+      UpdateStatus();
+      return;
+   }
+
+   installButton->SetLabelText("Retry Install");
+   installButton->Enable(!model->installed);
+   installButton->SetToolTip(summary);
+}
+
 InstallQueueEntryPanel::InstallQueueEntryPanel(wxWindow* parent, ModelEntryPanel* source)
    : wxPanel(parent), modelPanel(source)
 {
@@ -120,20 +177,29 @@ InstallQueueEntryPanel::InstallQueueEntryPanel(wxWindow* parent, ModelEntryPanel
 
    label = new wxStaticText(this, wxID_ANY, source->GetModel()->model_name);
    gauge = new wxGauge(this, wxID_ANY, 100, wxDefaultPosition, wxSize(-1, 16));
+   detailsButton = new wxButton(this, wxID_ANY, "Details");
+   detailsButton->SetInitialSize(detailsButton->GetBestSize());
    gauge->Hide();
+   detailsButton->Disable();
 
    // Add label above
    sizer->Add(label, 1, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 5);
    // Then add the gauge
    sizer->Add(gauge, 1, wxEXPAND | wxALL, 5);
+   sizer->Add(detailsButton, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
    SetSizerAndFit(sizer);
+
+   detailsButton->Bind(wxEVT_BUTTON, &InstallQueueEntryPanel::OnViewDetails, this);
 }
 
 void InstallQueueEntryPanel::SetAsInstalling() {
    label->SetLabel(modelPanel->GetModel()->model_name + " (Installing...)");
+   label->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
    gauge->SetValue(0);
    gauge->Show();
+   detailsButton->Disable();
+   detailsButton->SetToolTip({});
 
    Layout();                        // Update this panel
    if (GetParent()) GetParent()->Layout();  // Update queue sizer
@@ -141,8 +207,25 @@ void InstallQueueEntryPanel::SetAsInstalling() {
 
 void InstallQueueEntryPanel::SetAsQueued() {
    label->SetLabel(modelPanel->GetModel()->model_name + " (Queued)");
+   label->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
    gauge->Hide();
+    detailsButton->Disable();
+   detailsButton->SetToolTip({});
    Layout();
+}
+
+void InstallQueueEntryPanel::SetAsFailed(const OVModelManager::InstallResult& result) {
+   installResult = result;
+   label->SetLabel(modelPanel->GetModel()->model_name + " (Failed)");
+   label->SetForegroundColour(wxColour(160, 0, 0));
+   gauge->Hide();
+   detailsButton->Enable();
+   detailsButton->SetToolTip(result.summary);
+
+   Layout();
+   if (GetParent()) {
+      GetParent()->Layout();
+   }
 }
 
 void InstallQueueEntryPanel::UpdateProgress(int percent) {
@@ -151,6 +234,12 @@ void InstallQueueEntryPanel::UpdateProgress(int percent) {
 
 ModelEntryPanel* InstallQueueEntryPanel::GetSourcePanel() const {
    return modelPanel;
+}
+
+void InstallQueueEntryPanel::OnViewDetails(wxCommandEvent&) {
+   wxString details = installResult.details.empty() ? installResult.summary : installResult.details;
+   InstallFailureDialog dialog(this, "Install Failure Details", details);
+   dialog.ShowModal();
 }
 
 ModelManagerDialog* ModelManagerDialog::instance = nullptr;
@@ -247,6 +336,10 @@ ModelManagerDialog::ModelManagerDialog(wxWindow* parent)
 }
 
 void ModelManagerDialog::QueueInstall(ModelEntryPanel* panel) {
+   if (auto* existingEntry = FindQueueEntry(panel)) {
+      RemoveQueueEntry(existingEntry);
+   }
+
    panel->SetQueued();
 
    auto* entry = new InstallQueueEntryPanel(this, panel);
@@ -270,22 +363,31 @@ void ModelManagerDialog::BeginInstallFor(ModelEntryPanel* panel) {
       OVModelManager::ProgressCallback callback =
          [this](float perc_complete) {
          wxTheApp->CallAfter([=]() {
-            if (!queuePanels.empty())
-               queuePanels.front()->UpdateProgress(static_cast<int>(perc_complete * 100));
+            if (activeQueueEntry)
+               activeQueueEntry->UpdateProgress(static_cast<int>(perc_complete * 100));
             });
          };
 
-      OVModelManager::instance().install_model(effect, model_name, callback);
+      const auto installResult = OVModelManager::instance().install_model(effect, model_name, callback);
 
       wxTheApp->CallAfter([=]() {
-         activeInstall->SetInstalled();
+         if (installResult) {
+            activeInstall->SetInstalled();
 
-         auto* completedPanel = queuePanels.front();
-         queueSizer->Detach(completedPanel);
-         completedPanel->Destroy();
-         queuePanels.erase(queuePanels.begin());
+            auto* completedPanel = activeQueueEntry;
+            if (completedPanel) {
+               RemoveQueueEntry(completedPanel);
+            }
+         }
+         else {
+            activeInstall->SetFailed(wxString(installResult.summary));
+            if (activeQueueEntry) {
+               activeQueueEntry->SetAsFailed(installResult);
+            }
+         }
 
          activeInstall = nullptr;
+         activeQueueEntry = nullptr;
          StartNextInstall();  // recursively process queue
          });
       }).detach();
@@ -298,9 +400,35 @@ void ModelManagerDialog::StartNextInstall() {
    activeInstall = installQueue.front();
    installQueue.pop();
 
-   auto* queueEntry = queuePanels.front();
-   queueEntry->SetAsInstalling();
-   BeginInstallFor(queueEntry->GetSourcePanel());
+   activeQueueEntry = FindQueueEntry(activeInstall);
+   if (activeQueueEntry) {
+      activeQueueEntry->SetAsInstalling();
+   }
+
+   BeginInstallFor(activeInstall);
+
+   queueSizer->Layout();
+   Layout();
+}
+
+InstallQueueEntryPanel* ModelManagerDialog::FindQueueEntry(ModelEntryPanel* panel) const {
+   for (auto* entry : queuePanels) {
+      if (entry && entry->GetSourcePanel() == panel) {
+         return entry;
+      }
+   }
+
+   return nullptr;
+}
+
+void ModelManagerDialog::RemoveQueueEntry(InstallQueueEntryPanel* entry) {
+   if (!entry) {
+      return;
+   }
+
+   queueSizer->Detach(entry);
+   queuePanels.erase(std::remove(queuePanels.begin(), queuePanels.end(), entry), queuePanels.end());
+   entry->Destroy();
 
    queueSizer->Layout();
    Layout();

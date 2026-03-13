@@ -23,6 +23,8 @@ private:
 
    void StartNextInstall();
    void BeginInstallFor(ModelEntryPanel* panel);
+   InstallQueueEntryPanel* FindQueueEntry(ModelEntryPanel* panel) const;
+   void RemoveQueueEntry(InstallQueueEntryPanel* entry);
 
    wxScrolledWindow* scrollPanel;
    wxBoxSizer* modelSizer;
@@ -33,6 +35,7 @@ private:
    std::vector<InstallQueueEntryPanel*> queuePanels;
    std::queue<ModelEntryPanel*> installQueue;
    ModelEntryPanel* activeInstall = nullptr;
+    InstallQueueEntryPanel* activeQueueEntry = nullptr;
    int installProgress = 0;
 
    wxDECLARE_EVENT_TABLE();
@@ -49,6 +52,7 @@ public:
    void SetQueued();
    void SetInstalling();
    void SetInstalled();
+   void SetFailed(const wxString& summary);
 
 private:
    void OnInfo(wxCommandEvent& event);
@@ -68,12 +72,17 @@ public:
 
    void SetAsInstalling();
    void SetAsQueued();
+   void SetAsFailed(const OVModelManager::InstallResult& result);
    void UpdateProgress(int percent);
    ModelEntryPanel* GetSourcePanel() const;
 
 private:
+   void OnViewDetails(wxCommandEvent& event);
+
    ModelEntryPanel* modelPanel;
    wxStaticText* label;
    wxGauge* gauge;
+   wxButton* detailsButton;
+   OVModelManager::InstallResult installResult;
 };
 
