@@ -1,4 +1,5 @@
 #include "OVModelManager.h"
+#include "OpenVINOPluginPrefs.h"
 #ifdef HAS_NETWORKING
 #include <NetworkManager.h>
 #include <Request.h>
@@ -25,33 +26,10 @@ std::shared_ptr<OVModelManager::ModelCollection> OVModelManager::GetModelCollect
    return it->second;
 }
 
-static inline std::optional<std::string> get_env_var(const std::string& name) {
-   if (const char* value = std::getenv(name.c_str())) {
-      return std::string(value); // copy into std::string
-   }
-   return std::nullopt; // not found
-}
-
 OVModelManager::OVModelManager()
 {
-   auto model_path_from_env = get_env_var("AUDACITY_OPENVINO_MODELS_PATH");
-
-   // Allow an environment variable to override the default path for installation.
-   if (model_path_from_env) {
-      FilePath env_openvino_models_path = FileNames::MkDir(wxFileName(wxString(*model_path_from_env)).GetFullPath());
-      mSearchPaths.push_back(env_openvino_models_path);
-   }
-
-   // Populate search paths where we look for installed models. Note that the first one appended to the list (appdata) is the *preferred*
-   // location to find models, and this is where models will be installed to with the UI-based ModelManager.
-   {
-      FilePath appdata_openvino_models_path = FileNames::MkDir(wxFileName(FileNames::DataDir(), wxT("openvino-models")).GetFullPath());
-      mSearchPaths.push_back(appdata_openvino_models_path);
-
-      //Add legacy search path so that we find models that were installed with older versions (from installer)
-      FilePath legacy_openvino_models_path = wxFileName(FileNames::BaseDir(), wxT("openvino-models")).GetFullPath();
-      mSearchPaths.push_back(legacy_openvino_models_path);
-   }
+   auto model_install_path = FileNames::MkDir(wxFileName(OpenVINOPluginSettings::GetOrCreateModelDir(true)).GetFullPath());
+   mSearchPaths.push_back(model_install_path);
 
    // initialize all of the details for all supported models.
    _populate_model_collection();

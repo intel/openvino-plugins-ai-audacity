@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 #include "OVAudioSR.h"
+#include "OpenVINOPluginPrefs.h"
 #include "WaveTrack.h"
 #include "WaveChannelUtilities.h"
 #include "EffectOutputTracks.h"
@@ -577,12 +578,6 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
 
    try
    {
-
-      FilePath cache_folder = FileNames::MkDir(wxFileName(FileNames::DataDir(), wxT("openvino-model-cache")).GetFullPath());
-
-      //Note: Using a variant of wstring conversion that seems to work more reliably when there are special characters present in the path.
-      std::string cache_path = wstring_to_string(wxFileName(cache_folder).GetFullPath().ToStdWstring());
-
       if (m_modelSelectionChoice < 0 || m_modelSelectionChoice >= mSupportedModels.size())
       {
          throw std::runtime_error("invalid m_modelSelectionChoice value");
@@ -612,6 +607,11 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
 
       auto model_folder = retrieved_model_info->installation_path;
 
+      std::string cache_path = "";
+      if (OpenVINOPluginSettings::ReadEnableCache()) {
+         auto cache_folder = FileNames::MkDir(wxFileName(OpenVINOPluginSettings::GetOrCreateCompiledModelCacheDir()).GetFullPath());
+         cache_path = wstring_to_string(wxFileName(cache_folder).GetFullPath().ToStdWstring());
+      }
       std::cout << "model_folder = " << model_folder << std::endl;
       std::cout << "cache_path = " << cache_path << std::endl;
 

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 #include "OVNoiseSuppression.h"
+#include "OpenVINOPluginPrefs.h"
 #include "WaveTrack.h"
 #include "EffectOutputTracks.h"
 #include "effects/EffectEditor.h"
@@ -369,8 +370,13 @@ bool EffectOVNoiseSuppression::Process(EffectInstance&, EffectSettings&)
          std::shared_ptr< NoiseSuppressionModel > ret;
          try
          {
-            FilePath cache_folder = FileNames::MkDir(wxFileName(FileNames::DataDir(), wxT("openvino-model-cache")).GetFullPath());
-            std::string cache_path = wstring_to_string(wxFileName(cache_folder).GetFullPath().ToStdWstring());
+            auto device = mSupportedDevices[m_deviceSelectionChoice];
+            std::string cache_path = "";
+            if (OpenVINOPluginSettings::ReadEnableCache() && device != "CPU") {
+               // For non-CPU devices, use a cache folder to speed up loading times.
+               auto cache_folder = FileNames::MkDir(wxFileName(OpenVINOPluginSettings::GetOrCreateCompiledModelCacheDir()).GetFullPath());
+               cache_path = wstring_to_string(wxFileName(cache_folder).GetFullPath().ToStdWstring());
+            }
 
             // WA for OpenVINO locale caching issue (https://github.com/openvinotoolkit/openvino/issues/24370)
             OVLocaleWorkaround wa;
@@ -413,7 +419,7 @@ bool EffectOVNoiseSuppression::Process(EffectInstance&, EffectSettings&)
                }
 
                auto ns_df = std::make_shared< NoiseSuppressionDFModel >(audacity::ToUTF8(wxFileName(model_folder).GetFullPath()),
-                  mSupportedDevices[m_deviceSelectionChoice], cache_path, dfnet_selection);
+                  device, cache_path, dfnet_selection);
 
                std::cout << "setting attn limit of " << mAttenuationLimit << std::endl;
                ns_df->SetAttenLimit(mAttenuationLimit);

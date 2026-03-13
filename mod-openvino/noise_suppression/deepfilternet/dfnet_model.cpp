@@ -117,7 +117,7 @@ namespace ov_deepfilternet
 
       _core = std::make_shared< ov::Core >();
 
-      if (openvino_cache_dir)
+      if (openvino_cache_dir && !openvino_cache_dir->empty())
       {
          _core->set_property(ov::cache_dir(*openvino_cache_dir));
       }

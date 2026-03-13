@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 #include "OVDemixerEffect.h"
-
+#include "OpenVINOPluginPrefs.h"
 #include "WaveTrack.h"
 #include "EffectOutputTracks.h"
 #include "effects/EffectEditor.h"
@@ -380,10 +380,13 @@ bool EffectOVDemixerEffect::Process(EffectInstance&, EffectSettings&)
         std::shared_ptr< ov_demix::DemixModel > model;
         {
             auto device = mSupportedDevices[m_deviceSelectionChoice];
-            FilePath cache_folder = FileNames::MkDir(wxFileName(FileNames::DataDir(), wxT("openvino-model-cache")).GetFullPath());
 
-            //Note: Using a variant of wstring conversion that seems to work more reliably when there are special characters present in the path.
-            std::string cache_path = wstring_to_string(wxFileName(cache_folder).GetFullPath().ToStdWstring());
+            std::string cache_path = "";
+            if (OpenVINOPluginSettings::ReadEnableCache() && device != "CPU") {
+               // For non-CPU devices, use a cache folder to speed up loading times.
+               auto cache_folder = FileNames::MkDir(wxFileName(OpenVINOPluginSettings::GetOrCreateCompiledModelCacheDir()).GetFullPath());
+               cache_path = wstring_to_string(wxFileName(cache_folder).GetFullPath().ToStdWstring());
+            }
 
             std::cout << "model_folder = " << model_folder << std::endl;
             std::cout << "cache_path = " << cache_path << std::endl;
