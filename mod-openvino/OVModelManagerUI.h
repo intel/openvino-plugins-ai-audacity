@@ -40,7 +40,7 @@ private:
 
 class ModelEntryPanel : public wxPanel {
 public:
-   ModelEntryPanel(wxWindow* parent, const std::string peffect, std::shared_ptr<OVModelManager::ModelInfo> minfo, ModelManagerDialog* manager);
+   ModelEntryPanel(wxWindow* parent, const std::string peffect, std::shared_ptr<OVModelManager::ModelInfo> minfo, ModelManagerDialog* manager, bool restartRequired);
 
    std::shared_ptr<OVModelManager::ModelInfo> GetModel() const { return model; }
    const std::string& GetEffect() const { return effect; }
@@ -57,6 +57,7 @@ private:
    std::string effect;
    std::shared_ptr<OVModelManager::ModelInfo> model;
    ModelManagerDialog* manager;
+   bool restartRequired{ false };
 
    wxButton* installButton;
 };

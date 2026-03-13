@@ -1,4 +1,5 @@
 #include "OVModelManagerUI.h"
+#include "OpenVINOPluginPrefs.h"
 #include <thread>
 #include <wx/html/htmlwin.h>
 #include <wx/regex.h>
@@ -33,8 +34,8 @@ public:
    }
 };
 
-ModelEntryPanel::ModelEntryPanel(wxWindow* parent, const std::string peffect, std::shared_ptr<OVModelManager::ModelInfo> minfo, ModelManagerDialog* mgr)
-   : wxPanel(parent), effect(peffect), model(minfo), manager(mgr)
+ModelEntryPanel::ModelEntryPanel(wxWindow* parent, const std::string peffect, std::shared_ptr<OVModelManager::ModelInfo> minfo, ModelManagerDialog* mgr, bool restartReq)
+   : wxPanel(parent), effect(peffect), model(minfo), manager(mgr), restartRequired(restartReq)
 {
    SetMinSize(wxSize(550, 40));
 
@@ -48,7 +49,7 @@ ModelEntryPanel::ModelEntryPanel(wxWindow* parent, const std::string peffect, st
    sizer->Add(infoBtn, 0, wxALIGN_CENTER_VERTICAL);
 
    installButton = new wxButton(this, wxID_ANY, model->installed ? "Installed" : "Install");
-   installButton->Enable(!model->installed);
+   installButton->Enable(!model->installed && !restartRequired);
    if (model->baseUrl.empty()) {
       if (!model->installed) {
          installButton->SetLabelText("Not Installed");
@@ -59,6 +60,11 @@ ModelEntryPanel::ModelEntryPanel(wxWindow* parent, const std::string peffect, st
    // if we don't have networking support, disable (grey-out) install button.
    installButton->Enable(false);
 #endif
+
+   if (restartRequired && !model->installed) {
+      installButton->SetLabelText("Restart Required");
+      installButton->Enable(false);
+   }
 
    sizer->Add(installButton, 0, wxALIGN_CENTER_VERTICAL);
 
@@ -84,6 +90,12 @@ void ModelEntryPanel::OnInstall(wxCommandEvent&) {
 }
 
 void ModelEntryPanel::UpdateStatus() {
+   if (restartRequired && !model->installed) {
+      installButton->SetLabelText("Restart Required");
+      installButton->Enable(false);
+      return;
+   }
+
    installButton->SetLabelText(model->installed ? "Installed" : "Install");
    installButton->Enable(!model->installed);
 }
@@ -165,6 +177,8 @@ ModelManagerDialog::ModelManagerDialog(wxWindow* parent)
       OVModelManager::instance();
    }
 
+   const bool restartRequired = OpenVINOPluginSettings::IsModelDirRestartRequiredThisSession();
+
    SetMinSize(wxSize(600, 400));
    wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
 
@@ -173,6 +187,12 @@ ModelManagerDialog::ModelManagerDialog(wxWindow* parent)
    scrollPanel->SetMinSize(wxSize(550, 400));
    modelSizer = new wxBoxSizer(wxVERTICAL);
    scrollPanel->SetSizer(modelSizer);
+
+   if (restartRequired) {
+      auto* restartMsg = new wxStaticText(this, wxID_ANY,
+         "Please restart Audacity to install models (model directory changed).");
+      mainSizer->Add(restartMsg, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 10);
+   }
 
    std::vector < std::string > allSections = {
       OVModelManager::MusicSepName(),
@@ -206,7 +226,7 @@ ModelManagerDialog::ModelManagerDialog(wxWindow* parent)
 
       for (auto& m : collection->models)
       {
-         auto* panel = new ModelEntryPanel(scrollPanel, s, m, this);
+         auto* panel = new ModelEntryPanel(scrollPanel, s, m, this, restartRequired);
          currentSectionInner->Add(panel, 0, wxEXPAND | wxALL, 2);
          allPanels.push_back(panel);
       }

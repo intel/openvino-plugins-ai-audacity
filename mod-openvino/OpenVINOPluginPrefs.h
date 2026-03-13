@@ -13,4 +13,8 @@ namespace OpenVINOPluginSettings
 
    // Read/write helpers
    bool ReadEnableCache(bool defaultValue = true);
+
+   // Session-only flag: true when model install directory changed and restart is required.
+   bool IsModelDirRestartRequiredThisSession();
+   void MarkModelDirRestartRequiredThisSession();
 }

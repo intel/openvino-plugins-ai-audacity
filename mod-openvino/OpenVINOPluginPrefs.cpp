@@ -34,6 +34,7 @@ namespace OpenVINOPluginSettings
    inline constexpr const wchar_t* kPrefModelDir = L"/OpenVINOPlugins/ModelDir";
    inline constexpr const wchar_t* kPrefEnableCache = L"/OpenVINOPlugins/EnableModelCache";
    inline constexpr const wchar_t* kPrefCompiledCache = L"/OpenVINOPlugins/CompiledModelCacheDir";
+   static bool gModelDirRestartRequiredThisSession = false;
 
 
    static inline std::optional<std::string> get_env_var(const std::string& name) {
@@ -85,6 +86,7 @@ namespace OpenVINOPluginSettings
       return value;
    }
 
+
    wxString GetOrCreateModelDir(bool persistIfMissing)
    {
       return EnsureDirPref(kPrefModelDir, DefaultModelsDirPath(), persistIfMissing);
@@ -98,6 +100,16 @@ namespace OpenVINOPluginSettings
    bool ReadEnableCache(bool defaultValue)
    {
       return gPrefs->ReadBool(kPrefEnableCache, defaultValue);
+   }
+
+   bool IsModelDirRestartRequiredThisSession()
+   {
+      return gModelDirRestartRequiredThisSession;
+   }
+
+   void MarkModelDirRestartRequiredThisSession()
+   {
+      gModelDirRestartRequiredThisSession = true;
    }
 
 } // namespace OpenVINOPluginSettings
@@ -260,6 +272,7 @@ namespace {
          if (!mOriginalModelDir.empty() && !newModelDir.empty() &&
             normalize(mOriginalModelDir) != normalize(newModelDir))
          {
+            OpenVINOPluginSettings::MarkModelDirRestartRequiredThisSession();
             AudacityMessageBox(
                XO("The installed model directory has been updated. Please close & re-open Audacity!"),
                XO("Restart Required"),
