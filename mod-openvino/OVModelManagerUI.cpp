@@ -362,6 +362,10 @@ void ModelManagerDialog::QueueInstall(ModelEntryPanel* panel) {
 }
 
 void ModelManagerDialog::BeginInstallFor(ModelEntryPanel* panel, InstallQueueEntryPanel* queueEntry) {
+   if (!panel) {
+      wxLogError("BeginInstallFor called with null ModelEntryPanel");
+      return;
+   }
    const int panelId = panel ? panel->GetId() : wxID_NONE;
    const int queueEntryId = queueEntry ? queueEntry->GetId() : wxID_NONE;
    const auto effect = panel->GetEffect();
@@ -415,7 +419,7 @@ void ModelManagerDialog::BeginInstallFor(ModelEntryPanel* panel, InstallQueueEnt
          }
          else {
             if (panelIsValid) {
-               livePanel->SetFailed(wxString(installResult.summary));
+               livePanel->SetFailed(wxString::FromUTF8(installResult.summary.c_str()));
             }
 
             if (queueEntryIsValid) {
