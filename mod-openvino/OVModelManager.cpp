@@ -437,7 +437,7 @@ OVModelManager::InstallResult OVModelManager::install_model(std::string effect, 
       auto sizeResult = install_model_size(model_info, total_download_size);
       if (!sizeResult)
       {
-         wxLogError("OVModelManager: install_model_size failed for model '%s'.", model_id);
+         wxLogError("OVModelManager: install_model_size failed for model '%s'.", model_id.c_str());
          return WrapInstallFailure(
             effect,
             model_id,
