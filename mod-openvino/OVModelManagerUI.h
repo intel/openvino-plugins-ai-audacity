@@ -14,6 +14,7 @@ class ModelEntryPanel;
 class InstallQueueEntryPanel;
 class ModelManagerDialog : public wxDialog {
 public:
+   ~ModelManagerDialog() override;
    static void ShowDialog();
    void QueueInstall(ModelEntryPanel* panel);
 
@@ -23,6 +24,7 @@ private:
 
    void StartNextInstall();
    void BeginInstallFor(ModelEntryPanel* panel, InstallQueueEntryPanel* queueEntry);
+   ModelEntryPanel* FindModelPanelById(int panelId) const;
    InstallQueueEntryPanel* FindQueueEntry(ModelEntryPanel* panel) const;
    InstallQueueEntryPanel* FindQueueEntryById(int entryId) const;
    void RemoveQueueEntry(InstallQueueEntryPanel* entry);

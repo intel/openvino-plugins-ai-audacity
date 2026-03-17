@@ -336,6 +336,12 @@ ModelManagerDialog::ModelManagerDialog(wxWindow* parent)
    OVModelManager& model_manager = OVModelManager::instance();
 }
 
+ModelManagerDialog::~ModelManagerDialog() {
+   if (instance == this) {
+      instance = nullptr;
+   }
+}
+
 void ModelManagerDialog::QueueInstall(ModelEntryPanel* panel) {
    if (auto* existingEntry = FindQueueEntry(panel)) {
       RemoveQueueEntry(existingEntry);
@@ -356,18 +362,26 @@ void ModelManagerDialog::QueueInstall(ModelEntryPanel* panel) {
 }
 
 void ModelManagerDialog::BeginInstallFor(ModelEntryPanel* panel, InstallQueueEntryPanel* queueEntry) {
-   const auto queueEntryRaw = queueEntry;
+   const int panelId = panel ? panel->GetId() : wxID_NONE;
    const int queueEntryId = queueEntry ? queueEntry->GetId() : wxID_NONE;
+   const auto effect = panel->GetEffect();
+   const auto model_name = panel->GetModel()->model_name;
 
-   std::thread([this, panel, queueEntryRaw, queueEntryId]() {
-
-      auto effect = panel->GetEffect();
-      auto model_name = panel->GetModel()->model_name;
+   std::thread([panelId, queueEntryId, effect, model_name]() {
 
       OVModelManager::ProgressCallback callback =
-         [this, queueEntryId](float perc_complete) {
-         wxTheApp->CallAfter([this, queueEntryId, perc_complete]() {
-            auto* liveQueueEntry = FindQueueEntryById(queueEntryId);
+         [panelId, queueEntryId](float perc_complete) {
+         wxTheApp->CallAfter([panelId, queueEntryId, perc_complete]() {
+            auto* dialog = ModelManagerDialog::instance;
+            if (!dialog || dialog->IsBeingDeleted()) {
+               return;
+            }
+
+            if (!dialog->activeInstall || dialog->activeInstall->GetId() != panelId) {
+               return;
+            }
+
+            auto* liveQueueEntry = dialog->FindQueueEntryById(queueEntryId);
             if (!liveQueueEntry || liveQueueEntry->IsBeingDeleted()) {
                return;
             }
@@ -378,35 +392,62 @@ void ModelManagerDialog::BeginInstallFor(ModelEntryPanel* panel, InstallQueueEnt
 
       const auto installResult = OVModelManager::instance().install_model(effect, model_name, callback);
 
-      wxTheApp->CallAfter([this, panel, queueEntryRaw, queueEntryId, installResult]() {
-         auto* liveQueueEntry = FindQueueEntryById(queueEntryId);
+      wxTheApp->CallAfter([panelId, queueEntryId, installResult]() {
+         auto* dialog = ModelManagerDialog::instance;
+         if (!dialog || dialog->IsBeingDeleted()) {
+            return;
+         }
+
+         auto* livePanel = dialog->FindModelPanelById(panelId);
+         const bool panelIsValid = livePanel && !livePanel->IsBeingDeleted();
+
+         auto* liveQueueEntry = dialog->FindQueueEntryById(queueEntryId);
          const bool queueEntryIsValid = liveQueueEntry && !liveQueueEntry->IsBeingDeleted();
 
          if (installResult) {
-            panel->SetInstalled();
+            if (panelIsValid) {
+               livePanel->SetInstalled();
+            }
 
             if (queueEntryIsValid) {
-               RemoveQueueEntry(liveQueueEntry);
+               dialog->RemoveQueueEntry(liveQueueEntry);
             }
          }
          else {
-            panel->SetFailed(wxString(installResult.summary));
+            if (panelIsValid) {
+               livePanel->SetFailed(wxString(installResult.summary));
+            }
+
             if (queueEntryIsValid) {
                liveQueueEntry->SetAsFailed(installResult);
             }
          }
 
-         if (activeInstall == panel) {
-            activeInstall = nullptr;
+         if (dialog->activeInstall && dialog->activeInstall->GetId() == panelId) {
+            dialog->activeInstall = nullptr;
          }
 
-         if (activeQueueEntry == queueEntryRaw) {
-            activeQueueEntry = nullptr;
+         if (dialog->activeQueueEntry && dialog->activeQueueEntry->GetId() == queueEntryId) {
+            dialog->activeQueueEntry = nullptr;
          }
 
-         StartNextInstall();  // recursively process queue
+         dialog->StartNextInstall();  // recursively process queue
          });
       }).detach();
+}
+
+ModelEntryPanel* ModelManagerDialog::FindModelPanelById(int panelId) const {
+   if (panelId == wxID_NONE) {
+      return nullptr;
+   }
+
+   for (auto* panel : allPanels) {
+      if (panel && panel->GetId() == panelId) {
+         return panel;
+      }
+   }
+
+   return nullptr;
 }
 
 void ModelManagerDialog::StartNextInstall() {
@@ -454,6 +495,10 @@ InstallQueueEntryPanel* ModelManagerDialog::FindQueueEntryById(int entryId) cons
 void ModelManagerDialog::RemoveQueueEntry(InstallQueueEntryPanel* entry) {
    if (!entry) {
       return;
+   }
+
+   if (activeQueueEntry == entry) {
+      activeQueueEntry = nullptr;
    }
 
    queueSizer->Detach(entry);
