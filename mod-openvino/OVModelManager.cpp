@@ -309,7 +309,7 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
 
       // write to file here
       response->setOnDataReceivedCallback(
-         [response, wx_file, &bError, &bytes_downloaded_so_far, callback, &total_download_size, &file_error_summary, &file_error_details, &effect, model_info, &url, fullFilePath](audacity::network_manager::IResponse*)
+         [response, wx_file, &bError, &bytes_downloaded_so_far, callback, &total_download_size, &file_error_summary, &file_error_details, &effect, model_info, url, fullFilePath](audacity::network_manager::IResponse*)
          {
             // only attempt save if request succeeded
             int httpCode = response->getHTTPCode();
@@ -437,7 +437,7 @@ OVModelManager::InstallResult OVModelManager::install_model(std::string effect, 
       auto sizeResult = install_model_size(model_info, total_download_size);
       if (!sizeResult)
       {
-         wxLogError("OVModelManager: install_model_size failed for model '%s'.", model_id);
+         wxLogError("OVModelManager: install_model_size failed for model '%s'.", model_id.c_str());
          return WrapInstallFailure(
             effect,
             model_id,

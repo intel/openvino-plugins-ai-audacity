@@ -9,6 +9,7 @@
 #include <wx/regex.h>
 #include <wx/settings.h>
 #include <wx/textctrl.h>
+#include <wx/weakref.h>
 
 class ModelCardDialog : public wxDialog {
 public:
@@ -218,7 +219,7 @@ void InstallQueueEntryPanel::SetAsQueued() {
 void InstallQueueEntryPanel::SetAsFailed(const OVModelManager::InstallResult& result) {
    installResult = result;
    label->SetLabel(modelPanel->GetModel()->model_name + " (Failed)");
-   label->SetForegroundColour(wxColour(160, 0, 0));
+   label->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
    gauge->Hide();
    detailsButton->Enable();
    detailsButton->SetToolTip(result.summary);
@@ -356,47 +357,69 @@ void ModelManagerDialog::QueueInstall(ModelEntryPanel* panel) {
 }
 
 void ModelManagerDialog::BeginInstallFor(ModelEntryPanel* panel, InstallQueueEntryPanel* queueEntry) {
-   std::thread([this, panel, queueEntry]() {
+   // Capture required model information while the panel is known to be valid.
+   auto effect = panel->GetEffect();
+   auto model_name = panel->GetModel()->model_name;
 
-      auto effect = panel->GetEffect();
-      auto model_name = panel->GetModel()->model_name;
+   // Use weak references so that callbacks can safely skip UI updates
+   // if the dialog or panels have been destroyed.
+   wxWeakRef<ModelManagerDialog> dlgRef(this);
+   wxWeakRef<ModelEntryPanel> panelRef(panel);
+   wxWeakRef<InstallQueueEntryPanel> queueRef(queueEntry);
+
+   std::thread([dlgRef, panelRef, queueRef, effect, model_name]() {
 
       OVModelManager::ProgressCallback callback =
-         [this, queueEntry](float perc_complete) {
-         wxTheApp->CallAfter([=]() {
-            if (queueEntry)
-               queueEntry->UpdateProgress(static_cast<int>(perc_complete * 100));
+         [dlgRef, queueRef](float perc_complete) {
+            wxTheApp->CallAfter([dlgRef, queueRef, perc_complete]() {
+               ModelManagerDialog* dlg = dlgRef.get();
+               InstallQueueEntryPanel* queueEntryPtr = queueRef.get();
+
+               if (!dlg || !queueEntryPtr) {
+                  return;
+               }
+
+               queueEntryPtr->UpdateProgress(static_cast<int>(perc_complete * 100));
             });
          };
 
       const auto installResult = OVModelManager::instance().install_model(effect, model_name, callback);
 
-      wxTheApp->CallAfter([=]() {
-         if (installResult) {
-            panel->SetInstalled();
+      wxTheApp->CallAfter([dlgRef, panelRef, queueRef, installResult]() {
+         ModelManagerDialog* dlg = dlgRef.get();
+         ModelEntryPanel* panelPtr = panelRef.get();
+         InstallQueueEntryPanel* queueEntryPtr = queueRef.get();
 
-            if (queueEntry) {
-               RemoveQueueEntry(queueEntry);
+         // If the dialog or model panel no longer exist, skip UI updates.
+         if (!dlg || !panelPtr) {
+            return;
+         }
+
+         if (installResult) {
+            panelPtr->SetInstalled();
+
+            if (queueEntryPtr) {
+               dlg->RemoveQueueEntry(queueEntryPtr);
             }
          }
          else {
-            panel->SetFailed(wxString(installResult.summary));
-            if (queueEntry) {
-               queueEntry->SetAsFailed(installResult);
+            panelPtr->SetFailed(wxString(installResult.summary));
+            if (queueEntryPtr) {
+               queueEntryPtr->SetAsFailed(installResult);
             }
          }
 
-         if (activeInstall == panel) {
-            activeInstall = nullptr;
+         if (dlg->activeInstall == panelPtr) {
+            dlg->activeInstall = nullptr;
          }
 
-         if (activeQueueEntry == queueEntry) {
-            activeQueueEntry = nullptr;
+         if (dlg->activeQueueEntry == queueEntryPtr) {
+            dlg->activeQueueEntry = nullptr;
          }
 
-         StartNextInstall();  // recursively process queue
-         });
-      }).detach();
+         dlg->StartNextInstall();  // recursively process queue
+      });
+   }).detach();
 }
 
 void ModelManagerDialog::StartNextInstall() {
