@@ -309,7 +309,7 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
 
       // write to file here
       response->setOnDataReceivedCallback(
-         [response, wx_file, &bError, &bytes_downloaded_so_far, callback, &total_download_size, &file_error_summary, &file_error_details, &effect, model_info, &url, fullFilePath](audacity::network_manager::IResponse*)
+         [response, wx_file, &bError, &bytes_downloaded_so_far, callback, &total_download_size, &file_error_summary, &file_error_details, &effect, model_info, url, fullFilePath](audacity::network_manager::IResponse*)
          {
             // only attempt save if request succeeded
             int httpCode = response->getHTTPCode();
