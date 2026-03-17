@@ -35,7 +35,7 @@ private:
    std::vector<InstallQueueEntryPanel*> queuePanels;
    std::queue<ModelEntryPanel*> installQueue;
    ModelEntryPanel* activeInstall = nullptr;
-    InstallQueueEntryPanel* activeQueueEntry = nullptr;
+   InstallQueueEntryPanel* activeQueueEntry = nullptr;
    int installProgress = 0;
 
    wxDECLARE_EVENT_TABLE();

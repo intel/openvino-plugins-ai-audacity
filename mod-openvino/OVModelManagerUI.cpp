@@ -210,7 +210,7 @@ void InstallQueueEntryPanel::SetAsQueued() {
    label->SetLabel(modelPanel->GetModel()->model_name + " (Queued)");
    label->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
    gauge->Hide();
-    detailsButton->Disable();
+   detailsButton->Disable();
    detailsButton->SetToolTip({});
    Layout();
 }
@@ -296,7 +296,7 @@ ModelManagerDialog::ModelManagerDialog(wxWindow* parent)
    for (const auto& s : allSections) {
       auto collection = OVModelManager::instance().GetModelCollection(s);
       if (collection->models.empty()) {
-         wxLogInfo("OVModelManagerUI: skipping empty model collection section '%s'.", s);
+         wxLogInfo("OVModelManagerUI: skipping empty model collection section '%s'.", s.c_str());
          continue;
       }
 
