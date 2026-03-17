@@ -24,6 +24,7 @@ private:
    void StartNextInstall();
    void BeginInstallFor(ModelEntryPanel* panel, InstallQueueEntryPanel* queueEntry);
    InstallQueueEntryPanel* FindQueueEntry(ModelEntryPanel* panel) const;
+   InstallQueueEntryPanel* FindQueueEntryById(int entryId) const;
    void RemoveQueueEntry(InstallQueueEntryPanel* entry);
 
    wxScrolledWindow* scrollPanel;
