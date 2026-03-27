@@ -1,7 +1,10 @@
 #pragma once
+#include <functional>
+#include <memory>
 #include <unordered_map>
 #include <string>
-#include <memory>
+#include <utility>
+#include <vector>
 #include <FileNames.h>
 
 class OVModelManager {
@@ -47,6 +50,25 @@ public:
       std::vector< std::shared_ptr<ModelInfo> > models;
    };
 
+   struct InstallResult
+   {
+      bool succeeded = false;
+      std::string summary;
+      std::string details;
+
+      explicit operator bool() const { return succeeded; }
+
+      static InstallResult Success()
+      {
+         return { true, {}, {} };
+      }
+
+      static InstallResult Failure(std::string summary, std::string details)
+      {
+         return { false, std::move(summary), std::move(details) };
+      }
+   };
+
    // strings to be passed into various functions below that take 'effect' as parameter.
    static const std::string MusicSepName() { return "Music Separation"; };
    static const std::string NoiseSuppressName() { return "Noise Suppression"; }
@@ -63,8 +85,8 @@ public:
    std::shared_ptr<ModelCollection> GetModelCollection(const std::string& effect);
 
    using ProgressCallback = std::function<void(float)>;
-   void install_model(std::string effect, std::string model_id, ProgressCallback callback = nullptr);
-   size_t install_model_size(std::shared_ptr<ModelInfo> model_info);
+   InstallResult install_model(std::string effect, std::string model_id, ProgressCallback callback = nullptr);
+   InstallResult install_model_size(std::shared_ptr<ModelInfo> model_info, size_t& total_size);
 
    using InstalledCallback = std::function<void(const std::string &model_name)>;
    void register_installed_callback(const std::string& effect, InstalledCallback callback);

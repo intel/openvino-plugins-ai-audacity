@@ -5,13 +5,67 @@
 #include <Request.h>
 #include <IResponse.h>
 #endif
-#include <iostream>
 #include <thread>
 #include <chrono>
 #include <sstream>
 #include <future>
 
 #include <wx/file.h>
+#include <wx/log.h>
+
+namespace {
+
+std::string BuildInstallDetails(
+   const std::string& effect,
+   const std::string& modelName,
+   const std::string& stage,
+   const std::string& message,
+   const std::string& resource = {},
+   const std::string& extra = {})
+{
+   std::ostringstream stream;
+   stream << "Effect: " << effect << "\n";
+   stream << "Model: " << modelName << "\n";
+   stream << "Stage: " << stage << "\n";
+   stream << "Message: " << message;
+
+   if (!resource.empty()) {
+      stream << "\nResource: " << resource;
+   }
+
+   if (!extra.empty()) {
+      stream << "\nDetails: " << extra;
+   }
+
+   return stream.str();
+}
+
+OVModelManager::InstallResult WrapInstallFailure(
+   const std::string& effect,
+   const std::string& requestedModel,
+   const std::string& stage,
+   const std::string& message,
+   const OVModelManager::InstallResult& cause,
+   const std::string& resource = {})
+{
+   std::ostringstream extra;
+   if (!cause.summary.empty()) {
+      extra << "Cause Summary: " << cause.summary;
+   }
+
+   if (!cause.details.empty()) {
+      if (extra.tellp() > 0) {
+         extra << "\n\n";
+      }
+      extra << cause.details;
+   }
+
+   return OVModelManager::InstallResult::Failure(
+      message,
+      BuildInstallDetails(effect, requestedModel, stage, message, resource, extra.str()));
+}
+
+}
 
 
 std::shared_ptr<OVModelManager::ModelCollection> OVModelManager::GetModelCollection(const std::string& effect)
@@ -73,16 +127,10 @@ static void _check_installed_model_impl(std::shared_ptr<OVModelManager::ModelInf
       wxFileName fullFilePath(search_path_base + "/" + model_info->relative_path + "/" + file);
       fullFilePath.Normalize();
 
-      std::cout << "fullFilePath = " << fullFilePath.GetFullPath().ToStdString() << std::endl;
       if (!fullFilePath.FileExists())
       {
          all_found = false;
-         std::cout << "    file doesn't exist." << std::endl;
          break;
-      }
-      else
-      {
-         std::cout << "    file exists." << std::endl;
       }
    }
 
@@ -97,7 +145,6 @@ static void _check_installed_model_impl(std::shared_ptr<OVModelManager::ModelInf
 
       model_info->installed = true;
       model_info->installation_path = fullInstallationPath.ToStdString();
-      std::cout << "Set installation path to " << model_info->installation_path << std::endl;
    }
 }
 
@@ -132,14 +179,17 @@ static inline void mkdir_relative_paths(std::string relative_file, wxString base
    }
 }
 
-size_t OVModelManager::install_model_size(std::shared_ptr<ModelInfo> model_info)
+OVModelManager::InstallResult OVModelManager::install_model_size(std::shared_ptr<ModelInfo> model_info, size_t& total_size)
 {
+   total_size = 0;
 #ifdef HAS_NETWORKING
    if (!model_info) {
-      std::cout << "install_model_size called on null model_info" << std::endl;
+   wxLogError("OVModelManager::install_model_size called on null model_info.");
+      return InstallResult::Failure(
+         "Model size calculation failed.",
+         BuildInstallDetails({}, {}, "Size Check", "install_model_size received a null model pointer."));
    }
 
-   size_t total_size = 0;
    auto baseUrl = model_info->baseUrl;
    audacity::network_manager::NetworkManager& manager = audacity::network_manager::NetworkManager::GetInstance();
 
@@ -151,9 +201,10 @@ size_t OVModelManager::install_model_size(std::shared_ptr<ModelInfo> model_info)
          request = audacity::network_manager::Request(url);
       }
       catch (const std::exception& error) {
-         std::cout << "Error creating request from url=" << url << std::endl;
-         std::cout << "Exceptiond details: " << error.what() << std::endl;
-         return 0;
+         wxLogError("OVModelManager: failed to create HEAD request for URL '%s'. Exception: %s", url.c_str(), error.what());
+         return InstallResult::Failure(
+            "Could not create a download request.",
+            BuildInstallDetails({}, model_info->model_name, "Size Check", "Could not create a HEAD request for model download size lookup.", url, error.what()));
       }
 
       try {
@@ -165,19 +216,11 @@ size_t OVModelManager::install_model_size(std::shared_ptr<ModelInfo> model_info)
          }
 
          if ((response->getHTTPCode() != 200) && (response->getHTTPCode() != 302)) {
-            std::cout << "error fetching head for URL = " << url << std::endl;
-            return 0;
+            wxLogError("OVModelManager: unexpected HTTP status %d while fetching HEAD for URL '%s'.", response->getHTTPCode(), url.c_str());
+            return InstallResult::Failure(
+               "Could not retrieve model download metadata.",
+               BuildInstallDetails({}, model_info->model_name, "Size Check", "HEAD request returned an unexpected HTTP status.", url, "HTTP status: " + std::to_string(response->getHTTPCode())));
          }
-
-#if 0
-         std::cout << "file = " << file << std::endl;
-         auto headers_list = response->getHeaders();
-         for (auto& header : headers_list)
-         {
-            std::cout << "    header name: " << header.Name << std::endl;
-            std::cout << "    header value: " << header.Value << std::endl;
-         }
-#endif
 
          // For LFS files on GitHub (usually large ones, like .bin's) have 'X-Linked-Size' headers,
          // so we look for those first. If that doesn't exist, we use 'Content-Length' header.
@@ -188,8 +231,6 @@ size_t OVModelManager::install_model_size(std::shared_ptr<ModelInfo> model_info)
             if (response->hasHeader(header)) {
                std::string length = response->getHeader(header);
                size_t size = (size_t)std::stoull(length);
-
-               std::cout << "file: " << file << ", size = " << size << std::endl;
                total_size += size;
 
                size_header_found = true;
@@ -198,27 +239,38 @@ size_t OVModelManager::install_model_size(std::shared_ptr<ModelInfo> model_info)
 
          if (!size_header_found)
          {
-            std::cout << "response does not have 'X-Linked-Size' or 'Content-Length' headers for URL=" << url << std::endl;
-            return 0;
+            wxLogError("OVModelManager: response missing X-Linked-Size and Content-Length headers for URL '%s'.", url.c_str());
+            return InstallResult::Failure(
+               "Could not determine model download size.",
+               BuildInstallDetails({}, model_info->model_name, "Size Check", "Response did not include X-Linked-Size or Content-Length.", url));
          }
       }
       catch (const std::exception& error) {
-         std::cout << "Error getting file head details (for size calculation) for url=" << url << std::endl;
-         std::cout << "Exception details: " << error.what() << std::endl;
-         return 0;
+         wxLogError("OVModelManager: exception while reading HEAD response for URL '%s'. Exception: %s", url.c_str(), error.what());
+         return InstallResult::Failure(
+            "Could not retrieve model download metadata.",
+            BuildInstallDetails({}, model_info->model_name, "Size Check", "Exception while reading HEAD response for size calculation.", url, error.what()));
       }
    }
 
-   return total_size;
+   return InstallResult::Success();
 #else
-   throw std::runtime_error("install_model_size called, but this build has no networking support!");
+   return InstallResult::Failure(
+      "Model downloads are not available in this build.",
+      BuildInstallDetails({}, model_info ? model_info->model_name : std::string{}, "Size Check", "install_model_size called, but this build has no networking support."));
 #endif
 }
 
-static void download_model_files(std::shared_ptr<OVModelManager::ModelInfo> model_info, const FilePath &base_openvino_models_path, size_t total_download_size,
+static OVModelManager::InstallResult download_model_files(const std::string& effect, std::shared_ptr<OVModelManager::ModelInfo> model_info, const FilePath &base_openvino_models_path, size_t total_download_size,
    size_t& bytes_downloaded_so_far, OVModelManager::ProgressCallback callback)
 {
 #ifdef HAS_NETWORKING
+   if (!model_info) {
+      return OVModelManager::InstallResult::Failure(
+         "Model download failed.",
+         BuildInstallDetails(effect, {}, "Download", "download_model_files received a null model pointer."));
+   }
+
    audacity::network_manager::NetworkManager& manager = audacity::network_manager::NetworkManager::GetInstance();
 
    bool bError = false;
@@ -227,20 +279,37 @@ static void download_model_files(std::shared_ptr<OVModelManager::ModelInfo> mode
    auto postUrl = model_info->postUrl;
    for (auto& file : model_info->fileList) {
       std::string url = baseUrl + file + postUrl;
-      audacity::network_manager::Request request(url);
-      auto response = manager.doGet(request);
+
+      audacity::network_manager::Request request;
+      std::shared_ptr<audacity::network_manager::IResponse> response;
+      try {
+         request = audacity::network_manager::Request(url);
+         response = manager.doGet(request);
+      }
+      catch (const std::exception& error) {
+         return OVModelManager::InstallResult::Failure(
+            "Model download request failed.",
+            BuildInstallDetails(effect, model_info->model_name, "Download", "Could not start a GET request for the model file.", url, error.what()));
+      }
 
       mkdir_relative_paths(model_info->relative_path + "/" + file, base_openvino_models_path);
       wxFileName fullFilePath(base_openvino_models_path + "/" + model_info->relative_path + "/" + file);
       fullFilePath.Normalize();
 
-      std::cout << "Saving to " << fullFilePath.GetFullPath().ToStdString() << std::endl;
-
       std::shared_ptr<wxFile> wx_file = std::make_shared<wxFile>(fullFilePath.GetFullPath(), wxFile::write);
+      if (!wx_file->IsOpened()) {
+         wxLogError("OVModelManager: failed to open destination file for writing: '%s'.", fullFilePath.GetFullPath());
+         return OVModelManager::InstallResult::Failure(
+            "Could not open the destination file for writing.",
+            BuildInstallDetails(effect, model_info->model_name, "Download", "Failed to open the destination file before writing downloaded data.", fullFilePath.GetFullPath().ToStdString()));
+      }
+
+      std::string file_error_summary;
+      std::string file_error_details;
 
       // write to file here
       response->setOnDataReceivedCallback(
-         [response, wx_file, &bError, &bytes_downloaded_so_far, callback, &total_download_size](audacity::network_manager::IResponse*)
+         [response, wx_file, &bError, &bytes_downloaded_so_far, callback, &total_download_size, &file_error_summary, &file_error_details, &effect, model_info, url, fullFilePath](audacity::network_manager::IResponse*)
          {
             // only attempt save if request succeeded
             int httpCode = response->getHTTPCode();
@@ -252,7 +321,15 @@ static void download_model_files(std::shared_ptr<OVModelManager::ModelInfo> mode
                if (wx_file->Error()) {
                   int last_error = wx_file->GetLastError();
 
-                  std::cout << "uh oh... ex_file Error! last_error=" << last_error << std::endl;
+                  wxLogError("OVModelManager: file write error (wxFile last_error=%d) for '%s'.", last_error, fullFilePath.GetFullPath());
+                  file_error_summary = "Writing downloaded model data failed.";
+                  file_error_details = BuildInstallDetails(
+                     effect,
+                     model_info->model_name,
+                     "Download",
+                     "wxFile reported an error while writing the downloaded data.",
+                     fullFilePath.GetFullPath().ToStdString(),
+                     "wxFile last error: " + std::to_string(last_error) + "\nSource URL: " + url);
                   bError = true;
                   response->Cancel();
                   return;
@@ -267,7 +344,18 @@ static void download_model_files(std::shared_ptr<OVModelManager::ModelInfo> mode
 
                if (bytesWritten != responseData.size())
                {
-                  std::cout << "uh oh... bytesWritten != responseData.size() " << std::endl;
+                  wxLogError("OVModelManager: incomplete file write for '%s' (written=%llu, received=%llu).",
+                     fullFilePath.GetFullPath(),
+                     static_cast<unsigned long long>(bytesWritten),
+                     static_cast<unsigned long long>(responseData.size()));
+                  file_error_summary = "Incomplete model file write detected.";
+                  file_error_details = BuildInstallDetails(
+                     effect,
+                     model_info->model_name,
+                     "Download",
+                     "The downloaded data size did not match the number of bytes written to disk.",
+                     fullFilePath.GetFullPath().ToStdString(),
+                     "Bytes written: " + std::to_string(bytesWritten) + "\nBytes received: " + std::to_string(responseData.size()) + "\nSource URL: " + url);
                   bError = true;
                   response->Cancel();
                   return;
@@ -275,7 +363,15 @@ static void download_model_files(std::shared_ptr<OVModelManager::ModelInfo> mode
             }
             else
             {
-               std::cout << "uh oh... httpCode = " << httpCode << std::endl;
+               wxLogError("OVModelManager: GET request returned unexpected HTTP status %d for URL '%s'.", httpCode, url.c_str());
+               file_error_summary = "Model download returned an unexpected HTTP status.";
+               file_error_details = BuildInstallDetails(
+                  effect,
+                  model_info->model_name,
+                  "Download",
+                  "GET request returned an unexpected HTTP status.",
+                  url,
+                  "HTTP status: " + std::to_string(httpCode));
                bError = true;
                response->Cancel();
                return;
@@ -296,23 +392,28 @@ static void download_model_files(std::shared_ptr<OVModelManager::ModelInfo> mode
       //wait for request to complete.
       doneFuture.get();
 
-      if (bError)
-         break;
-
-      std::cout << "finished downloading " << url << std::endl;
+      if (bError) {
+         return OVModelManager::InstallResult::Failure(file_error_summary, file_error_details);
+      }
    }
+
+   return OVModelManager::InstallResult::Success();
 #else
-   throw std::runtime_error("download_model_files called, but this build has no networking support!");
+   return OVModelManager::InstallResult::Failure(
+      "Model downloads are not available in this build.",
+      BuildInstallDetails(effect, model_info ? model_info->model_name : std::string{}, "Download", "download_model_files called, but this build has no networking support."));
 #endif
 }
 
-void OVModelManager::install_model(std::string effect, std::string model_id, ProgressCallback callback)
+OVModelManager::InstallResult OVModelManager::install_model(std::string effect, std::string model_id, ProgressCallback callback)
 {
    try {
       auto it = mModelCollection.find(effect);
       if (it == mModelCollection.end()) {
-         std::cout << "Model Collection for effect=" << effect << " not found." << std::endl;
-         return;
+         wxLogError("OVModelManager: model collection for effect '%s' not found.", effect.c_str());
+         return InstallResult::Failure(
+            "Model install failed before download started.",
+            BuildInstallDetails(effect, model_id, "Lookup", "No model collection was found for the requested effect."));
       }
 
       std::shared_ptr<ModelInfo> model_info;
@@ -326,16 +427,29 @@ void OVModelManager::install_model(std::string effect, std::string model_id, Pro
       }
 
       if (!bFound) {
-         std::cout << "Model Info for model_id=" << model_id << " not found." << std::endl;
-         return;
+         wxLogError("OVModelManager: model info for model_id '%s' not found.", model_id.c_str());
+         return InstallResult::Failure(
+            "Model install failed before download started.",
+            BuildInstallDetails(effect, model_id, "Lookup", "No model info entry was found for the requested model."));
       }
 
-      size_t total_download_size = install_model_size(model_info);
-
-      if (total_download_size == 0)
+      size_t total_download_size = 0;
+      auto sizeResult = install_model_size(model_info, total_download_size);
+      if (!sizeResult)
       {
-         std::cout << "install_model_size failed." << std::endl;
-         return;
+         wxLogError("OVModelManager: install_model_size failed for model '%s'.", model_id.c_str());
+         return WrapInstallFailure(
+            effect,
+            model_id,
+            "Size Check",
+            "Could not determine how much data must be downloaded for this model.",
+            sizeResult);
+      }
+
+      if (mSearchPaths.empty()) {
+         return InstallResult::Failure(
+            "Model install failed before download started.",
+            BuildInstallDetails(effect, model_id, "Path Setup", "No model installation directory is configured."));
       }
 
       auto& base_openvino_models_path = mSearchPaths[0];
@@ -348,11 +462,18 @@ void OVModelManager::install_model(std::string effect, std::string model_id, Pro
       // add the total size of the dependencies.
       for (auto& d : model_info->dependencies) {
          if (!d->installed) {
-            size_t dependencies_size = install_model_size(d);
-            if (dependencies_size == 0)
+            size_t dependencies_size = 0;
+            auto dependencySizeResult = install_model_size(d, dependencies_size);
+            if (!dependencySizeResult)
             {
-               std::cout << "install_model_size failed for dependencies: " << d->model_name << std::endl;
-               return;
+               wxLogError("OVModelManager: install_model_size failed for dependency '%s'.", d->model_name.c_str());
+               return WrapInstallFailure(
+                  effect,
+                  model_id,
+                  "Dependency Size Check",
+                  "Could not determine how much data must be downloaded for a dependency.",
+                  dependencySizeResult,
+                  d->model_name);
             }
 
             total_download_size += dependencies_size;
@@ -361,24 +482,34 @@ void OVModelManager::install_model(std::string effect, std::string model_id, Pro
 
       size_t bytes_downloaded_so_far = 0;
 
-      std::cout << "Total size we are about to download = " << total_download_size << std::endl;
-
       if (!model_info->dependencies.empty()) {
          for (auto& d : model_info->dependencies) {
             if (!d->installed) {
-               download_model_files(d, base_openvino_models_path, total_download_size, bytes_downloaded_so_far, callback);
+               auto dependencyDownloadResult = download_model_files(effect, d, base_openvino_models_path, total_download_size, bytes_downloaded_so_far, callback);
+               if (!dependencyDownloadResult) {
+                  return WrapInstallFailure(
+                     effect,
+                     model_id,
+                     "Dependency Download",
+                     "A required dependency failed to download.",
+                     dependencyDownloadResult,
+                     d->model_name);
+               }
+
                _check_installed_model_impl(d, base_openvino_models_path);
-               if (!d->installed)
-                  return;
-            }
-            else
-            {
-               std::cout << "dependency: " << d->model_name << " is already installed." << std::endl;
+               if (!d->installed) {
+                  return InstallResult::Failure(
+                     "A required dependency did not verify after download.",
+                     BuildInstallDetails(effect, model_id, "Dependency Verification", "Downloaded dependency files were not found during post-download verification.", d->model_name));
+               }
             }
          }
       }
 
-      download_model_files(model_info, base_openvino_models_path, total_download_size, bytes_downloaded_so_far, callback);
+      auto downloadResult = download_model_files(effect, model_info, base_openvino_models_path, total_download_size, bytes_downloaded_so_far, callback);
+      if (!downloadResult) {
+         return downloadResult;
+      }
 
       //re-run file check for this model.
       _check_installed_model_impl(model_info, base_openvino_models_path);
@@ -389,11 +520,19 @@ void OVModelManager::install_model(std::string effect, std::string model_id, Pro
          {
             callback_it->second(model_info->model_name);
          }
+
+         return InstallResult::Success();
       }
+
+      return InstallResult::Failure(
+         "Model files did not verify after download.",
+         BuildInstallDetails(effect, model_id, "Verification", "Download completed, but the expected installed files were not found in the target directory.", base_openvino_models_path.ToStdString()));
    }
    catch (const std::exception& error) {
-      std::cout << "install_model: exception caught for model_id = " << model_id << std::endl;
-      std::cout << "exception details: " << error.what() << std::endl;
+      wxLogError("OVModelManager: exception while installing model '%s'. Exception: %s", model_id.c_str(), error.what());
+      return InstallResult::Failure(
+         "Unexpected exception while installing the model.",
+         BuildInstallDetails(effect, model_id, "Exception", "install_model caught an unexpected exception.", {}, error.what()));
    }
 }
 
