@@ -63,7 +63,9 @@ private:
       ID_Type_Device = 14000,
       ID_Type_TextSource,
       ID_Type_TtsModel,
-      ID_Type_ModelManager
+      ID_Type_ModelManager,
+      ID_Type_Voice,
+      ID_Type_Language
    };
 
    enum class TextSource
@@ -79,8 +81,10 @@ private:
    bool GenerateSpeech(const std::string& textToSpeak);
    bool ApplyGeneratedBlocksToSelectedTracks(const std::vector<GeneratedSpeechBlock>& generatedBlocks);
    std::string ResolveModelPath() const;
+   void RefreshVoicesForCurrentModel();
 
    void OnModelManagerButtonClicked(wxCommandEvent& evt);
+   void OnTtsModelChanged(wxCommandEvent& evt);
 
    wxWeakRef<wxWindow> mUIParent{};
 
@@ -98,6 +102,16 @@ private:
    int mTtsModelSelectionChoice = 0;
    std::vector<std::string> mSupportedTtsModels;
    std::vector<EnumValueSymbol> mGuiTtsModelSelections;
+
+   wxChoice* mTypeChoiceVoiceCtrl{};
+   int mVoiceSelectionChoice = 0;
+   std::vector<std::string> mSupportedVoices;
+   std::vector<EnumValueSymbol> mGuiVoiceSelections;
+
+   wxChoice* mTypeChoiceLanguageCtrl{};
+   int mLanguageSelectionChoice = 0;
+   std::vector<std::string> mSupportedLanguages;
+   std::vector<EnumValueSymbol> mGuiLanguageSelections;
 
    wxTextCtrl* mInputTextCtrl{};
 

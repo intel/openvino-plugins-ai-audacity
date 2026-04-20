@@ -40,11 +40,53 @@ const ComponentInterfaceSymbol EffectOVTextToSpeechGenAI::Symbol
 namespace { BuiltinEffectsModule::Registration<EffectOVTextToSpeechGenAI> reg; }
 
 namespace {
-wxString FindSpeakerEmbeddingPath(const wxString& modelPath)
+std::string NormalizeKokoroLanguage(std::string language)
 {
-   const wxString voicesPath = wxFileName(modelPath, wxT("voices")).GetFullPath();
+   if (language == "es-es") {
+      return "es";
+   }
+   if (language == "hi-in") {
+      return "hi";
+   }
+   if (language == "it-it") {
+      return "it";
+   }
+   return language;
+}
+
+std::vector<std::string> ScanVoicesInModelPath(const std::string& modelPath)
+{
+   const wxString voicesPath = wxFileName(wxString::FromUTF8(modelPath), wxT("voices")).GetFullPath();
+   if (!wxDirExists(voicesPath)) {
+      return {};
+   }
+
+   wxDir voicesDir(voicesPath);
+   wxString fileName;
+   std::vector<std::string> voices;
+   bool hasFile = voicesDir.GetFirst(&fileName, wxT("*.bin"), wxDIR_FILES);
+   while (hasFile) {
+      const wxFileName voiceFile(fileName);
+      voices.push_back(audacity::ToUTF8(voiceFile.GetName()));
+      hasFile = voicesDir.GetNext(&fileName);
+   }
+
+   std::sort(voices.begin(), voices.end());
+   return voices;
+}
+
+wxString FindSpeakerEmbeddingPath(const std::string& modelPath, const std::string& selectedVoice)
+{
+   const wxString voicesPath = wxFileName(wxString::FromUTF8(modelPath), wxT("voices")).GetFullPath();
    if (!wxDirExists(voicesPath)) {
       throw std::runtime_error("The selected model folder does not contain a 'voices' directory.");
+   }
+
+   if (!selectedVoice.empty()) {
+      const wxString requestedVoice = wxFileName(voicesPath, wxString::FromUTF8(selectedVoice + ".bin")).GetFullPath();
+      if (wxFileExists(requestedVoice)) {
+         return requestedVoice;
+      }
    }
 
    const wxString preferredVoice = wxFileName(voicesPath, wxT("af_heart.bin")).GetFullPath();
@@ -88,6 +130,7 @@ ov::Tensor LoadSpeakerEmbeddingTensor(const wxString& speakerEmbeddingPath, cons
 
 BEGIN_EVENT_TABLE(EffectOVTextToSpeechGenAI, wxEvtHandler)
    EVT_BUTTON(ID_Type_ModelManager, EffectOVTextToSpeechGenAI::OnModelManagerButtonClicked)
+   EVT_CHOICE(ID_Type_TtsModel, EffectOVTextToSpeechGenAI::OnTtsModelChanged)
 END_EVENT_TABLE()
 
 EffectOVTextToSpeechGenAI::EffectOVTextToSpeechGenAI()
@@ -109,6 +152,19 @@ EffectOVTextToSpeechGenAI::EffectOVTextToSpeechGenAI()
    mSupportedTextSources = { "Manual text", "Selected label track" };
    for (const auto& source : mSupportedTextSources) {
       mGuiTextSourceSelections.push_back({ TranslatableString{ wxString(source), {} } });
+   }
+
+   mSupportedLanguages = {
+      "en-us",
+      "en-gb",
+      "es",
+      "fr-fr",
+      "hi",
+      "it",
+      "pt-br"
+   };
+   for (const auto& language : mSupportedLanguages) {
+      mGuiLanguageSelections.push_back({ TranslatableString{ wxString(language), {} } });
    }
 }
 
@@ -277,11 +333,12 @@ std::string EffectOVTextToSpeechGenAI::ResolveModelPath() const
       return {};
    }
 
-   const int idx = mTtsModelSelectionChoice;
-   if (idx >= 0 && idx < static_cast<int>(collection->models.size())) {
-      const auto& model_info = collection->models[idx];
-      if (model_info->installed) {
-         return model_info->installation_path;
+   if (mTtsModelSelectionChoice >= 0 && mTtsModelSelectionChoice < static_cast<int>(mSupportedTtsModels.size())) {
+      const std::string selectedModelName = mSupportedTtsModels[mTtsModelSelectionChoice];
+      for (const auto& model_info : collection->models) {
+         if (model_info->installed && model_info->model_name == selectedModelName) {
+            return model_info->installation_path;
+         }
       }
    }
 
@@ -293,6 +350,46 @@ std::string EffectOVTextToSpeechGenAI::ResolveModelPath() const
    }
 
    return {};
+}
+
+void EffectOVTextToSpeechGenAI::RefreshVoicesForCurrentModel()
+{
+   mSupportedVoices.clear();
+   mGuiVoiceSelections.clear();
+
+   const std::string modelPath = ResolveModelPath();
+   if (!modelPath.empty()) {
+      mSupportedVoices = ScanVoicesInModelPath(modelPath);
+   }
+
+   for (const auto& voice : mSupportedVoices) {
+      mGuiVoiceSelections.push_back({ TranslatableString{ wxString(voice), {} } });
+   }
+
+   auto requestedSelection = mVoiceSelectionChoice;
+   const auto preferredVoice = std::find(mSupportedVoices.begin(), mSupportedVoices.end(), "af_heart");
+   if (preferredVoice != mSupportedVoices.end()) {
+      requestedSelection = static_cast<int>(std::distance(mSupportedVoices.begin(), preferredVoice));
+   }
+
+   if (mSupportedVoices.empty()) {
+      mVoiceSelectionChoice = 0;
+      if (mTypeChoiceVoiceCtrl) {
+         mTypeChoiceVoiceCtrl->Clear();
+      }
+      return;
+   }
+
+   requestedSelection = std::clamp(requestedSelection, 0, static_cast<int>(mSupportedVoices.size()) - 1);
+   mVoiceSelectionChoice = requestedSelection;
+
+   if (mTypeChoiceVoiceCtrl) {
+      mTypeChoiceVoiceCtrl->Clear();
+      for (const auto& voice : mSupportedVoices) {
+         mTypeChoiceVoiceCtrl->Append(wxString(voice));
+      }
+      mTypeChoiceVoiceCtrl->SetSelection(mVoiceSelectionChoice);
+   }
 }
 
 bool EffectOVTextToSpeechGenAI::GenerateSpeech(const std::string& textToSpeak)
@@ -307,12 +404,21 @@ bool EffectOVTextToSpeechGenAI::GenerateSpeech(const std::string& textToSpeak)
          "No installed text-to-speech model was found. Use the Model Manager to check available models.");
    }
 
-   const wxString speakerEmbeddingPath = FindSpeakerEmbeddingPath(wxString::FromUTF8(resolvedModelPath));
+   std::string selectedVoice;
+   if (mVoiceSelectionChoice >= 0 && mVoiceSelectionChoice < static_cast<int>(mSupportedVoices.size())) {
+      selectedVoice = mSupportedVoices[mVoiceSelectionChoice];
+   }
+   const wxString speakerEmbeddingPath = FindSpeakerEmbeddingPath(resolvedModelPath, selectedVoice);
 
    const std::string deviceName = mSupportedDevices[mDeviceSelectionChoice];
 
    ov::AnyMap properties;
-   properties["language"] = std::string("en-us");
+   std::string selectedLanguage = "en-us";
+   if (mLanguageSelectionChoice >= 0 && mLanguageSelectionChoice < static_cast<int>(mSupportedLanguages.size())) {
+      selectedLanguage = mSupportedLanguages[mLanguageSelectionChoice];
+   }
+   selectedLanguage = NormalizeKokoroLanguage(selectedLanguage);
+   properties["language"] = selectedLanguage;
 
    if (OpenVINOPluginSettings::ReadEnableCache() && deviceName != "CPU") {
       const auto cacheFolder = FileNames::MkDir(wxFileName(OpenVINOPluginSettings::GetOrCreateCompiledModelCacheDir()).GetFullPath());
@@ -444,6 +550,15 @@ bool EffectOVTextToSpeechGenAI::GenerateTrack(const EffectSettings&, WaveTrack& 
 std::unique_ptr<EffectEditor> EffectOVTextToSpeechGenAI::PopulateOrExchange(
    ShuttleGui& S, EffectInstance&, EffectSettingsAccess&, const EffectOutputs*)
 {
+   // Controls are re-created on each dialog open; reset cached pointers first
+   // so stale pointers from a previous dialog instance are never reused.
+   mTypeChoiceDeviceCtrl = nullptr;
+   mTypeChoiceTextSourceCtrl = nullptr;
+   mTypeChoiceTtsModelCtrl = nullptr;
+   mTypeChoiceVoiceCtrl = nullptr;
+   mTypeChoiceLanguageCtrl = nullptr;
+   mInputTextCtrl = nullptr;
+
    mUIParent = S.GetParent();
 
    // Populate installed TTS model choices from the model manager.
@@ -479,12 +594,19 @@ std::unique_ptr<EffectEditor> EffectOVTextToSpeechGenAI::PopulateOrExchange(
                   mTypeChoiceTtsModelCtrl->Append(wxString(model_name));
                   if (mTypeChoiceTtsModelCtrl->GetCount() == 1) {
                      mTypeChoiceTtsModelCtrl->SetSelection(0);
+                     mTtsModelSelectionChoice = 0;
                   }
                }
+               RefreshVoicesForCurrentModel();
             }
          });
       };
    OVModelManager::instance().register_installed_callback(OVModelManager::TtsName(), callback);
+
+   if (mTtsModelSelectionChoice < 0 && !mSupportedTtsModels.empty()) {
+      mTtsModelSelectionChoice = 0;
+   }
+   RefreshVoicesForCurrentModel();
 
    S.AddSpace(0, 5);
    S.StartVerticalLay();
@@ -518,6 +640,22 @@ std::unique_ptr<EffectEditor> EffectOVTextToSpeechGenAI::PopulateOrExchange(
             .Validator<wxGenericValidator>(&mTtsModelSelectionChoice)
             .AddChoice(XXO("TTS Model:"),
                Msgids(mGuiTtsModelSelections.data(), mGuiTtsModelSelections.size()));
+
+         mTypeChoiceVoiceCtrl = S.Id(ID_Type_Voice)
+            .MinSize({ -1, -1 })
+            .Validator<wxGenericValidator>(&mVoiceSelectionChoice)
+            .AddChoice(XXO("Voice:"),
+               Msgids(mGuiVoiceSelections.data(), mGuiVoiceSelections.size()));
+      }
+      S.EndMultiColumn();
+
+      S.StartMultiColumn(2, wxEXPAND);
+      {
+         mTypeChoiceLanguageCtrl = S.Id(ID_Type_Language)
+            .MinSize({ -1, -1 })
+            .Validator<wxGenericValidator>(&mLanguageSelectionChoice)
+            .AddChoice(XXO("Language:"),
+               Msgids(mGuiLanguageSelections.data(), mGuiLanguageSelections.size()));
       }
       S.EndMultiColumn();
 
@@ -539,13 +677,16 @@ bool EffectOVTextToSpeechGenAI::TransferDataToWindow(const EffectSettings&)
       return false;
    }
 
-   const bool canApply = !mSupportedDevices.empty() && !mSupportedTtsModels.empty();
+   const bool canApply = !mSupportedDevices.empty() && !mSupportedTtsModels.empty() && !mSupportedVoices.empty();
    if (!canApply) {
       if (mSupportedDevices.empty()) {
          wxLogInfo("OpenVINO Text-to-Speech has no supported inference devices.");
       }
       if (mSupportedTtsModels.empty()) {
          wxLogInfo("OpenVINO Text-to-Speech has no installed models. Use the Model Manager.");
+      }
+      if (mSupportedTtsModels.empty() == false && mSupportedVoices.empty()) {
+         wxLogInfo("OpenVINO Text-to-Speech could not find voice embeddings for the selected model.");
       }
       EffectEditor::EnableApply(mUIParent, false);
    }
@@ -566,4 +707,9 @@ bool EffectOVTextToSpeechGenAI::TransferDataFromWindow(EffectSettings&)
 void EffectOVTextToSpeechGenAI::OnModelManagerButtonClicked(wxCommandEvent&)
 {
    ShowModelManagerDialog();
+}
+
+void EffectOVTextToSpeechGenAI::OnTtsModelChanged(wxCommandEvent&)
+{
+   RefreshVoicesForCurrentModel();
 }
