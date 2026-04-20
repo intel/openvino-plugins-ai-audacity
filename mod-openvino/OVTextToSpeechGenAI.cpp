@@ -40,18 +40,41 @@ const ComponentInterfaceSymbol EffectOVTextToSpeechGenAI::Symbol
 namespace { BuiltinEffectsModule::Registration<EffectOVTextToSpeechGenAI> reg; }
 
 namespace {
-std::string NormalizeKokoroLanguage(std::string language)
+std::string FormatVoiceDisplayLabel(const std::string& voiceName)
 {
-   if (language == "es-es") {
-      return "es";
+   // Kokoro voice convention: <language><gender>_<name>
+   // Examples: af_heart, bm_george, pf_dora
+   if (voiceName.size() < 4 || voiceName[2] != '_') {
+      return voiceName;
    }
-   if (language == "hi-in") {
-      return "hi";
+
+   const char languageCode = voiceName[0];
+   const char genderCode = voiceName[1];
+
+   std::string language;
+   switch (languageCode) {
+   case 'a': language = "English (US)"; break;
+   case 'b': language = "English (UK)"; break;
+   case 'e': language = "Spanish"; break;
+   case 'f': language = "French"; break;
+   case 'h': language = "Hindi"; break;
+   case 'i': language = "Italian"; break;
+   case 'j': language = "Japanese"; break;
+   case 'p': language = "Portuguese (Brazil)"; break;
+   case 'z': language = "Chinese"; break;
+   default:
+      return voiceName;
    }
-   if (language == "it-it") {
-      return "it";
+
+   std::string gender;
+   switch (genderCode) {
+   case 'm': gender = "Male"; break;
+   case 'f': gender = "Female"; break;
+   default:
+      return voiceName;
    }
-   return language;
+
+   return voiceName + " [" + language + ", " + gender + "]";
 }
 
 std::vector<std::string> ScanVoicesInModelPath(const std::string& modelPath)
@@ -155,6 +178,15 @@ EffectOVTextToSpeechGenAI::EffectOVTextToSpeechGenAI()
    }
 
    mSupportedLanguages = {
+      "English (US)",
+      "English (UK)",
+      "Spanish",
+      "French",
+      "Hindi",
+      "Italian",
+      "Portuguese (Brazil)"
+   };
+   mSupportedLanguageCodes = {
       "en-us",
       "en-gb",
       "es",
@@ -163,8 +195,8 @@ EffectOVTextToSpeechGenAI::EffectOVTextToSpeechGenAI()
       "it",
       "pt-br"
    };
-   for (const auto& language : mSupportedLanguages) {
-      mGuiLanguageSelections.push_back({ TranslatableString{ wxString(language), {} } });
+   for (const auto& languageLabel : mSupportedLanguages) {
+      mGuiLanguageSelections.push_back({ TranslatableString{ wxString(languageLabel), {} } });
    }
 }
 
@@ -363,7 +395,7 @@ void EffectOVTextToSpeechGenAI::RefreshVoicesForCurrentModel()
    }
 
    for (const auto& voice : mSupportedVoices) {
-      mGuiVoiceSelections.push_back({ TranslatableString{ wxString(voice), {} } });
+      mGuiVoiceSelections.push_back({ TranslatableString{ wxString(FormatVoiceDisplayLabel(voice)), {} } });
    }
 
    auto requestedSelection = mVoiceSelectionChoice;
@@ -386,7 +418,7 @@ void EffectOVTextToSpeechGenAI::RefreshVoicesForCurrentModel()
    if (mTypeChoiceVoiceCtrl) {
       mTypeChoiceVoiceCtrl->Clear();
       for (const auto& voice : mSupportedVoices) {
-         mTypeChoiceVoiceCtrl->Append(wxString(voice));
+         mTypeChoiceVoiceCtrl->Append(wxString(FormatVoiceDisplayLabel(voice)));
       }
       mTypeChoiceVoiceCtrl->SetSelection(mVoiceSelectionChoice);
    }
@@ -413,12 +445,11 @@ bool EffectOVTextToSpeechGenAI::GenerateSpeech(const std::string& textToSpeak)
    const std::string deviceName = mSupportedDevices[mDeviceSelectionChoice];
 
    ov::AnyMap properties;
-   std::string selectedLanguage = "en-us";
-   if (mLanguageSelectionChoice >= 0 && mLanguageSelectionChoice < static_cast<int>(mSupportedLanguages.size())) {
-      selectedLanguage = mSupportedLanguages[mLanguageSelectionChoice];
+   std::string selectedLanguageCode = "en-us";
+   if (mLanguageSelectionChoice >= 0 && mLanguageSelectionChoice < static_cast<int>(mSupportedLanguageCodes.size())) {
+      selectedLanguageCode = mSupportedLanguageCodes[mLanguageSelectionChoice];
    }
-   selectedLanguage = NormalizeKokoroLanguage(selectedLanguage);
-   properties["language"] = selectedLanguage;
+   properties["language"] = selectedLanguageCode;
 
    if (OpenVINOPluginSettings::ReadEnableCache() && deviceName != "CPU") {
       const auto cacheFolder = FileNames::MkDir(wxFileName(OpenVINOPluginSettings::GetOrCreateCompiledModelCacheDir()).GetFullPath());

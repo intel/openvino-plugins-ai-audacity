@@ -111,6 +111,7 @@ private:
    wxChoice* mTypeChoiceLanguageCtrl{};
    int mLanguageSelectionChoice = 0;
    std::vector<std::string> mSupportedLanguages;
+   std::vector<std::string> mSupportedLanguageCodes;
    std::vector<EnumValueSymbol> mGuiLanguageSelections;
 
    wxTextCtrl* mInputTextCtrl{};
