@@ -65,7 +65,8 @@ private:
       ID_Type_TtsModel,
       ID_Type_ModelManager,
       ID_Type_Voice,
-      ID_Type_Language
+      ID_Type_Language,
+      ID_Type_FilterVoicesByLanguage
    };
 
    enum class TextSource
@@ -85,6 +86,8 @@ private:
 
    void OnModelManagerButtonClicked(wxCommandEvent& evt);
    void OnTtsModelChanged(wxCommandEvent& evt);
+   void OnLanguageChanged(wxCommandEvent& evt);
+   void OnFilterVoicesByLanguageChanged(wxCommandEvent& evt);
 
    wxWeakRef<wxWindow> mUIParent{};
 
@@ -106,6 +109,7 @@ private:
    wxChoice* mTypeChoiceVoiceCtrl{};
    int mVoiceSelectionChoice = 0;
    std::vector<std::string> mSupportedVoices;
+   std::vector<std::string> mVisibleVoices;
    std::vector<EnumValueSymbol> mGuiVoiceSelections;
 
    wxChoice* mTypeChoiceLanguageCtrl{};
@@ -113,6 +117,7 @@ private:
    std::vector<std::string> mSupportedLanguages;
    std::vector<std::string> mSupportedLanguageCodes;
    std::vector<EnumValueSymbol> mGuiLanguageSelections;
+   bool mFilterVoicesByLanguage = false;
 
    wxTextCtrl* mInputTextCtrl{};
 

@@ -77,6 +77,56 @@ std::string FormatVoiceDisplayLabel(const std::string& voiceName)
    return voiceName + " [" + language + ", " + gender + "]";
 }
 
+bool TryGetVoiceLanguagePrefix(const std::string& voiceName, char& prefix)
+{
+   if (voiceName.size() < 4 || voiceName[2] != '_') {
+      return false;
+   }
+
+   const char candidate = voiceName[0];
+   switch (candidate) {
+   case 'a':
+   case 'b':
+   case 'e':
+   case 'f':
+   case 'h':
+   case 'i':
+   case 'j':
+   case 'p':
+   case 'z':
+      prefix = candidate;
+      return true;
+   default:
+      return false;
+   }
+}
+
+char LanguageCodeToVoicePrefix(const std::string& languageCode)
+{
+   if (languageCode == "en-us") {
+      return 'a';
+   }
+   if (languageCode == "en-gb") {
+      return 'b';
+   }
+   if (languageCode == "es") {
+      return 'e';
+   }
+   if (languageCode == "fr-fr") {
+      return 'f';
+   }
+   if (languageCode == "hi") {
+      return 'h';
+   }
+   if (languageCode == "it") {
+      return 'i';
+   }
+   if (languageCode == "pt-br") {
+      return 'p';
+   }
+   return '\0';
+}
+
 std::vector<std::string> ScanVoicesInModelPath(const std::string& modelPath)
 {
    const wxString voicesPath = wxFileName(wxString::FromUTF8(modelPath), wxT("voices")).GetFullPath();
@@ -154,6 +204,8 @@ ov::Tensor LoadSpeakerEmbeddingTensor(const wxString& speakerEmbeddingPath, cons
 BEGIN_EVENT_TABLE(EffectOVTextToSpeechGenAI, wxEvtHandler)
    EVT_BUTTON(ID_Type_ModelManager, EffectOVTextToSpeechGenAI::OnModelManagerButtonClicked)
    EVT_CHOICE(ID_Type_TtsModel, EffectOVTextToSpeechGenAI::OnTtsModelChanged)
+   EVT_CHOICE(ID_Type_Language, EffectOVTextToSpeechGenAI::OnLanguageChanged)
+   EVT_CHECKBOX(ID_Type_FilterVoicesByLanguage, EffectOVTextToSpeechGenAI::OnFilterVoicesByLanguageChanged)
 END_EVENT_TABLE()
 
 EffectOVTextToSpeechGenAI::EffectOVTextToSpeechGenAI()
@@ -386,7 +438,13 @@ std::string EffectOVTextToSpeechGenAI::ResolveModelPath() const
 
 void EffectOVTextToSpeechGenAI::RefreshVoicesForCurrentModel()
 {
+   std::string previouslySelectedVoice;
+   if (mVoiceSelectionChoice >= 0 && mVoiceSelectionChoice < static_cast<int>(mVisibleVoices.size())) {
+      previouslySelectedVoice = mVisibleVoices[mVoiceSelectionChoice];
+   }
+
    mSupportedVoices.clear();
+   mVisibleVoices.clear();
    mGuiVoiceSelections.clear();
 
    const std::string modelPath = ResolveModelPath();
@@ -394,17 +452,38 @@ void EffectOVTextToSpeechGenAI::RefreshVoicesForCurrentModel()
       mSupportedVoices = ScanVoicesInModelPath(modelPath);
    }
 
+   char desiredPrefix = '\0';
+   if (mLanguageSelectionChoice >= 0 && mLanguageSelectionChoice < static_cast<int>(mSupportedLanguageCodes.size())) {
+      desiredPrefix = LanguageCodeToVoicePrefix(mSupportedLanguageCodes[mLanguageSelectionChoice]);
+   }
+
    for (const auto& voice : mSupportedVoices) {
+      char voicePrefix = '\0';
+      const bool hasKnownPrefix = TryGetVoiceLanguagePrefix(voice, voicePrefix);
+      if (!mFilterVoicesByLanguage || desiredPrefix == '\0' || !hasKnownPrefix || voicePrefix == desiredPrefix) {
+         mVisibleVoices.push_back(voice);
+      }
+   }
+
+   for (const auto& voice : mVisibleVoices) {
       mGuiVoiceSelections.push_back({ TranslatableString{ wxString(FormatVoiceDisplayLabel(voice)), {} } });
    }
 
-   auto requestedSelection = mVoiceSelectionChoice;
-   const auto preferredVoice = std::find(mSupportedVoices.begin(), mSupportedVoices.end(), "af_heart");
-   if (preferredVoice != mSupportedVoices.end()) {
-      requestedSelection = static_cast<int>(std::distance(mSupportedVoices.begin(), preferredVoice));
+   int requestedSelection = 0;
+   if (!previouslySelectedVoice.empty()) {
+      const auto selectedIter = std::find(mVisibleVoices.begin(), mVisibleVoices.end(), previouslySelectedVoice);
+      if (selectedIter != mVisibleVoices.end()) {
+         requestedSelection = static_cast<int>(std::distance(mVisibleVoices.begin(), selectedIter));
+      }
+   }
+   else {
+      const auto preferredVoice = std::find(mVisibleVoices.begin(), mVisibleVoices.end(), "af_heart");
+      if (preferredVoice != mVisibleVoices.end()) {
+         requestedSelection = static_cast<int>(std::distance(mVisibleVoices.begin(), preferredVoice));
+      }
    }
 
-   if (mSupportedVoices.empty()) {
+   if (mVisibleVoices.empty()) {
       mVoiceSelectionChoice = 0;
       if (mTypeChoiceVoiceCtrl) {
          mTypeChoiceVoiceCtrl->Clear();
@@ -412,12 +491,12 @@ void EffectOVTextToSpeechGenAI::RefreshVoicesForCurrentModel()
       return;
    }
 
-   requestedSelection = std::clamp(requestedSelection, 0, static_cast<int>(mSupportedVoices.size()) - 1);
+   requestedSelection = std::clamp(requestedSelection, 0, static_cast<int>(mVisibleVoices.size()) - 1);
    mVoiceSelectionChoice = requestedSelection;
 
    if (mTypeChoiceVoiceCtrl) {
       mTypeChoiceVoiceCtrl->Clear();
-      for (const auto& voice : mSupportedVoices) {
+      for (const auto& voice : mVisibleVoices) {
          mTypeChoiceVoiceCtrl->Append(wxString(FormatVoiceDisplayLabel(voice)));
       }
       mTypeChoiceVoiceCtrl->SetSelection(mVoiceSelectionChoice);
@@ -437,8 +516,8 @@ bool EffectOVTextToSpeechGenAI::GenerateSpeech(const std::string& textToSpeak)
    }
 
    std::string selectedVoice;
-   if (mVoiceSelectionChoice >= 0 && mVoiceSelectionChoice < static_cast<int>(mSupportedVoices.size())) {
-      selectedVoice = mSupportedVoices[mVoiceSelectionChoice];
+   if (mVoiceSelectionChoice >= 0 && mVoiceSelectionChoice < static_cast<int>(mVisibleVoices.size())) {
+      selectedVoice = mVisibleVoices[mVoiceSelectionChoice];
    }
    const wxString speakerEmbeddingPath = FindSpeakerEmbeddingPath(resolvedModelPath, selectedVoice);
 
@@ -687,6 +766,9 @@ std::unique_ptr<EffectEditor> EffectOVTextToSpeechGenAI::PopulateOrExchange(
             .Validator<wxGenericValidator>(&mLanguageSelectionChoice)
             .AddChoice(XXO("Language:"),
                Msgids(mGuiLanguageSelections.data(), mGuiLanguageSelections.size()));
+
+         S.Id(ID_Type_FilterVoicesByLanguage)
+            .AddCheckBox(XXO("Filter voices by selected language"), mFilterVoicesByLanguage);
       }
       S.EndMultiColumn();
 
@@ -708,7 +790,7 @@ bool EffectOVTextToSpeechGenAI::TransferDataToWindow(const EffectSettings&)
       return false;
    }
 
-   const bool canApply = !mSupportedDevices.empty() && !mSupportedTtsModels.empty() && !mSupportedVoices.empty();
+   const bool canApply = !mSupportedDevices.empty() && !mSupportedTtsModels.empty() && !mVisibleVoices.empty();
    if (!canApply) {
       if (mSupportedDevices.empty()) {
          wxLogInfo("OpenVINO Text-to-Speech has no supported inference devices.");
@@ -716,7 +798,7 @@ bool EffectOVTextToSpeechGenAI::TransferDataToWindow(const EffectSettings&)
       if (mSupportedTtsModels.empty()) {
          wxLogInfo("OpenVINO Text-to-Speech has no installed models. Use the Model Manager.");
       }
-      if (mSupportedTtsModels.empty() == false && mSupportedVoices.empty()) {
+      if (mSupportedTtsModels.empty() == false && mVisibleVoices.empty()) {
          wxLogInfo("OpenVINO Text-to-Speech could not find voice embeddings for the selected model.");
       }
       EffectEditor::EnableApply(mUIParent, false);
@@ -740,7 +822,22 @@ void EffectOVTextToSpeechGenAI::OnModelManagerButtonClicked(wxCommandEvent&)
    ShowModelManagerDialog();
 }
 
-void EffectOVTextToSpeechGenAI::OnTtsModelChanged(wxCommandEvent&)
+void EffectOVTextToSpeechGenAI::OnTtsModelChanged(wxCommandEvent& evt)
 {
+   mTtsModelSelectionChoice = evt.GetSelection();
+   RefreshVoicesForCurrentModel();
+}
+
+void EffectOVTextToSpeechGenAI::OnLanguageChanged(wxCommandEvent& evt)
+{
+   mLanguageSelectionChoice = evt.GetSelection();
+   if (mFilterVoicesByLanguage) {
+      RefreshVoicesForCurrentModel();
+   }
+}
+
+void EffectOVTextToSpeechGenAI::OnFilterVoicesByLanguageChanged(wxCommandEvent& evt)
+{
+   mFilterVoicesByLanguage = evt.IsChecked();
    RefreshVoicesForCurrentModel();
 }
