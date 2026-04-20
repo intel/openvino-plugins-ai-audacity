@@ -203,6 +203,7 @@ ov::Tensor LoadSpeakerEmbeddingTensor(const wxString& speakerEmbeddingPath, cons
 
 BEGIN_EVENT_TABLE(EffectOVTextToSpeechGenAI, wxEvtHandler)
    EVT_BUTTON(ID_Type_ModelManager, EffectOVTextToSpeechGenAI::OnModelManagerButtonClicked)
+   EVT_CHOICE(ID_Type_TextSource, EffectOVTextToSpeechGenAI::OnTextSourceChanged)
    EVT_CHOICE(ID_Type_TtsModel, EffectOVTextToSpeechGenAI::OnTtsModelChanged)
    EVT_CHOICE(ID_Type_Language, EffectOVTextToSpeechGenAI::OnLanguageChanged)
    EVT_CHECKBOX(ID_Type_FilterVoicesByLanguage, EffectOVTextToSpeechGenAI::OnFilterVoicesByLanguageChanged)
@@ -222,11 +223,6 @@ EffectOVTextToSpeechGenAI::EffectOVTextToSpeechGenAI()
 
    for (const auto& d : mSupportedDevices) {
       mGuiDeviceSelections.push_back({ TranslatableString{ wxString(d), {} } });
-   }
-
-   mSupportedTextSources = { "Manual text", "Selected label track" };
-   for (const auto& source : mSupportedTextSources) {
-      mGuiTextSourceSelections.push_back({ TranslatableString{ wxString(source), {} } });
    }
 
    mSupportedLanguages = {
@@ -257,6 +253,21 @@ EffectOVTextToSpeechGenAI::~EffectOVTextToSpeechGenAI() = default;
 ComponentInterfaceSymbol EffectOVTextToSpeechGenAI::GetSymbol() const
 {
    return Symbol;
+}
+
+bool EffectOVTextToSpeechGenAI::HasSelectedLabelTracks() const
+{
+   if (!mTracks) {
+      return false;
+   }
+
+   for (const auto labelTrack : mTracks->Selected<LabelTrack>()) {
+      if (labelTrack != nullptr) {
+         return true;
+      }
+   }
+
+   return false;
 }
 
 TranslatableString EffectOVTextToSpeechGenAI::GetDescription() const
@@ -669,6 +680,23 @@ std::unique_ptr<EffectEditor> EffectOVTextToSpeechGenAI::PopulateOrExchange(
    mTypeChoiceLanguageCtrl = nullptr;
    mInputTextCtrl = nullptr;
 
+   mSupportedTextSources.clear();
+   mGuiTextSourceSelections.clear();
+
+   const bool hasSelectedLabelTracks = HasSelectedLabelTracks();
+   mSupportedTextSources.push_back("Manual text");
+   if (hasSelectedLabelTracks) {
+      mSupportedTextSources.push_back("Selected label track");
+      mTextSourceSelectionChoice = static_cast<int>(TextSource::SelectedLabelTrack);
+   }
+   else {
+      mTextSourceSelectionChoice = static_cast<int>(TextSource::ManualText);
+   }
+
+   for (const auto& source : mSupportedTextSources) {
+      mGuiTextSourceSelections.push_back({ TranslatableString{ wxString(source), {} } });
+   }
+
    mUIParent = S.GetParent();
 
    // Populate installed TTS model choices from the model manager.
@@ -734,12 +762,6 @@ std::unique_ptr<EffectEditor> EffectOVTextToSpeechGenAI::PopulateOrExchange(
             .Validator<wxGenericValidator>(&mDeviceSelectionChoice)
             .AddChoice(XXO("OpenVINO Inference Device:"),
                Msgids(mGuiDeviceSelections.data(), mGuiDeviceSelections.size()));
-
-         mTypeChoiceTextSourceCtrl = S.Id(ID_Type_TextSource)
-            .MinSize({ -1, -1 })
-            .Validator<wxGenericValidator>(&mTextSourceSelectionChoice)
-            .AddChoice(XXO("Text Source:"),
-               Msgids(mGuiTextSourceSelections.data(), mGuiTextSourceSelections.size()));
       }
       S.EndMultiColumn();
 
@@ -772,6 +794,18 @@ std::unique_ptr<EffectEditor> EffectOVTextToSpeechGenAI::PopulateOrExchange(
       }
       S.EndMultiColumn();
 
+      S.StartMultiColumn(2, wxEXPAND);
+      {
+         mTypeChoiceTextSourceCtrl = S.Id(ID_Type_TextSource)
+            .MinSize({ -1, -1 })
+            .Validator<wxGenericValidator>(&mTextSourceSelectionChoice)
+            .AddChoice(XXO("Text Source:"),
+               Msgids(mGuiTextSourceSelections.data(), mGuiTextSourceSelections.size()));
+
+         S.AddVariableText(XO(""));
+      }
+      S.EndMultiColumn();
+
       S.AddVariableText(XO("Text:"));
       mInputTextCtrl = S.Name(XO("Text"))
          .Style(wxTE_MULTILINE)
@@ -788,6 +822,8 @@ bool EffectOVTextToSpeechGenAI::TransferDataToWindow(const EffectSettings&)
    if (!mUIParent || !mUIParent->TransferDataToWindow()) {
       return false;
    }
+
+   UpdateInputTextEnabledState();
 
    const bool canApply = !mSupportedDevices.empty() && !mSupportedTtsModels.empty() && !mVisibleVoices.empty();
    if (!canApply) {
@@ -816,9 +852,26 @@ bool EffectOVTextToSpeechGenAI::TransferDataFromWindow(EffectSettings&)
    return true;
 }
 
+void EffectOVTextToSpeechGenAI::UpdateInputTextEnabledState()
+{
+   if (!mInputTextCtrl) {
+      return;
+   }
+
+   const bool manualTextSelected =
+      static_cast<TextSource>(mTextSourceSelectionChoice) == TextSource::ManualText;
+   mInputTextCtrl->Enable(manualTextSelected);
+}
+
 void EffectOVTextToSpeechGenAI::OnModelManagerButtonClicked(wxCommandEvent&)
 {
    ShowModelManagerDialog();
+}
+
+void EffectOVTextToSpeechGenAI::OnTextSourceChanged(wxCommandEvent& evt)
+{
+   mTextSourceSelectionChoice = evt.GetSelection();
+   UpdateInputTextEnabledState();
 }
 
 void EffectOVTextToSpeechGenAI::OnTtsModelChanged(wxCommandEvent& evt)

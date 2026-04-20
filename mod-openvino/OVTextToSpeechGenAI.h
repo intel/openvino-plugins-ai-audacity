@@ -77,14 +77,17 @@ private:
 
    bool GenerateTrack(const EffectSettings& settings, WaveTrack& tmp) override;
 
+   bool HasSelectedLabelTracks() const;
    std::string ResolvePromptText() const;
    std::vector<LabelTextBlock> ResolveSelectedLabelTrackBlocks() const;
    bool GenerateSpeech(const std::string& textToSpeak);
    bool ApplyGeneratedBlocksToSelectedTracks(const std::vector<GeneratedSpeechBlock>& generatedBlocks);
    std::string ResolveModelPath() const;
    void RefreshVoicesForCurrentModel();
+   void UpdateInputTextEnabledState();
 
    void OnModelManagerButtonClicked(wxCommandEvent& evt);
+   void OnTextSourceChanged(wxCommandEvent& evt);
    void OnTtsModelChanged(wxCommandEvent& evt);
    void OnLanguageChanged(wxCommandEvent& evt);
    void OnFilterVoicesByLanguageChanged(wxCommandEvent& evt);
