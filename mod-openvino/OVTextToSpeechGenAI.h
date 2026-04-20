@@ -12,6 +12,7 @@
 #include <wx/weakref.h>
 
 class LabelTrack;
+class wxCheckBox;
 class wxChoice;
 class wxTextCtrl;
 
@@ -66,7 +67,8 @@ private:
       ID_Type_ModelManager,
       ID_Type_Voice,
       ID_Type_Language,
-      ID_Type_FilterVoicesByLanguage
+      ID_Type_FilterVoicesByLanguage,
+      ID_Type_GenerateIntoNewTrack
    };
 
    enum class TextSource
@@ -81,10 +83,13 @@ private:
    std::string ResolvePromptText() const;
    std::vector<LabelTextBlock> ResolveSelectedLabelTrackBlocks() const;
    bool GenerateSpeech(const std::string& textToSpeak);
+   bool ApplyGeneratedBlocksToTrack(WaveTrack& destinationTrack, const std::vector<GeneratedSpeechBlock>& generatedBlocks);
+   bool ApplyGeneratedBlocksToNewTrack(const std::vector<GeneratedSpeechBlock>& generatedBlocks);
    bool ApplyGeneratedBlocksToSelectedTracks(const std::vector<GeneratedSpeechBlock>& generatedBlocks);
    std::string ResolveModelPath() const;
    void RefreshVoicesForCurrentModel();
    void UpdateInputTextEnabledState();
+   void UpdateTextSourceDependentControlStates();
 
    void OnModelManagerButtonClicked(wxCommandEvent& evt);
    void OnTextSourceChanged(wxCommandEvent& evt);
@@ -121,6 +126,8 @@ private:
    std::vector<std::string> mSupportedLanguageCodes;
    std::vector<EnumValueSymbol> mGuiLanguageSelections;
    bool mFilterVoicesByLanguage = false;
+   wxCheckBox* mGenerateIntoNewTrackCtrl{};
+   bool mGenerateIntoNewTrack = true;
 
    wxTextCtrl* mInputTextCtrl{};
 

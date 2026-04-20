@@ -375,43 +375,7 @@ bool EffectOVTextToSpeechGenAI::ApplyGeneratedBlocksToSelectedTracks(
    bool appliedToAnyTrack = false;
 
    for (auto pOutWaveTrack : outputs.Get().Selected<WaveTrack>()) {
-      double latestPlacedEnd = std::numeric_limits<double>::lowest();
-
-      for (const auto& block : generatedBlocks) {
-         if (block.speech.empty() || block.sampleRate == 0) {
-            continue;
-         }
-
-         double placementStart = block.preferredStartTime;
-         if (placementStart < latestPlacedEnd) {
-            placementStart = latestPlacedEnd;
-         }
-
-         auto generatedClip = pOutWaveTrack->EmptyCopy();
-         generatedClip->SetRate(block.sampleRate);
-         generatedClip->Append(
-            0,
-            reinterpret_cast<constSamplePtr>(block.speech.data()),
-            floatSample,
-            block.speech.size(),
-            1,
-            widestSampleFormat);
-         generatedClip->Flush();
-
-         constexpr auto preserve = true;
-         constexpr auto merge = true;
-         pOutWaveTrack->ClearAndPaste(
-            placementStart,
-            placementStart,
-            *generatedClip,
-            preserve,
-            merge,
-            nullptr);
-
-         const double blockDuration = static_cast<double>(block.speech.size()) / static_cast<double>(block.sampleRate);
-         latestPlacedEnd = placementStart + blockDuration;
-         appliedToAnyTrack = true;
-      }
+      appliedToAnyTrack = ApplyGeneratedBlocksToTrack(*pOutWaveTrack, generatedBlocks) || appliedToAnyTrack;
    }
 
    if (appliedToAnyTrack) {
@@ -419,6 +383,120 @@ bool EffectOVTextToSpeechGenAI::ApplyGeneratedBlocksToSelectedTracks(
    }
 
    return appliedToAnyTrack;
+}
+
+bool EffectOVTextToSpeechGenAI::ApplyGeneratedBlocksToTrack(
+   WaveTrack& destinationTrack,
+   const std::vector<GeneratedSpeechBlock>& generatedBlocks)
+{
+   double latestPlacedEnd = std::numeric_limits<double>::lowest();
+   bool appliedToTrack = false;
+
+   for (const auto& block : generatedBlocks) {
+      if (block.speech.empty() || block.sampleRate == 0) {
+         continue;
+      }
+
+      double placementStart = block.preferredStartTime;
+      if (placementStart < latestPlacedEnd) {
+         placementStart = latestPlacedEnd;
+      }
+
+      auto generatedClip = destinationTrack.EmptyCopy();
+      generatedClip->SetRate(block.sampleRate);
+      generatedClip->Append(
+         0,
+         reinterpret_cast<constSamplePtr>(block.speech.data()),
+         floatSample,
+         block.speech.size(),
+         1,
+         widestSampleFormat);
+      generatedClip->Flush();
+
+      constexpr auto preserve = true;
+      constexpr auto merge = true;
+      destinationTrack.ClearAndPaste(
+         placementStart,
+         placementStart,
+         *generatedClip,
+         preserve,
+         merge,
+         nullptr);
+
+      const double blockDuration = static_cast<double>(block.speech.size()) / static_cast<double>(block.sampleRate);
+      latestPlacedEnd = placementStart + blockDuration;
+      appliedToTrack = true;
+   }
+
+   return appliedToTrack;
+}
+
+bool EffectOVTextToSpeechGenAI::ApplyGeneratedBlocksToNewTrack(
+   const std::vector<GeneratedSpeechBlock>& generatedBlocks)
+{
+   if (generatedBlocks.empty() || !mTracks || !mFactory) {
+      return false;
+   }
+
+   EffectOutputTracks outputs { *mTracks, EffectTypeNone, std::nullopt, false };
+
+   auto newOutputTrack = mFactory->Create(floatSample, mProjectRate);
+   newOutputTrack->SetName(mTracks->MakeUniqueTrackName(WaveTrack::GetDefaultAudioTrackNamePreference()));
+   newOutputTrack->SetSelected(true);
+
+   bool appliedToTrack = false;
+   double basePlacementStart = 0.0;
+   double latestPlacedEndAbsolute = std::numeric_limits<double>::lowest();
+   double latestPlacedEndRelative = 0.0;
+
+   for (const auto& block : generatedBlocks) {
+      if (block.speech.empty() || block.sampleRate == 0) {
+         continue;
+      }
+
+      double placementStart = block.preferredStartTime;
+      if (placementStart < latestPlacedEndAbsolute) {
+         placementStart = latestPlacedEndAbsolute;
+      }
+
+      if (!appliedToTrack) {
+         newOutputTrack->SetRate(block.sampleRate);
+         basePlacementStart = placementStart;
+      }
+      else {
+         const double relativeStart = placementStart - basePlacementStart;
+         const double silenceDuration = relativeStart - latestPlacedEndRelative;
+         if (silenceDuration > 0.0) {
+            newOutputTrack->InsertSilence(latestPlacedEndRelative, silenceDuration);
+         }
+      }
+
+      newOutputTrack->Append(
+         0,
+         reinterpret_cast<constSamplePtr>(block.speech.data()),
+         floatSample,
+         block.speech.size(),
+         1,
+         widestSampleFormat);
+      // Materialize the appended block before the next timeline edit,
+      // otherwise later InsertSilence operations can act on stale clip state.
+      newOutputTrack->Flush();
+
+      const double blockDuration = static_cast<double>(block.speech.size()) / static_cast<double>(block.sampleRate);
+      latestPlacedEndAbsolute = placementStart + blockDuration;
+      latestPlacedEndRelative = latestPlacedEndAbsolute - basePlacementStart;
+      appliedToTrack = true;
+   }
+
+   if (!appliedToTrack) {
+      return false;
+   }
+
+   newOutputTrack->MoveTo(basePlacementStart);
+
+   outputs.AddToOutputTracks(newOutputTrack);
+   outputs.Commit();
+   return true;
 }
 
 std::string EffectOVTextToSpeechGenAI::ResolveModelPath() const
@@ -603,10 +681,14 @@ bool EffectOVTextToSpeechGenAI::Process(EffectInstance& instance, EffectSettings
                });
          }
 
-         if (!ApplyGeneratedBlocksToSelectedTracks(generatedBlocks)) {
+         const bool applied = mGenerateIntoNewTrack
+            ? ApplyGeneratedBlocksToNewTrack(generatedBlocks)
+            : ApplyGeneratedBlocksToSelectedTracks(generatedBlocks);
+
+         if (!applied) {
             EffectUIServices::DoMessageBox(
                *this,
-               XO("Text-to-Speech needs at least one selected audio track to place generated snippets."),
+               XO("Text-to-Speech needs at least one selected audio track to place generated snippets, or enable Generate into new track."),
                wxICON_STOP,
                XO("Error"));
             return false;
@@ -678,6 +760,7 @@ std::unique_ptr<EffectEditor> EffectOVTextToSpeechGenAI::PopulateOrExchange(
    mTypeChoiceTtsModelCtrl = nullptr;
    mTypeChoiceVoiceCtrl = nullptr;
    mTypeChoiceLanguageCtrl = nullptr;
+   mGenerateIntoNewTrackCtrl = nullptr;
    mInputTextCtrl = nullptr;
 
    mSupportedTextSources.clear();
@@ -802,7 +885,9 @@ std::unique_ptr<EffectEditor> EffectOVTextToSpeechGenAI::PopulateOrExchange(
             .AddChoice(XXO("Text Source:"),
                Msgids(mGuiTextSourceSelections.data(), mGuiTextSourceSelections.size()));
 
-         S.AddVariableText(XO(""));
+         mGenerateIntoNewTrackCtrl = S.Id(ID_Type_GenerateIntoNewTrack)
+            .Validator<wxGenericValidator>(&mGenerateIntoNewTrack)
+            .AddCheckBox(XXO("Generate into new track"), mGenerateIntoNewTrack);
       }
       S.EndMultiColumn();
 
@@ -823,7 +908,7 @@ bool EffectOVTextToSpeechGenAI::TransferDataToWindow(const EffectSettings&)
       return false;
    }
 
-   UpdateInputTextEnabledState();
+   UpdateTextSourceDependentControlStates();
 
    const bool canApply = !mSupportedDevices.empty() && !mSupportedTtsModels.empty() && !mVisibleVoices.empty();
    if (!canApply) {
@@ -863,6 +948,19 @@ void EffectOVTextToSpeechGenAI::UpdateInputTextEnabledState()
    mInputTextCtrl->Enable(manualTextSelected);
 }
 
+void EffectOVTextToSpeechGenAI::UpdateTextSourceDependentControlStates()
+{
+   UpdateInputTextEnabledState();
+
+   if (!mGenerateIntoNewTrackCtrl) {
+      return;
+   }
+
+   const bool labelTrackSelected =
+      static_cast<TextSource>(mTextSourceSelectionChoice) == TextSource::SelectedLabelTrack;
+   mGenerateIntoNewTrackCtrl->Enable(labelTrackSelected);
+}
+
 void EffectOVTextToSpeechGenAI::OnModelManagerButtonClicked(wxCommandEvent&)
 {
    ShowModelManagerDialog();
@@ -871,7 +969,7 @@ void EffectOVTextToSpeechGenAI::OnModelManagerButtonClicked(wxCommandEvent&)
 void EffectOVTextToSpeechGenAI::OnTextSourceChanged(wxCommandEvent& evt)
 {
    mTextSourceSelectionChoice = evt.GetSelection();
-   UpdateInputTextEnabledState();
+   UpdateTextSourceDependentControlStates();
 }
 
 void EffectOVTextToSpeechGenAI::OnTtsModelChanged(wxCommandEvent& evt)
