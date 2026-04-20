@@ -772,12 +772,11 @@ std::unique_ptr<EffectEditor> EffectOVTextToSpeechGenAI::PopulateOrExchange(
       }
       S.EndMultiColumn();
 
-      S.StartMultiColumn(1, wxEXPAND);
-      {
-         mInputTextCtrl = S.Style(wxTE_LEFT | wxTE_MULTILINE)
-            .AddTextBox(XXO("Text:"), wxString::FromUTF8(mInputText), 50);
-      }
-      S.EndMultiColumn();
+      S.AddVariableText(XO("Text:"));
+      mInputTextCtrl = S.Name(XO("Text"))
+         .Style(wxTE_MULTILINE)
+         .MinSize(wxSize(500, 120))
+         .AddTextWindow(wxString::FromUTF8(mInputText));
    }
    S.EndVerticalLay();
 
