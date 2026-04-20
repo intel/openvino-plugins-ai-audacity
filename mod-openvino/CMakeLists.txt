@@ -83,6 +83,8 @@ set( SOURCES
       OVReverbRemoval.h
       OVMusicRestoration.cpp
       OVMusicRestoration.h
+      OVTextToSpeechGenAI.cpp
+      OVTextToSpeechGenAI.h
       OVWhisperTranscriptionGenAI.cpp
       OVWhisperTranscriptionGenAI.h
       OpenVINO.cpp
