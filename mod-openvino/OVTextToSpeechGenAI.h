@@ -125,7 +125,7 @@ private:
    std::vector<std::string> mSupportedLanguages;
    std::vector<std::string> mSupportedLanguageCodes;
    std::vector<EnumValueSymbol> mGuiLanguageSelections;
-   bool mFilterVoicesByLanguage = false;
+   bool mFilterVoicesByLanguage = true;
    wxCheckBox* mGenerateIntoNewTrackCtrl{};
    bool mGenerateIntoNewTrack = true;
 
