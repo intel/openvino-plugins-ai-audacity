@@ -318,7 +318,10 @@ std::vector<EffectOVTextToSpeechGenAI::LabelTextBlock> EffectOVTextToSpeechGenAI
 
          bool includeLabel = true;
          if (hasTimeSelection) {
-            includeLabel = labelEnd >= mT0 && labelStart <= mT1;
+            // Only include labels with non-zero overlap; labels that only
+            // touch selection boundaries should be excluded.
+            includeLabel = (labelEnd - mT0) > contiguousToleranceSeconds
+               && (mT1 - labelStart) > contiguousToleranceSeconds;
          }
 
          if (!includeLabel) {
