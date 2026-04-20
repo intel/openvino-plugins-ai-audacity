@@ -176,6 +176,19 @@ const char* super_resolution_speech = R"md(
 <p>License: <a href="https://github.com/haoheliu/versatile_audio_super_resolution?tab=MIT-1-ov-file#readme">MIT</a></p>
 )md";
 
+const char* text_to_speech_kokoro_82m = R"md(
+<h1>Kokoro-82M</h1>
+<p>Kokoro is a lightweight, high-quality text-to-speech model with 82 million parameters. It supports multiple voices and languages.</p>
+<p>The model ships with a large set of speaker embedding voices across several languages, including US English, British English, French, Spanish, Japanese, Chinese, Hindi, Italian, Portuguese, and Vietnamese.</p>
+<p>Source model: <a href="https://huggingface.co/hexgrad/Kokoro-82M">https://huggingface.co/hexgrad/Kokoro-82M</a></p>
+<p>For use with <a href="https://github.com/intel/openvino-plugins-ai-audacity">OpenVINO AI Plugins for Audacity</a>, the model is converted to OpenVINO IR format.</p>
+<p>Since a public OpenVINO-converted download location is not yet available, this model cannot currently be downloaded via the Model Manager.</p>
+<p>To use it, place the converted model folder (containing <code>openvino_model.xml</code>, <code>openvino_model.bin</code>, <code>config.json</code>, and the <code>voices/</code> and <code>data/</code> subdirectories) into <code>openvino-models/speech_generation/kokoro-82m/</code>, and restart Audacity.</p>
+<p>After restart, the model should appear as installed/selectable in the Text-to-Speech generator and in the Model Manager.</p>
+<h2>License</h2>
+<p><a href="https://choosealicense.com/licenses/apache-2.0/">Apache-2.0</a></p>
+)md";
+
 const char* whisper_transcription_info = R"md(
 <h2>Quantization Guide</h2>
 <p>The Whisper models available to use with this project come in three <em>quantization</em> variants: <em>FP16</em>, <em>INT8</em>, &amp; <em>INT4</em>.</p>

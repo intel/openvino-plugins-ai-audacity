@@ -426,6 +426,95 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_noise_suppres
 }
 
 
+static std::shared_ptr< OVModelManager::ModelCollection > populate_tts()
+{
+   auto collection = std::make_shared< OVModelManager::ModelCollection >();
+
+   // Kokoro-82M: no public download URL yet; flagged as installed if files are found locally.
+   {
+      std::shared_ptr<OVModelManager::ModelInfo> model = std::make_shared<OVModelManager::ModelInfo>();
+      model->model_name = "Kokoro-82M";
+      model->info = text_to_speech_kokoro_82m;
+      model->baseUrl = ""; // not yet available for download
+      model->relative_path = "text_to_speech/ov_Kokoro-82M";
+      model->fileList =
+      {
+         // Core model files
+         "openvino_model.xml",
+         "openvino_model.bin",
+         "config.json",
+         // Data files
+         "data/gb_gold.json",
+         "data/gb_silver.json",
+         "data/ja_words.txt",
+         "data/us_gold.json",
+         "data/us_silver.json",
+         "data/vi_acronyms.json",
+         "data/vi_symbols.json",
+         "data/vi_teencode.json",
+         // Voice embeddings (af = American Female, am = American Male,
+         //                   bf = British Female, bm = British Male, etc.)
+         "voices/af_alloy.bin",
+         "voices/af_aoede.bin",
+         "voices/af_bella.bin",
+         "voices/af_heart.bin",
+         "voices/af_jessica.bin",
+         "voices/af_kore.bin",
+         "voices/af_nicole.bin",
+         "voices/af_nova.bin",
+         "voices/af_river.bin",
+         "voices/af_sarah.bin",
+         "voices/af_sky.bin",
+         "voices/am_adam.bin",
+         "voices/am_echo.bin",
+         "voices/am_eric.bin",
+         "voices/am_fenrir.bin",
+         "voices/am_liam.bin",
+         "voices/am_michael.bin",
+         "voices/am_onyx.bin",
+         "voices/am_puck.bin",
+         "voices/am_santa.bin",
+         "voices/bf_alice.bin",
+         "voices/bf_emma.bin",
+         "voices/bf_isabella.bin",
+         "voices/bf_lily.bin",
+         "voices/bm_daniel.bin",
+         "voices/bm_fable.bin",
+         "voices/bm_george.bin",
+         "voices/bm_lewis.bin",
+         "voices/ef_dora.bin",
+         "voices/em_alex.bin",
+         "voices/em_santa.bin",
+         "voices/ff_siwis.bin",
+         "voices/hf_alpha.bin",
+         "voices/hf_beta.bin",
+         "voices/hm_omega.bin",
+         "voices/hm_psi.bin",
+         "voices/if_sara.bin",
+         "voices/im_nicola.bin",
+         "voices/jf_alpha.bin",
+         "voices/jf_gongitsune.bin",
+         "voices/jf_nezumi.bin",
+         "voices/jf_tebukuro.bin",
+         "voices/jm_kumo.bin",
+         "voices/pf_dora.bin",
+         "voices/pm_alex.bin",
+         "voices/pm_santa.bin",
+         "voices/zf_xiaobei.bin",
+         "voices/zf_xiaoni.bin",
+         "voices/zf_xiaoxiao.bin",
+         "voices/zf_xiaoyi.bin",
+         "voices/zm_yunjian.bin",
+         "voices/zm_yunxi.bin",
+         "voices/zm_yunxia.bin",
+         "voices/zm_yunyang.bin",
+      };
+      collection->models.emplace_back(model);
+   }
+
+   return collection;
+}
+
 void OVModelManager::_populate_model_collection()
 {
    mModelCollection.insert({ MusicSepName(), populate_music_separation() });
@@ -434,4 +523,5 @@ void OVModelManager::_populate_model_collection()
    mModelCollection.insert({ WhisperName(), populate_whisper() });
    mModelCollection.insert({ ReverbRemovalName(), populate_reverb_removal() });
    mModelCollection.insert({ MusicRestorationName(), populate_music_restoration() });
+   mModelCollection.insert({ TtsName(), populate_tts() });
 }

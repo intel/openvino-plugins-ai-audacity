@@ -62,8 +62,8 @@ private:
    {
       ID_Type_Device = 14000,
       ID_Type_TextSource,
-      ID_Type_ModelPath,
-      ID_Type_BrowseModelPath
+      ID_Type_TtsModel,
+      ID_Type_ModelManager
    };
 
    enum class TextSource
@@ -78,9 +78,9 @@ private:
    std::vector<LabelTextBlock> ResolveSelectedLabelTrackBlocks() const;
    bool GenerateSpeech(const std::string& textToSpeak);
    bool ApplyGeneratedBlocksToSelectedTracks(const std::vector<GeneratedSpeechBlock>& generatedBlocks);
-   wxString ResolveModelPath() const;
+   std::string ResolveModelPath() const;
 
-   void OnBrowseModelPath(wxCommandEvent& evt);
+   void OnModelManagerButtonClicked(wxCommandEvent& evt);
 
    wxWeakRef<wxWindow> mUIParent{};
 
@@ -94,11 +94,14 @@ private:
    std::vector<std::string> mSupportedTextSources;
    std::vector<EnumValueSymbol> mGuiTextSourceSelections;
 
+   wxChoice* mTypeChoiceTtsModelCtrl{};
+   int mTtsModelSelectionChoice = 0;
+   std::vector<std::string> mSupportedTtsModels;
+   std::vector<EnumValueSymbol> mGuiTtsModelSelections;
+
    wxTextCtrl* mInputTextCtrl{};
-   wxTextCtrl* mModelPathCtrl{};
 
    std::string mInputText;
-   wxString mModelPath;
 
    std::vector<float> mGeneratedSpeech;
    uint32_t mGeneratedSampleRate = 0;

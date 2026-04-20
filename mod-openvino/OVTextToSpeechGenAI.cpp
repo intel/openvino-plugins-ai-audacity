@@ -12,7 +12,6 @@
 
 #include <wx/choice.h>
 #include <wx/dir.h>
-#include <wx/dirdlg.h>
 #include <wx/filename.h>
 #include <wx/intl.h>
 #include <wx/log.h>
@@ -29,6 +28,8 @@
 #include "LabelTrack.h"
 #include "WaveTrack.h"
 #include "effects/EffectEditor.h"
+#include "OVModelManager.h"
+#include "OVModelManagerUI.h"
 
 #include <openvino/openvino.hpp>
 #include "openvino/genai/speech_generation/text2speech_pipeline.hpp"
@@ -86,7 +87,7 @@ ov::Tensor LoadSpeakerEmbeddingTensor(const wxString& speakerEmbeddingPath, cons
 } // namespace
 
 BEGIN_EVENT_TABLE(EffectOVTextToSpeechGenAI, wxEvtHandler)
-   EVT_BUTTON(ID_Type_BrowseModelPath, EffectOVTextToSpeechGenAI::OnBrowseModelPath)
+   EVT_BUTTON(ID_Type_ModelManager, EffectOVTextToSpeechGenAI::OnModelManagerButtonClicked)
 END_EVENT_TABLE()
 
 EffectOVTextToSpeechGenAI::EffectOVTextToSpeechGenAI()
@@ -269,29 +270,26 @@ bool EffectOVTextToSpeechGenAI::ApplyGeneratedBlocksToSelectedTracks(
    return appliedToAnyTrack;
 }
 
-wxString EffectOVTextToSpeechGenAI::ResolveModelPath() const
+std::string EffectOVTextToSpeechGenAI::ResolveModelPath() const
 {
-   if (!mModelPath.empty()) {
-      return mModelPath;
-   }
-
-   const wxString openvinoModelsPath = OpenVINOPluginSettings::GetOrCreateModelDir(true);
-   const wxString speechGenerationDir = wxFileName(openvinoModelsPath, wxT("speech_generation")).GetFullPath();
-
-   if (!wxDirExists(speechGenerationDir)) {
+   const auto collection = OVModelManager::instance().GetModelCollection(OVModelManager::TtsName());
+   if (!collection) {
       return {};
    }
 
-   wxDir speechDir(speechGenerationDir);
-
-   wxString subDirName;
-   bool hasDir = speechDir.GetFirst(&subDirName, wxEmptyString, wxDIR_DIRS);
-   while (hasDir) {
-      const wxString candidate = wxFileName(speechGenerationDir, subDirName).GetFullPath();
-      if (wxDirExists(wxFileName(candidate, wxT("voices")).GetFullPath())) {
-         return candidate;
+   const int idx = mTtsModelSelectionChoice;
+   if (idx >= 0 && idx < static_cast<int>(collection->models.size())) {
+      const auto& model_info = collection->models[idx];
+      if (model_info->installed) {
+         return model_info->installation_path;
       }
-      hasDir = speechDir.GetNext(&subDirName);
+   }
+
+   // Fall back: return installation path of the first installed model.
+   for (const auto& model_info : collection->models) {
+      if (model_info->installed) {
+         return model_info->installation_path;
+      }
    }
 
    return {};
@@ -303,13 +301,13 @@ bool EffectOVTextToSpeechGenAI::GenerateSpeech(const std::string& textToSpeak)
       throw std::runtime_error("Invalid OpenVINO device selection.");
    }
 
-   const wxString resolvedModelPath = ResolveModelPath();
+   const std::string resolvedModelPath = ResolveModelPath();
    if (resolvedModelPath.empty()) {
       throw std::runtime_error(
-         "No text-to-speech model folder is configured. Set Model Folder to an exported OpenVINO GenAI speech model.");
+         "No installed text-to-speech model was found. Use the Model Manager to check available models.");
    }
 
-   const wxString speakerEmbeddingPath = FindSpeakerEmbeddingPath(resolvedModelPath);
+   const wxString speakerEmbeddingPath = FindSpeakerEmbeddingPath(wxString::FromUTF8(resolvedModelPath));
 
    const std::string deviceName = mSupportedDevices[mDeviceSelectionChoice];
 
@@ -321,7 +319,7 @@ bool EffectOVTextToSpeechGenAI::GenerateSpeech(const std::string& textToSpeak)
       properties[ov::cache_dir.name()] = audacity::ToUTF8(wxFileName(cacheFolder).GetFullPath());
    }
 
-   ov::genai::Text2SpeechPipeline pipe(audacity::ToUTF8(resolvedModelPath), deviceName);
+   ov::genai::Text2SpeechPipeline pipe(resolvedModelPath, deviceName);
    ov::Tensor speakerEmbedding = LoadSpeakerEmbeddingTensor(speakerEmbeddingPath, pipe.get_speaker_embedding_shape());
 
    std::cout << "Generating speech for text: " << textToSpeak << std::endl;
@@ -448,13 +446,55 @@ std::unique_ptr<EffectEditor> EffectOVTextToSpeechGenAI::PopulateOrExchange(
 {
    mUIParent = S.GetParent();
 
-   if (mModelPath.empty()) {
-      mModelPath = ResolveModelPath();
+   // Populate installed TTS model choices from the model manager.
+   const auto collection = OVModelManager::instance().GetModelCollection(OVModelManager::TtsName());
+   if (collection) {
+      for (const auto& model_info : collection->models) {
+         if (model_info->installed) {
+            if (std::find(mSupportedTtsModels.begin(), mSupportedTtsModels.end(), model_info->model_name)
+                  == mSupportedTtsModels.end()) {
+               mSupportedTtsModels.push_back(model_info->model_name);
+            }
+         }
+      }
    }
+
+   mGuiTtsModelSelections.clear();
+   for (const auto& m : mSupportedTtsModels) {
+      mGuiTtsModelSelections.push_back({ TranslatableString{ wxString(m), {} } });
+   }
+
+   // Register callback so newly-installed models appear in the choice list live.
+   OVModelManager::InstalledCallback callback =
+      [this](const std::string& model_name) {
+         wxTheApp->CallAfter([=]() {
+            if (std::find(mSupportedTtsModels.begin(), mSupportedTtsModels.end(), model_name)
+                  == mSupportedTtsModels.end()) {
+               mSupportedTtsModels.push_back(model_name);
+               mGuiTtsModelSelections.push_back({ TranslatableString{ wxString(model_name), {} } });
+            }
+            if (mUIParent) {
+               EffectEditor::EnableApply(mUIParent, true);
+               if (mTypeChoiceTtsModelCtrl) {
+                  mTypeChoiceTtsModelCtrl->Append(wxString(model_name));
+                  if (mTypeChoiceTtsModelCtrl->GetCount() == 1) {
+                     mTypeChoiceTtsModelCtrl->SetSelection(0);
+                  }
+               }
+            }
+         });
+      };
+   OVModelManager::instance().register_installed_callback(OVModelManager::TtsName(), callback);
 
    S.AddSpace(0, 5);
    S.StartVerticalLay();
    {
+      S.StartMultiColumn(1, wxLEFT);
+      {
+         S.Id(ID_Type_ModelManager).AddButton(XO("Open Model Manager"));
+      }
+      S.EndMultiColumn();
+
       S.StartMultiColumn(2, wxEXPAND);
       {
          mTypeChoiceDeviceCtrl = S.Id(ID_Type_Device)
@@ -471,20 +511,20 @@ std::unique_ptr<EffectEditor> EffectOVTextToSpeechGenAI::PopulateOrExchange(
       }
       S.EndMultiColumn();
 
+      S.StartMultiColumn(2, wxEXPAND);
+      {
+         mTypeChoiceTtsModelCtrl = S.Id(ID_Type_TtsModel)
+            .MinSize({ -1, -1 })
+            .Validator<wxGenericValidator>(&mTtsModelSelectionChoice)
+            .AddChoice(XXO("TTS Model:"),
+               Msgids(mGuiTtsModelSelections.data(), mGuiTtsModelSelections.size()));
+      }
+      S.EndMultiColumn();
+
       S.StartMultiColumn(1, wxEXPAND);
       {
          mInputTextCtrl = S.Style(wxTE_LEFT | wxTE_MULTILINE)
             .AddTextBox(XXO("Text:"), wxString::FromUTF8(mInputText), 50);
-      }
-      S.EndMultiColumn();
-
-      S.StartMultiColumn(3, wxEXPAND);
-      {
-         mModelPathCtrl = S.Id(ID_Type_ModelPath)
-            .Style(wxTE_LEFT)
-            .AddTextBox(XXO("Model Folder:"), mModelPath, 40);
-
-         S.Id(ID_Type_BrowseModelPath).AddButton(XO("Browse..."));
       }
       S.EndMultiColumn();
    }
@@ -499,8 +539,14 @@ bool EffectOVTextToSpeechGenAI::TransferDataToWindow(const EffectSettings&)
       return false;
    }
 
-   if (mSupportedDevices.empty()) {
-      wxLogInfo("OpenVINO Text-to-Speech has no supported inference devices.");
+   const bool canApply = !mSupportedDevices.empty() && !mSupportedTtsModels.empty();
+   if (!canApply) {
+      if (mSupportedDevices.empty()) {
+         wxLogInfo("OpenVINO Text-to-Speech has no supported inference devices.");
+      }
+      if (mSupportedTtsModels.empty()) {
+         wxLogInfo("OpenVINO Text-to-Speech has no installed models. Use the Model Manager.");
+      }
       EffectEditor::EnableApply(mUIParent, false);
    }
 
@@ -514,19 +560,10 @@ bool EffectOVTextToSpeechGenAI::TransferDataFromWindow(EffectSettings&)
    }
 
    mInputText = audacity::ToUTF8(mInputTextCtrl->GetValue());
-   mModelPath = mModelPathCtrl->GetValue();
    return true;
 }
 
-void EffectOVTextToSpeechGenAI::OnBrowseModelPath(wxCommandEvent&)
+void EffectOVTextToSpeechGenAI::OnModelManagerButtonClicked(wxCommandEvent&)
 {
-   wxDirDialog dialog(
-      mUIParent.get(),
-      XO("Choose an OpenVINO GenAI text-to-speech model directory").Translation(),
-      mModelPath.empty() ? OpenVINOPluginSettings::GetOrCreateModelDir(true) : mModelPath,
-      wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST);
-
-   if (dialog.ShowModal() == wxID_OK && mModelPathCtrl) {
-      mModelPathCtrl->SetValue(dialog.GetPath());
-   }
+   ShowModelManagerDialog();
 }
