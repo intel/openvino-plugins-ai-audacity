@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cmath>
 #include <fstream>
+#include <future>
 #include <limits>
 #include <numeric>
 #include <stdexcept>
@@ -649,6 +650,32 @@ bool EffectOVTextToSpeechGenAI::GenerateSpeech(const std::string& textToSpeak)
 bool EffectOVTextToSpeechGenAI::Process(EffectInstance& instance, EffectSettings& settings)
 {
    try {
+      if (TotalProgress(0.0, XO("Preparing Text-to-Speech generation..."))) {
+         return false;
+      }
+
+      auto generateSpeechWithUiPump =
+         [this](const std::string& text, double progress, const TranslatableString& message) {
+            auto generationFuture = std::async(std::launch::async, [this, text]() {
+               return GenerateSpeech(text);
+            });
+
+            bool cancelRequested = false;
+            std::future_status status;
+            do {
+               using namespace std::chrono_literals;
+               status = generationFuture.wait_for(200ms);
+               if (status != std::future_status::ready) {
+                  if (TotalProgress(progress, message)) {
+                     cancelRequested = true;
+                  }
+               }
+            } while (status != std::future_status::ready);
+
+            const bool generated = generationFuture.get();
+            return generated && !cancelRequested;
+         };
+
       mGeneratedSpeech.clear();
       mGeneratedSampleRate = 0;
 
@@ -667,8 +694,18 @@ bool EffectOVTextToSpeechGenAI::Process(EffectInstance& instance, EffectSettings
          std::vector<GeneratedSpeechBlock> generatedBlocks;
          generatedBlocks.reserve(labelBlocks.size());
 
-         for (const auto& block : labelBlocks) {
-            if (!GenerateSpeech(block.text)) {
+         const double generationStartProgress = 0.05;
+         const double generationEndProgress = 0.90;
+         for (size_t blockIndex = 0; blockIndex < labelBlocks.size(); ++blockIndex) {
+            const auto& block = labelBlocks[blockIndex];
+            const double blockProgress = generationStartProgress
+               + (generationEndProgress - generationStartProgress)
+               * (static_cast<double>(blockIndex) / static_cast<double>(labelBlocks.size()));
+            if (TotalProgress(blockProgress, XO("Generating speech from selected label track..."))) {
+               return false;
+            }
+
+            if (!generateSpeechWithUiPump(block.text, blockProgress, XO("Generating speech from selected label track..."))) {
                EffectUIServices::DoMessageBox(
                   *this,
                   XO("Text-to-Speech generation produced no audio."),
@@ -684,6 +721,10 @@ bool EffectOVTextToSpeechGenAI::Process(EffectInstance& instance, EffectSettings
                });
          }
 
+         if (TotalProgress(0.93, XO("Placing generated speech..."))) {
+            return false;
+         }
+
          const bool applied = mGenerateIntoNewTrack
             ? ApplyGeneratedBlocksToNewTrack(generatedBlocks)
             : ApplyGeneratedBlocksToSelectedTracks(generatedBlocks);
@@ -696,6 +737,8 @@ bool EffectOVTextToSpeechGenAI::Process(EffectInstance& instance, EffectSettings
                XO("Error"));
             return false;
          }
+
+         (void)TotalProgress(1.0, XO("Text-to-Speech generation complete."));
 
          return true;
       }
@@ -710,7 +753,11 @@ bool EffectOVTextToSpeechGenAI::Process(EffectInstance& instance, EffectSettings
          return false;
       }
 
-      if (!GenerateSpeech(textToSpeak)) {
+      if (TotalProgress(0.10, XO("Generating speech..."))) {
+         return false;
+      }
+
+      if (!generateSpeechWithUiPump(textToSpeak, 0.10, XO("Generating speech..."))) {
          EffectUIServices::DoMessageBox(
             *this,
             XO("Text-to-Speech generation produced no audio."),
@@ -719,8 +766,14 @@ bool EffectOVTextToSpeechGenAI::Process(EffectInstance& instance, EffectSettings
          return false;
       }
 
+      if (TotalProgress(0.95, XO("Finalizing generated audio..."))) {
+         return false;
+      }
+
       const double durationSeconds = static_cast<double>(mGeneratedSpeech.size()) / static_cast<double>(mGeneratedSampleRate);
       settings.extra.SetDuration(durationSeconds);
+
+      (void)TotalProgress(1.0, XO("Text-to-Speech generation complete."));
 
       return Generator::Process(instance, settings);
    }
