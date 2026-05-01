@@ -9,8 +9,8 @@ set "bat_path=%~dp0"
 set LIBTORCH_PACKAGE_URL="https://download.pytorch.org/libtorch/cpu/libtorch-win-shared-with-deps-2.4.1%%%%2Bcpu.zip"
 set LIBTORCH_PACKAGE_256SUM=e7b8d0b3b958d2215f52ff5385335f93aa78e42005727e44f1043d94d5bfc5dd
 
-set OPENVINO_GENAI_PACKAGE_URL=https://storage.openvinotoolkit.org/repositories/openvino_genai/packages/nightly/2026.0.0.0.dev20260127/openvino_genai_windows_2026.0.0.0.dev20260127_x86_64.zip
-set OPENVINO_GENAI_PACKAGE_256SUM=280e820f0a9ee1832d9673a032572b1a38d7eca7c139ed6f46c8da278a0b02f7
+set OPENVINO_GENAI_PACKAGE_URL=https://storage.openvinotoolkit.org/repositories/openvino_genai/packages/2026.1.3.0/windows/openvino_genai_windows_2026.1.3.0_x86_64.zip
+set OPENVINO_GENAI_PACKAGE_256SUM=99051c06be97f8cf56d68b03cb3f9861efd9c4dc7a619599ed1a5d36e9d04780
 
 :::::::::::::::::::::::::::::
 ::  GIT Repo Configuration ::
