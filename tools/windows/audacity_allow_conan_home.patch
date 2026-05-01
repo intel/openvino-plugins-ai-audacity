@@ -1,3 +1,16 @@
+diff --git a/conan/conan_runner.py b/conan/conan_runner.py
+index b139dc0..e01bd18 100644
+--- a/conan/conan_runner.py
++++ b/conan/conan_runner.py
+@@ -101,7 +101,7 @@ if __name__ == '__main__':
+                 get_conan(), 'install', directories.root_dir,
+                 '--build='*'' if args.force_build else '--build=missing',
+                 '--output-folder', args.build_dir,
+-                '--remote', 'audacity-recipes-conan2' if (args.force_build or args.disallow_prebuilt) else 'audacity-binaries-conan2',
++                '--no-remote',
+                 '--profile:build', profiles.build_profile_path,
+                 '--profile:host', host_profile,
+             ]
 diff --git a/conan/helpers/conan_environment.py b/conan/helpers/conan_environment.py
 index 28fc450..88ceb1b 100644
 --- a/conan/helpers/conan_environment.py

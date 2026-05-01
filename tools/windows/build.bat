@@ -51,7 +51,7 @@ IF "%AUDACITY_CLONE_DIR%"=="" (
 set "bat_path=%~dp0"
 set audacity_add_ov_mod_patch_path=%bat_path%add_ov_module.patch
 set audacity_no_vc_runtime_install_patch=%bat_path%audacity_no_vc_runtime_install.patch
-set audacity_allow_conan_home=%bat_path%audacity_allow_conan_home.patch
+set audacity_allow_conan_home_patch=%bat_path%audacity_allow_conan_home.patch
 
 :: Set up OpenVINO GenAI build environment.
 call %OPENVINO_GENAI_DIR%\setupvars.bat || exit /b 1
@@ -79,7 +79,8 @@ IF NOT ERRORLEVEL 1 (
   echo Applying patch using git command...
   git apply --ignore-whitespace %audacity_add_ov_mod_patch_path% || exit /b 1
   git apply --ignore-whitespace %audacity_no_vc_runtime_install_patch% || exit /b 1
-  git apply --ignore-whitespace %audacity_allow_conan_home% || exit /b 1
+  
+  git apply --ignore-whitespace %audacity_allow_conan_home_patch% || exit /b 1
 ) ELSE (
   :: Since git is not available, check if 'patch' command exists
   patch --version >nul 2>&1
@@ -87,7 +88,12 @@ IF NOT ERRORLEVEL 1 (
     echo Applying patch using patch command...
     patch -p1 < %audacity_add_ov_mod_patch_path% || exit /b 1
     patch -p1 < %audacity_no_vc_runtime_install_patch% || exit /b 1
-	patch -p1 < %audacity_allow_conan_home% || exit /b 1
+	IF "%CONAN_HOME%"=="" (
+        echo CONAN_HOME env not set, skipping application of %audacity_allow_conan_home_patch%
+	) ELSE (
+	    echo Applying %audacity_allow_conan_home_patch%
+		patch -p1 < %audacity_allow_conan_home_patch% || exit /b 1
+	)
   ) ELSE (
     echo Neither git nor patch command is available.
     exit /b 1
