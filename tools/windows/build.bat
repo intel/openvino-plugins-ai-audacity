@@ -79,8 +79,12 @@ IF NOT ERRORLEVEL 1 (
   echo Applying patch using git command...
   git apply --ignore-whitespace %audacity_add_ov_mod_patch_path% || exit /b 1
   git apply --ignore-whitespace %audacity_no_vc_runtime_install_patch% || exit /b 1
-  
-  git apply --ignore-whitespace %audacity_allow_conan_home_patch% || exit /b 1
+  IF "%CONAN_HOME%"=="" (
+      echo CONAN_HOME env not set, skipping application of %audacity_allow_conan_home_patch%
+  ) ELSE (
+    echo Applying %audacity_allow_conan_home_patch%
+    git apply --ignore-whitespace %audacity_allow_conan_home_patch% || exit /b 1
+  )
 ) ELSE (
   :: Since git is not available, check if 'patch' command exists
   patch --version >nul 2>&1
