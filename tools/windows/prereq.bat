@@ -9,8 +9,8 @@ set "bat_path=%~dp0"
 set LIBTORCH_PACKAGE_URL="https://download.pytorch.org/libtorch/cpu/libtorch-win-shared-with-deps-2.4.1%%%%2Bcpu.zip"
 set LIBTORCH_PACKAGE_256SUM=e7b8d0b3b958d2215f52ff5385335f93aa78e42005727e44f1043d94d5bfc5dd
 
-set OPENVINO_GENAI_PACKAGE_URL=https://storage.openvinotoolkit.org/repositories/openvino_genai/packages/2026.1.3.0/windows/openvino_genai_windows_2026.1.3.0_x86_64.zip
-set OPENVINO_GENAI_PACKAGE_256SUM=99051c06be97f8cf56d68b03cb3f9861efd9c4dc7a619599ed1a5d36e9d04780
+set OPENVINO_GENAI_PACKAGE_URL=https://storage.openvinotoolkit.org/repositories/openvino_genai/packages/nightly/2026.3.0.0.dev20260521/openvino_genai_windows_2026.3.0.0.dev20260521_x86_64.zip
+set OPENVINO_GENAI_PACKAGE_256SUM=f2a2c3f9904ab3146c5aca72f0c2b28b1037c6dc04b21cdd99ad59d0a25b7209
 
 :::::::::::::::::::::::::::::
 ::  GIT Repo Configuration ::
@@ -33,13 +33,17 @@ if not defined LIBTORCH_DIR (
     echo Not downloading Libtorch, as LIBTORCH_DIR is defined by environment. LIBTORCH_DIR=%LIBTORCH_DIR%
 )
 
-call :DownloadVerifyExtract %OPENVINO_GENAI_PACKAGE_URL% %OPENVINO_GENAI_PACKAGE_256SUM%
-IF "%EXTRACTED_PACKAGE_PATH%"=="" (
-echo Error in openvino genai download routine..
-exit /b
-)
+if not defined OPENVINO_GENAI_DIR (
+	call :DownloadVerifyExtract %OPENVINO_GENAI_PACKAGE_URL% %OPENVINO_GENAI_PACKAGE_256SUM%
+	IF "!EXTRACTED_PACKAGE_PATH!"=="" (
+	echo Error in openvino genai download routine..
+	exit /b
+	)
 
-set OPENVINO_GENAI_DIR=%EXTRACTED_PACKAGE_PATH%
+	set OPENVINO_GENAI_DIR=!EXTRACTED_PACKAGE_PATH!
+) else (
+    echo Not downloading OpenVINO GenAI, as OPENVINO_GENAI_DIR is defined by environment. OPENVINO_GENAI_DIR=%OPENVINO_GENAI_DIR%
+)
 
 
 :: Clone the required repo's and check out the desired tags
