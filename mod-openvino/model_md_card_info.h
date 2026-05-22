@@ -183,7 +183,7 @@ const char* text_to_speech_kokoro_82m = R"md(
 <p>Source model: <a href="https://huggingface.co/hexgrad/Kokoro-82M">https://huggingface.co/hexgrad/Kokoro-82M</a></p>
 <p>For use with <a href="https://github.com/intel/openvino-plugins-ai-audacity">OpenVINO AI Plugins for Audacity</a>, the model is converted to OpenVINO IR format.</p>
 <p>Since a public OpenVINO-converted download location is not yet available, this model cannot currently be downloaded via the Model Manager.</p>
-<p>To use it, place the converted model folder (containing <code>openvino_model.xml</code>, <code>openvino_model.bin</code>, <code>config.json</code>, and the <code>voices/</code> and <code>data/</code> subdirectories) into <code>openvino-models/speech_generation/kokoro-82m/</code>, and restart Audacity.</p>
+<p>To use it, place the converted model folder (containing <code>openvino_model.xml</code>, <code>openvino_model.bin</code>, <code>config.json</code>, and the <code>voices/</code> and <code>data/</code> subdirectories) into <code>openvino-models/text_to_speech/ov_Kokoro-82M/</code>, and restart Audacity.</p>
 <p>After restart, the model should appear as installed/selectable in the Text-to-Speech generator and in the Model Manager.</p>
 <h2>License</h2>
 <p><a href="https://choosealicense.com/licenses/apache-2.0/">Apache-2.0</a></p>
