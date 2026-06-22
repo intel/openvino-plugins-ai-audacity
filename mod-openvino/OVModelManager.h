@@ -76,6 +76,7 @@ public:
    static const std::string WhisperName() { return "Whisper Transcription"; }
    static const std::string ReverbRemovalName() { return "Reverb Removal"; }
    static const std::string MusicRestorationName() { return "Music Restoration"; }
+   static const std::string TtsName() { return "Text-to-Speech"; }
 
    static OVModelManager& instance() {
       static OVModelManager instance;

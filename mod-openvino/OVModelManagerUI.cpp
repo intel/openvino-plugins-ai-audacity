@@ -290,6 +290,7 @@ ModelManagerDialog::ModelManagerDialog(wxWindow* parent)
       OVModelManager::NoiseSuppressName(),
       OVModelManager::ReverbRemovalName(),
       OVModelManager::SuperResName(),
+      OVModelManager::TtsName(),
       OVModelManager::WhisperName()
       };
 
