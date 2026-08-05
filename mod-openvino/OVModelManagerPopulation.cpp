@@ -17,7 +17,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_separat
          demucs_model_info->info = music_separation_demucs_v4;
          demucs_model_info->baseUrl = demucs_baseURL + "htdemucs_v4/";
          demucs_model_info->relative_path = relative_path + "htdemucs_v4";
-         demucs_model_info->fileList = fileList;
+         demucs_model_info->SetFileList(fileList);
          music_sep_collection->models.emplace_back(demucs_model_info);
       }
 
@@ -27,7 +27,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_separat
          demucs_model_info->info = music_separation_demucs_v4_ft_drums;
          demucs_model_info->baseUrl = demucs_baseURL + "htdemucs_v4_ht_drums/";
          demucs_model_info->relative_path = relative_path + "htdemucs_v4_ht_drums";
-         demucs_model_info->fileList = fileList;
+         demucs_model_info->SetFileList(fileList);
          music_sep_collection->models.emplace_back(demucs_model_info);
       }
 
@@ -37,7 +37,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_separat
          demucs_model_info->info = music_separation_demucs_v4_ft_bass;
          demucs_model_info->baseUrl = demucs_baseURL + "htdemucs_v4_ht_bass/";
          demucs_model_info->relative_path = relative_path + "htdemucs_v4_ht_bass";
-         demucs_model_info->fileList = fileList;
+         demucs_model_info->SetFileList(fileList);
          music_sep_collection->models.emplace_back(demucs_model_info);
       }
 
@@ -47,7 +47,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_separat
          demucs_model_info->info = music_separation_demucs_v4_ft_other;
          demucs_model_info->baseUrl = demucs_baseURL + "htdemucs_v4_ht_other/";
          demucs_model_info->relative_path = relative_path + "htdemucs_v4_ht_other";
-         demucs_model_info->fileList = fileList;
+         demucs_model_info->SetFileList(fileList);
          music_sep_collection->models.emplace_back(demucs_model_info);
       }
 
@@ -57,7 +57,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_separat
          demucs_model_info->info = music_separation_demucs_v4_ft_vocals;
          demucs_model_info->baseUrl = demucs_baseURL + "htdemucs_v4_ht_vocals/";
          demucs_model_info->relative_path = relative_path + "htdemucs_v4_ht_vocals";
-         demucs_model_info->fileList = fileList;
+         demucs_model_info->SetFileList(fileList);
          music_sep_collection->models.emplace_back(demucs_model_info);
       }
 
@@ -67,7 +67,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_separat
          demucs_model_info->info = music_separation_demucs_v4_6s;
          demucs_model_info->baseUrl = demucs_baseURL + "htdemucs_v4_6s/";
          demucs_model_info->relative_path = relative_path + "htdemucs_v4_6s";
-         demucs_model_info->fileList = fileList;
+         demucs_model_info->SetFileList(fileList);
          music_sep_collection->models.emplace_back(demucs_model_info);
       }
    }
@@ -84,7 +84,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_separat
          mel_model_info->info = music_separation_mel_vocals_kimberley_jenson;
          mel_model_info->baseUrl = "https://huggingface.co/Intel/vocals_mel_band_roformer_kimberleyJSN_openvino/resolve/ce2bae0e27f9b115f38b1ddad35439df2d28cbbd/";
          mel_model_info->relative_path = relative_path + "melband_roformer_kimberley_jenson";
-         mel_model_info->fileList = fileList;
+         mel_model_info->SetFileList(fileList);
          music_sep_collection->models.emplace_back(mel_model_info);
       }
 
@@ -94,7 +94,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_separat
          mel_model_info->info = music_separation_mel_crowd_aufr33_viperx;
          mel_model_info->baseUrl = "https://huggingface.co/Intel/crowd_mel_band_roformer_aufr33_viperx_openvino/resolve/b35f0dc8e9ee507582bc93a6e2b52e0dba9eca93/";
          mel_model_info->relative_path = relative_path + "melband_roformer_crowd";
-         mel_model_info->fileList = fileList;
+         mel_model_info->SetFileList(fileList);
          music_sep_collection->models.emplace_back(mel_model_info);
       }
    }
@@ -109,7 +109,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_separat
          mdx_model_info->info = music_separation_msdx23c_drum_sep_jarredou;
          mdx_model_info->baseUrl = "https://huggingface.co/Intel/drumsep_mdx23c_jarredou_openvino/resolve/2944425500506842ccc4ca130b22be8cfe95b20d/";
          mdx_model_info->relative_path = relative_path + "drumsep_jarredou_mdx23c";
-         mdx_model_info->fileList = fileList;
+         mdx_model_info->SetFileList(fileList);
          music_sep_collection->models.emplace_back(mdx_model_info);
       }
    }
@@ -136,7 +136,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_reverb_remova
          mel_model_info->info = reverb_removal_mel_band_dereverb_mono_anvuew;
          mel_model_info->baseUrl = "https://huggingface.co/Intel/dereverb_mel_band_roformer_anvuew_openvino/resolve/16aeb6904702657415c04bdc906dc9c3ed6524a1/mono/";
          mel_model_info->relative_path = relative_path + "mel_band_roformer_mono_anvuew";
-         mel_model_info->fileList = fileList;
+         mel_model_info->SetFileList(fileList);
          collection->models.emplace_back(mel_model_info);
       }
    }
@@ -160,7 +160,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_restora
          mel_model_info->info = music_restoration_apollo_mp3_jusperlee;
          mel_model_info->baseUrl = "https://huggingface.co/Intel/apollo_jusperlee_openvino/resolve/720c90a7df79fd6add733ca9748a22b471a3bc09/";
          mel_model_info->relative_path = relative_path + "apollo_jusperlee";
-         mel_model_info->fileList = fileList;
+         mel_model_info->SetFileList(fileList);
          collection->models.emplace_back(mel_model_info);
       }
 
@@ -170,7 +170,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_restora
          mel_model_info->info = music_restoration_apollo_universal_lew;
          mel_model_info->baseUrl = "";
          mel_model_info->relative_path = relative_path + "apollo_universal";
-         mel_model_info->fileList = fileList;
+         mel_model_info->SetFileList(fileList);
          collection->models.emplace_back(mel_model_info);
       }
    }
@@ -317,13 +317,12 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_whisper()
 
       whisper_info->baseUrl = whisper_model_info.base_url;
       whisper_info->relative_path = "whisper/" + whisper_model_info.relative_path;
-      whisper_info->fileList =
-      {
+      whisper_info->SetFileList({
          "added_tokens.json", "config.json", "generation_config.json", "normalizer.json", "openvino_decoder_model.bin",
          "openvino_decoder_model.xml", "openvino_detokenizer.bin", "openvino_detokenizer.xml", "openvino_encoder_model.bin", "openvino_encoder_model.xml",
          "openvino_tokenizer.bin", "openvino_tokenizer.xml", "preprocessor_config.json", "special_tokens_map.json",
          "tokenizer.json", "tokenizer_config.json", "vocab.json"
-      };
+      });
 
       whisper_collection->models.push_back(whisper_info);
    }
@@ -338,10 +337,10 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_super_resolut
    common->model_name = "Super Resolution Common";
    common->baseUrl = baseUrl;
    common->relative_path = "audiosr";
-   common->fileList = { "audiosr_decoder.bin", "audiosr_decoder.xml", "audiosr_encoder.bin", "audiosr_encoder.xml",
-                        "mel_24000_cpu.raw", "post_quant_conv.bin", "post_quant_conv.xml", "quant_conv.bin",
-                        "quant_conv.xml", "vae_feature_extract.bin", "vae_feature_extract.xml", "vocoder.xml",
-                        "vocoder.bin"};
+   common->SetFileList({ "audiosr_decoder.bin", "audiosr_decoder.xml", "audiosr_encoder.bin", "audiosr_encoder.xml",
+                         "mel_24000_cpu.raw", "post_quant_conv.bin", "post_quant_conv.xml", "quant_conv.bin",
+                         "quant_conv.xml", "vae_feature_extract.bin", "vae_feature_extract.xml", "vocoder.xml",
+                         "vocoder.bin"});
 
    auto collection = std::make_shared< OVModelManager::ModelCollection >();
 
@@ -353,7 +352,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_super_resolut
       model->baseUrl = baseUrl;
       model->relative_path = "audiosr";
       model->dependencies.push_back(common);
-      model->fileList = { "basic/ddpm.xml", "basic/ddpm.bin" };
+      model->SetFileList({ "basic/ddpm.xml", "basic/ddpm.bin" });
       collection->models.emplace_back(model);
    }
 
@@ -365,7 +364,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_super_resolut
       model->baseUrl = baseUrl;
       model->relative_path = "audiosr";
       model->dependencies.push_back(common);
-      model->fileList = { "speech/ddpm.xml", "speech/ddpm.bin" };
+      model->SetFileList({ "speech/ddpm.xml", "speech/ddpm.bin" });
       collection->models.emplace_back(model);
    }
 
@@ -386,11 +385,8 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_noise_suppres
          model->model_name = "DeepFilterNet2";
          model->info = noise_suppression_deepfilternet2;
          model->baseUrl = baseUrl;
-         model->fileList = { "df_dec.bin", "df_dec.xml", "enc.xml", "enc.bin", "erb_dec.xml", "erb_dec.bin" };
-
-         for (auto& f : model->fileList) {
-            f = "deepfilternet2/" + f;
-         }
+         model->SetFileList({ "df_dec.bin", "df_dec.xml", "enc.xml", "enc.bin", "erb_dec.xml", "erb_dec.bin" });
+         model->PrependFilePathPrefix("deepfilternet2/");
 
          collection->models.emplace_back(model);
       }
@@ -401,11 +397,8 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_noise_suppres
          model->model_name = "DeepFilterNet3";
          model->info = noise_suppression_deepfilternet3;
          model->baseUrl = baseUrl;
-         model->fileList = { "df_dec.bin", "df_dec.xml", "enc.xml", "enc.bin", "erb_dec.xml", "erb_dec.bin" };
-
-         for (auto& f : model->fileList) {
-            f = "deepfilternet3/" + f;
-         }
+         model->SetFileList({ "df_dec.bin", "df_dec.xml", "enc.xml", "enc.bin", "erb_dec.xml", "erb_dec.bin" });
+         model->PrependFilePathPrefix("deepfilternet3/");
 
          collection->models.emplace_back(model);
       }
@@ -418,7 +411,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_noise_suppres
       model->info = noise_suppression_denseunet;
       model->baseUrl = "https://storage.openvinotoolkit.org/repositories/open_model_zoo/2023.0/models_bin/1/noise-suppression-denseunet-ll-0001/FP16/";
       model->postUrl = "";
-      model->fileList = { "noise-suppression-denseunet-ll-0001.xml", "noise-suppression-denseunet-ll-0001.bin" };
+      model->SetFileList({ "noise-suppression-denseunet-ll-0001.xml", "noise-suppression-denseunet-ll-0001.bin" });
       collection->models.emplace_back(model);
    }
 
@@ -437,8 +430,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_tts()
       model->info = text_to_speech_kokoro_82m;
       model->baseUrl = ""; // not yet available for download
       model->relative_path = "text_to_speech/ov_Kokoro-82M";
-      model->fileList =
-      {
+      model->SetFileList({
          // Core model files
          "openvino_model.xml",
          "openvino_model.bin",
@@ -508,7 +500,7 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_tts()
          "voices/zm_yunxi.bin",
          "voices/zm_yunxia.bin",
          "voices/zm_yunyang.bin",
-      };
+      });
       collection->models.emplace_back(model);
    }
 

@@ -126,9 +126,9 @@ static void _check_installed_model_impl(std::shared_ptr<OVModelManager::ModelInf
    }
 
    bool all_found = true;
-   for (auto& file : model_info->fileList)
+   for (const auto& file : model_info->files)
    {
-      wxFileName fullFilePath(search_path_base + "/" + model_info->relative_path + "/" + file);
+      wxFileName fullFilePath(search_path_base + "/" + model_info->relative_path + "/" + file.name);
       fullFilePath.Normalize();
 
       if (!fullFilePath.FileExists())
@@ -197,8 +197,8 @@ OVModelManager::InstallResult OVModelManager::install_model_size(std::shared_ptr
    auto baseUrl = model_info->baseUrl;
    audacity::network_manager::NetworkManager& manager = audacity::network_manager::NetworkManager::GetInstance();
 
-   for (auto& file : model_info->fileList) {
-      std::string url = baseUrl + file + "?download=true";
+   for (const auto& file : model_info->files) {
+      std::string url = baseUrl + file.name + "?download=true";
       audacity::network_manager::Request request;
 
       try {
@@ -282,8 +282,8 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
    auto baseUrl = model_info->baseUrl;
    auto postUrl = model_info->postUrl;
 
-   for (auto& file : model_info->fileList) {
-      std::string url = baseUrl + file + postUrl;
+   for (const auto& file : model_info->files) {
+      std::string url = baseUrl + file.name + postUrl;
 
       audacity::network_manager::Request request;
       std::shared_ptr<audacity::network_manager::IResponse> response;
@@ -297,8 +297,8 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
             BuildInstallDetails(effect, model_info->model_name, "Download", "Could not start a GET request for the model file.", url, error.what()));
       }
 
-      mkdir_relative_paths(model_info->relative_path + "/" + file, base_openvino_models_path);
-      wxFileName fullFilePath(base_openvino_models_path + "/" + model_info->relative_path + "/" + file);
+      mkdir_relative_paths(model_info->relative_path + "/" + file.name, base_openvino_models_path);
+      wxFileName fullFilePath(base_openvino_models_path + "/" + model_info->relative_path + "/" + file.name);
       fullFilePath.Normalize();
 
       std::shared_ptr<wxFile> wx_file = std::make_shared<wxFile>(fullFilePath.GetFullPath(), wxFile::write);

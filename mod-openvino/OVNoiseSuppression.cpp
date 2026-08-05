@@ -434,11 +434,11 @@ bool EffectOVNoiseSuppression::Process(EffectInstance&, EffectSettings&)
                //must be an omz model then.
                // Get the .xml file from the file list.
                std::string model_file;
-               for (auto& f : retrieved_model_info->fileList)
+               for (const auto& f : retrieved_model_info->files)
                {
-                  if (f.find(".xml") != std::string::npos)
+                  if (f.name.find(".xml") != std::string::npos)
                   {
-                     model_file = f;
+                     model_file = f.name;
                      break;
                   }
                }
