@@ -102,6 +102,7 @@ set( SOURCES
 set( LIBRARIES
    PRIVATE
       Audacity
+      lib-crypto
       openvino::runtime
       openvino::genai
       ${TORCH_LIBRARIES}

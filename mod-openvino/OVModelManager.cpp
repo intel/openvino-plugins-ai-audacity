@@ -4,6 +4,7 @@
 #include <NetworkManager.h>
 #include <Request.h>
 #include <IResponse.h>
+#include <crypto/SHA256.h>
 #endif
 #include <thread>
 #include <chrono>
@@ -311,10 +312,11 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
       std::string file_error_summary;
       std::string file_error_details;
       auto downloadBuffer = std::make_shared<std::array<uint8_t, DownloadBufferSize>>();
+      auto fileHasher = std::make_shared<crypto::SHA256>();
 
       // write to file here
       response->setOnDataReceivedCallback(
-         [response, wx_file, downloadBuffer, &bError, &bytes_downloaded_so_far, callback, &total_download_size, &file_error_summary, &file_error_details, &effect, model_info, url, fullFilePath](audacity::network_manager::IResponse*)
+         [response, wx_file, downloadBuffer, fileHasher, &bError, &bytes_downloaded_so_far, callback, &total_download_size, &file_error_summary, &file_error_details, &effect, model_info, url, fullFilePath](audacity::network_manager::IResponse*)
          {
             // only attempt save if request succeeded
             int httpCode = response->getHTTPCode();
@@ -347,6 +349,7 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
                   }
 
                   bytes_downloaded_so_far += bytesWritten;
+                  fileHasher->Update(downloadBuffer->data(), static_cast<std::size_t>(bytesRead));
 
                   if (total_download_size > 0 && callback) {
                      double perc_complete = static_cast<double>(bytes_downloaded_so_far) / static_cast<double>(total_download_size);
@@ -407,6 +410,12 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
       if (bError) {
          return OVModelManager::InstallResult::Failure(file_error_summary, file_error_details);
       }
+
+      const auto fileHash = fileHasher->Finalize();
+      wxLogInfo("OVModelManager: SHA-256 for '%s' downloaded from '%s' is %s.",
+         fullFilePath.GetFullPath(),
+         url.c_str(),
+         fileHash.c_str());
    }
 
    return OVModelManager::InstallResult::Success();
