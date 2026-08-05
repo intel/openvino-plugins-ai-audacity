@@ -1,116 +1,84 @@
 #include "OVModelManager.h"
+#include "model_download_manifest_info.h"
 #include "model_md_card_info.h"
+
+namespace {
+
+const char* ResolveModelInfoFromKey(const std::string& info_key)
+{
+   if (info_key == "music_separation_demucs_v4")
+      return music_separation_demucs_v4;
+   if (info_key == "music_separation_demucs_v4_ft_drums")
+      return music_separation_demucs_v4_ft_drums;
+   if (info_key == "music_separation_demucs_v4_ft_bass")
+      return music_separation_demucs_v4_ft_bass;
+   if (info_key == "music_separation_demucs_v4_ft_other")
+      return music_separation_demucs_v4_ft_other;
+   if (info_key == "music_separation_demucs_v4_ft_vocals")
+      return music_separation_demucs_v4_ft_vocals;
+   if (info_key == "music_separation_demucs_v4_6s")
+      return music_separation_demucs_v4_6s;
+   if (info_key == "music_separation_mel_vocals_kimberley_jenson")
+      return music_separation_mel_vocals_kimberley_jenson;
+   if (info_key == "music_separation_mel_crowd_aufr33_viperx")
+      return music_separation_mel_crowd_aufr33_viperx;
+   if (info_key == "music_separation_msdx23c_drum_sep_jarredou")
+      return music_separation_msdx23c_drum_sep_jarredou;
+
+   return "";
+}
+
+} // namespace
 
 static std::shared_ptr< OVModelManager::ModelCollection > populate_music_separation()
 {
    auto music_sep_collection = std::make_shared< OVModelManager::ModelCollection >();
 
-   std::string relative_path = "stem_separation/";
+   std::unordered_map<std::string, std::shared_ptr<OVModelManager::ModelInfo>> models_by_id;
 
-   // demucs models
+   for (std::size_t i = 0; i < model_download_manifest::kModelCount; ++i)
    {
-      std::string demucs_baseURL = "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/";
-      std::vector< std::string > fileList = { "htdemucs_fwd.bin", "htdemucs_fwd.xml" };
-      {
-         std::shared_ptr<OVModelManager::ModelInfo> demucs_model_info = std::make_shared<OVModelManager::ModelInfo>();
-         demucs_model_info->model_name = "Demucs v4";
-         demucs_model_info->info = music_separation_demucs_v4;
-         demucs_model_info->baseUrl = demucs_baseURL + "htdemucs_v4/";
-         demucs_model_info->relative_path = relative_path + "htdemucs_v4";
-         demucs_model_info->SetFileList(fileList);
-         music_sep_collection->models.emplace_back(demucs_model_info);
+      const auto& source_model = model_download_manifest::kModels[i];
+      if (source_model.effect != OVModelManager::MusicSepName()) {
+         continue;
       }
 
-      {
-         std::shared_ptr<OVModelManager::ModelInfo> demucs_model_info = std::make_shared<OVModelManager::ModelInfo>();
-         demucs_model_info->model_name = "Demucs v4 FT Drums";
-         demucs_model_info->info = music_separation_demucs_v4_ft_drums;
-         demucs_model_info->baseUrl = demucs_baseURL + "htdemucs_v4_ht_drums/";
-         demucs_model_info->relative_path = relative_path + "htdemucs_v4_ht_drums";
-         demucs_model_info->SetFileList(fileList);
-         music_sep_collection->models.emplace_back(demucs_model_info);
+      auto model_info = std::make_shared<OVModelManager::ModelInfo>();
+      model_info->model_name = source_model.model_name;
+      model_info->info = ResolveModelInfoFromKey(source_model.info_key);
+      model_info->baseUrl = source_model.base_url;
+      model_info->postUrl = source_model.post_url;
+      model_info->relative_path = source_model.relative_path;
+
+      model_info->files.reserve(source_model.file_count);
+      for (std::size_t file_index = 0; file_index < source_model.file_count; ++file_index) {
+         const auto& source_file = source_model.files[file_index];
+         model_info->files.push_back({ source_file.name, source_file.expected_sha256 });
       }
 
-      {
-         std::shared_ptr<OVModelManager::ModelInfo> demucs_model_info = std::make_shared<OVModelManager::ModelInfo>();
-         demucs_model_info->model_name = "Demucs v4 FT Bass";
-         demucs_model_info->info = music_separation_demucs_v4_ft_bass;
-         demucs_model_info->baseUrl = demucs_baseURL + "htdemucs_v4_ht_bass/";
-         demucs_model_info->relative_path = relative_path + "htdemucs_v4_ht_bass";
-         demucs_model_info->SetFileList(fileList);
-         music_sep_collection->models.emplace_back(demucs_model_info);
-      }
-
-      {
-         std::shared_ptr<OVModelManager::ModelInfo> demucs_model_info = std::make_shared<OVModelManager::ModelInfo>();
-         demucs_model_info->model_name = "Demucs v4 FT Other Instruments";
-         demucs_model_info->info = music_separation_demucs_v4_ft_other;
-         demucs_model_info->baseUrl = demucs_baseURL + "htdemucs_v4_ht_other/";
-         demucs_model_info->relative_path = relative_path + "htdemucs_v4_ht_other";
-         demucs_model_info->SetFileList(fileList);
-         music_sep_collection->models.emplace_back(demucs_model_info);
-      }
-
-      {
-         std::shared_ptr<OVModelManager::ModelInfo> demucs_model_info = std::make_shared<OVModelManager::ModelInfo>();
-         demucs_model_info->model_name = "Demucs v4 FT Vocals";
-         demucs_model_info->info = music_separation_demucs_v4_ft_vocals;
-         demucs_model_info->baseUrl = demucs_baseURL + "htdemucs_v4_ht_vocals/";
-         demucs_model_info->relative_path = relative_path + "htdemucs_v4_ht_vocals";
-         demucs_model_info->SetFileList(fileList);
-         music_sep_collection->models.emplace_back(demucs_model_info);
-      }
-
-      {
-         std::shared_ptr<OVModelManager::ModelInfo> demucs_model_info = std::make_shared<OVModelManager::ModelInfo>();
-         demucs_model_info->model_name = "Demucs v4 6s";
-         demucs_model_info->info = music_separation_demucs_v4_6s;
-         demucs_model_info->baseUrl = demucs_baseURL + "htdemucs_v4_6s/";
-         demucs_model_info->relative_path = relative_path + "htdemucs_v4_6s";
-         demucs_model_info->SetFileList(fileList);
-         music_sep_collection->models.emplace_back(demucs_model_info);
-      }
+      music_sep_collection->models.emplace_back(model_info);
+      models_by_id[source_model.model_id] = model_info;
    }
 
-   //mel band roformer models
+   for (std::size_t i = 0; i < model_download_manifest::kModelCount; ++i)
    {
-      std::vector< std::string > fileList = { "mel_band_pre.xml", "mel_band_pre.bin",
-                                              "mel_band_post.xml", "mel_band_post.bin",
-                                              "mel_band_fwd.xml", "mel_band_fwd.bin" };
-
-      {
-         std::shared_ptr<OVModelManager::ModelInfo> mel_model_info = std::make_shared<OVModelManager::ModelInfo>();
-         mel_model_info->model_name = "MelBandRoformer Vocals (@KimberleyJensen)";
-         mel_model_info->info = music_separation_mel_vocals_kimberley_jenson;
-         mel_model_info->baseUrl = "https://huggingface.co/Intel/vocals_mel_band_roformer_kimberleyJSN_openvino/resolve/ce2bae0e27f9b115f38b1ddad35439df2d28cbbd/";
-         mel_model_info->relative_path = relative_path + "melband_roformer_kimberley_jenson";
-         mel_model_info->SetFileList(fileList);
-         music_sep_collection->models.emplace_back(mel_model_info);
+      const auto& source_model = model_download_manifest::kModels[i];
+      if (source_model.effect != OVModelManager::MusicSepName()) {
+         continue;
       }
 
-      {
-         std::shared_ptr<OVModelManager::ModelInfo> mel_model_info = std::make_shared<OVModelManager::ModelInfo>();
-         mel_model_info->model_name = "MelBandRoformer Crowd (@aufr33, @viperx)";
-         mel_model_info->info = music_separation_mel_crowd_aufr33_viperx;
-         mel_model_info->baseUrl = "https://huggingface.co/Intel/crowd_mel_band_roformer_aufr33_viperx_openvino/resolve/b35f0dc8e9ee507582bc93a6e2b52e0dba9eca93/";
-         mel_model_info->relative_path = relative_path + "melband_roformer_crowd";
-         mel_model_info->SetFileList(fileList);
-         music_sep_collection->models.emplace_back(mel_model_info);
+      auto model_it = models_by_id.find(source_model.model_id);
+      if (model_it == models_by_id.end()) {
+         continue;
       }
-   }
 
-   //MDX23C models
-   {
-      std::vector< std::string > fileList = { "mdx23c_fwd.xml", "mdx23c_fwd.bin"};
-
-      {
-         std::shared_ptr<OVModelManager::ModelInfo> mdx_model_info = std::make_shared<OVModelManager::ModelInfo>();
-         mdx_model_info->model_name = "MDX23C Drum Separation (@jarredou)";
-         mdx_model_info->info = music_separation_msdx23c_drum_sep_jarredou;
-         mdx_model_info->baseUrl = "https://huggingface.co/Intel/drumsep_mdx23c_jarredou_openvino/resolve/2944425500506842ccc4ca130b22be8cfe95b20d/";
-         mdx_model_info->relative_path = relative_path + "drumsep_jarredou_mdx23c";
-         mdx_model_info->SetFileList(fileList);
-         music_sep_collection->models.emplace_back(mdx_model_info);
+      auto& dependencies = model_it->second->dependencies;
+      for (std::size_t dependency_index = 0; dependency_index < source_model.dependency_count; ++dependency_index) {
+         const std::string dependency_id = source_model.dependencies[dependency_index];
+         auto dependency_it = models_by_id.find(dependency_id);
+         if (dependency_it != models_by_id.end()) {
+            dependencies.push_back(dependency_it->second);
+         }
       }
    }
 

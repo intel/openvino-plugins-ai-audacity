@@ -96,6 +96,7 @@ set( SOURCES
       OVModelManager.h
       OVModelManager.cpp
       OVModelManagerPopulation.cpp
+      model_download_manifest_info.h
       model_md_card_info.h
 )
 
