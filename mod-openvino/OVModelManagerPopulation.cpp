@@ -193,37 +193,37 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_whisper()
       {
          "Whisper Base (FP16)",
          "whisper-base-fp16-ov",
-         "https://huggingface.co/OpenVINO/whisper-base-fp16-ov/resolve/e95b28c093fc5f22d2b0d5b48524497d7784f308/",
+         "https://huggingface.co/OpenVINO/whisper-base-fp16-ov/resolve/84fbe975a79a8c996fd32c036558f29e2db6670f/",
          "FP16-quantized version of Whisper-Base. See Quantization / Model Variant Guides below for more information."
       },
       {
          "Whisper Base (INT8)",
          "whisper-base-int8-ov",
-         "https://huggingface.co/OpenVINO/whisper-base-int8-ov/resolve/ddb022a4299a78a0104e1f5b1eb2aae13859fc74/",
+         "https://huggingface.co/OpenVINO/whisper-base-int8-ov/resolve/0606293f0511136ada21755a265492f623a934b8/",
          "INT8-quantized version of Whisper-Base. See Quantization / Model Variant Guides below for more information."
       },
       {
          "Whisper Base (INT4)",
          "whisper-base-int4-ov",
-         "https://huggingface.co/OpenVINO/whisper-base-int4-ov/resolve/7d7a04e34adc1a1b7c9f14f0886daeed8900c892/",
+         "https://huggingface.co/OpenVINO/whisper-base-int4-ov/resolve/21b22adb8e49b79dab004804a1b40655a4767c37/",
          "INT4-quantized version of Whisper-Base. See Quantization / Model Variant Guides below for more information."
       },
       {
          "Whisper Medium (FP16)",
          "whisper-medium-fp16-ov",
-         "https://huggingface.co/OpenVINO/whisper-medium-fp16-ov/resolve/f44696c80386be16a024c91b3d75884367881ef2/",
+         "https://huggingface.co/OpenVINO/whisper-medium-fp16-ov/resolve/4508616c9c0774807e7d315c26cec49dcfe1f0a8/",
          "FP16-quantized version of Whisper-Medium. See Quantization / Model Variant Guides below for more information."
       },
       {
          "Whisper Medium (INT8)",
          "whisper-medium-int8-ov",
-         "https://huggingface.co/OpenVINO/whisper-medium-int8-ov/resolve/32f273ed2b7b780171a0435b0922f27787d682d2/",
+         "https://huggingface.co/OpenVINO/whisper-medium-int8-ov/resolve/8d43cce846729381f56bd45a1c70925cee2222ff/",
          "INT8-quantized version of Whisper-Medium. See Quantization / Model Variant Guides below for more information."
       },
       {
          "Whisper Medium (INT4)",
          "whisper-medium-int4-ov",
-         "https://huggingface.co/OpenVINO/whisper-medium-int4-ov/resolve/ff948b0e03fba6d41059225e8242a844b373dc76/",
+         "https://huggingface.co/OpenVINO/whisper-medium-int4-ov/resolve/14bba652dc6604717bf1cbdf358645d414548522/",
          "INT4-quantized version of Whisper-Medium. See Quantization / Model Variant Guides below for more information."
       },
       {
@@ -247,55 +247,55 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_whisper()
       {
          "Whisper Large V3 (FP16)",
          "whisper-large-v3-fp16-ov",
-         "https://huggingface.co/OpenVINO/whisper-large-v3-fp16-ov/resolve/9e15f59e87f0b618f63c7da329bd77fcde5c26c1/",
+         "https://huggingface.co/OpenVINO/whisper-large-v3-fp16-ov/resolve/220761e60602a5ca694c409d5f424563b75d6820/",
          "FP16-quantized version of Whisper-Large-V3. See Quantization / Model Variant Guides below for more information."
       },
       {
          "Whisper Large V3 (INT8)",
          "whisper-large-v3-int8-ov",
-         "https://huggingface.co/OpenVINO/whisper-large-v3-int8-ov/resolve/b31e1dcee5de24d49c6cc96da2a603eae409e722/",
+         "https://huggingface.co/OpenVINO/whisper-large-v3-int8-ov/resolve/a888a75cc8b494a8a45400fd85f6bfa379ba3955/",
          "INT8-quantized version of Whisper-Large-V3. See Quantization / Model Variant Guides below for more information."
       },
       {
          "Whisper Large V3 (INT4)",
          "whisper-large-v3-int4-ov",
-         "https://huggingface.co/OpenVINO/whisper-large-v3-int4-ov/resolve/1c151299249b18003eabf874e02e2ed65bb08468/",
+         "https://huggingface.co/OpenVINO/whisper-large-v3-int4-ov/resolve/95f08bc1b2b53dafaecae3d806b056adecc0be33/",
          "INT4-quantized version of Whisper-Large-V3. See Quantization / Model Variant Guides below for more information."
       },
       {
          "Distil-Whisper Large V3 (FP16)",
          "distil-whisper-large-v3-fp16-ov",
-         "https://huggingface.co/OpenVINO/distil-whisper-large-v3-fp16-ov/resolve/eef9b75180e7ff7a8fc026f6ef2cd6011de60fe7/",
+         "https://huggingface.co/OpenVINO/distil-whisper-large-v3-fp16-ov/resolve/147fc406c025905fa774599450c3ca98b72e5671/",
          "FP16-quantized version of Distil-Whisper-Large-V3. See Quantization / Model Variant Guides below for more information."
       },
       {
          "Distil-Whisper Large V3 (INT8)",
          "distil-whisper-large-v3-int8-ov",
-         "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int8-ov/resolve/81a5607b6139e8fbb7fb5aa73e9549323f1be258/",
+         "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int8-ov/resolve/ab5db836c48303e296237013d7385924f2828e9d/",
          "INT8-quantized version of Distil-Whisper-Large-V3. See Quantization / Model Variant Guides below for more information."
       },
       {
          "Distil-Whisper Large V3 (INT4)",
          "distil-whisper-large-v3-int4-ov",
-         "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int4-ov/resolve/d22aaac1a45a2dd82bf8485570927be06ff9d6ba/",
+         "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int4-ov/resolve/954b8ce3ca0e1d668d6ec41ea2b03e8420d95158/",
          "INT4-quantized version of Distil-Whisper-Large-V3. See Quantization / Model Variant Guides below for more information."
       },
       {
          "Whisper Large V3 Turbo (FP16)",
          "whisper-large-v3-turbo-fp16-ov",
-         "", //Not yet on HF. Hopefully soon!
+         "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-fp16-ov/resolve/131d663658f94202779b0bb98ee7a5f71d5bde1a/",
          "FP16-quantized version of Whisper-Large-V3-Turbo. See Quantization / Model Variant Guides below for more information."
       },
       {
          "Whisper Large V3 Turbo (INT8)",
          "whisper-large-v3-turbo-int8-ov",
-         "", //Not yet on HF. Hopefully soon!
+         "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int8-ov/resolve/4929ae83ea2d1df59f4b5898a9aab8aa1c29e711/",
          "INT8-quantized version of Whisper-Large-V3-Turbo. See Quantization / Model Variant Guides below for more information."
       },
       {
          "Whisper Large V3 Turbo (INT4)",
          "whisper-large-v3-turbo-int4-ov",
-         "", //Not yet on HF. Hopefully soon!
+         "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int4-ov/resolve/ae50b4d9a9dbaf16f2df59c23f3984e42f864dfc/",
          "INT4-quantized version of Whisper-Large-V3-Turbo. See Quantization / Model Variant Guides below for more information."
       }
    };
