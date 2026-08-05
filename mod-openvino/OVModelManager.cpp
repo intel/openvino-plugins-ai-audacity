@@ -9,11 +9,14 @@
 #include <chrono>
 #include <sstream>
 #include <future>
+#include <array>
 
 #include <wx/file.h>
 #include <wx/log.h>
 
 namespace {
+
+constexpr size_t DownloadBufferSize = 64 * 1024;
 
 std::string BuildInstallDetails(
    const std::string& effect,
@@ -277,6 +280,7 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
 
    auto baseUrl = model_info->baseUrl;
    auto postUrl = model_info->postUrl;
+
    for (auto& file : model_info->fileList) {
       std::string url = baseUrl + file + postUrl;
 
@@ -306,59 +310,67 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
 
       std::string file_error_summary;
       std::string file_error_details;
+      auto downloadBuffer = std::make_shared<std::array<uint8_t, DownloadBufferSize>>();
 
       // write to file here
       response->setOnDataReceivedCallback(
-         [response, wx_file, &bError, &bytes_downloaded_so_far, callback, &total_download_size, &file_error_summary, &file_error_details, &effect, model_info, url, fullFilePath](audacity::network_manager::IResponse*)
+         [response, wx_file, downloadBuffer, &bError, &bytes_downloaded_so_far, callback, &total_download_size, &file_error_summary, &file_error_details, &effect, model_info, url, fullFilePath](audacity::network_manager::IResponse*)
          {
             // only attempt save if request succeeded
             int httpCode = response->getHTTPCode();
             if ((httpCode == 200) || (httpCode == 302))
             {
-               const std::string responseData = response->readAll<std::string>();
-               size_t bytesWritten = wx_file->Write(responseData.c_str(), responseData.size());
-
-               if (wx_file->Error()) {
-                  int last_error = wx_file->GetLastError();
-
-                  wxLogError("OVModelManager: file write error (wxFile last_error=%d) for '%s'.", last_error, fullFilePath.GetFullPath());
-                  file_error_summary = "Writing downloaded model data failed.";
-                  file_error_details = BuildInstallDetails(
-                     effect,
-                     model_info->model_name,
-                     "Download",
-                     "wxFile reported an error while writing the downloaded data.",
-                     fullFilePath.GetFullPath().ToStdString(),
-                     "wxFile last error: " + std::to_string(last_error) + "\nSource URL: " + url);
-                  bError = true;
-                  response->Cancel();
-                  return;
-               }
-
-               bytes_downloaded_so_far += bytesWritten;
-
-               if (total_download_size > 0 && callback) {
-                  double perc_complete = static_cast<double>(bytes_downloaded_so_far) / static_cast<double>(total_download_size);
-                  callback(static_cast<float>(perc_complete));
-               }
-
-               if (bytesWritten != responseData.size())
+               while (true)
                {
-                  wxLogError("OVModelManager: incomplete file write for '%s' (written=%llu, received=%llu).",
-                     fullFilePath.GetFullPath(),
-                     static_cast<unsigned long long>(bytesWritten),
-                     static_cast<unsigned long long>(responseData.size()));
-                  file_error_summary = "Incomplete model file write detected.";
-                  file_error_details = BuildInstallDetails(
-                     effect,
-                     model_info->model_name,
-                     "Download",
-                     "The downloaded data size did not match the number of bytes written to disk.",
-                     fullFilePath.GetFullPath().ToStdString(),
-                     "Bytes written: " + std::to_string(bytesWritten) + "\nBytes received: " + std::to_string(responseData.size()) + "\nSource URL: " + url);
-                  bError = true;
-                  response->Cancel();
-                  return;
+                  const auto bytesRead = response->readData(downloadBuffer->data(), downloadBuffer->size());
+                  if (bytesRead == 0) {
+                     break;
+                  }
+
+                  const size_t bytesWritten = wx_file->Write(downloadBuffer->data(), bytesRead);
+
+                  if (wx_file->Error()) {
+                     int last_error = wx_file->GetLastError();
+
+                     wxLogError("OVModelManager: file write error (wxFile last_error=%d) for '%s'.", last_error, fullFilePath.GetFullPath());
+                     file_error_summary = "Writing downloaded model data failed.";
+                     file_error_details = BuildInstallDetails(
+                        effect,
+                        model_info->model_name,
+                        "Download",
+                        "wxFile reported an error while writing the downloaded data.",
+                        fullFilePath.GetFullPath().ToStdString(),
+                        "wxFile last error: " + std::to_string(last_error) + "\nSource URL: " + url);
+                     bError = true;
+                     response->Cancel();
+                     return;
+                  }
+
+                  bytes_downloaded_so_far += bytesWritten;
+
+                  if (total_download_size > 0 && callback) {
+                     double perc_complete = static_cast<double>(bytes_downloaded_so_far) / static_cast<double>(total_download_size);
+                     callback(static_cast<float>(perc_complete));
+                  }
+
+                  if (bytesWritten != bytesRead)
+                  {
+                     wxLogError("OVModelManager: incomplete file write for '%s' (written=%llu, received=%llu).",
+                        fullFilePath.GetFullPath(),
+                        static_cast<unsigned long long>(bytesWritten),
+                        static_cast<unsigned long long>(bytesRead));
+                     file_error_summary = "Incomplete model file write detected.";
+                     file_error_details = BuildInstallDetails(
+                        effect,
+                        model_info->model_name,
+                        "Download",
+                        "The downloaded data size did not match the number of bytes written to disk.",
+                        fullFilePath.GetFullPath().ToStdString(),
+                        "Bytes written: " + std::to_string(bytesWritten) + "\nBytes received: " + std::to_string(bytesRead) + "\nSource URL: " + url);
+                     bError = true;
+                     response->Cancel();
+                     return;
+                  }
                }
             }
             else
