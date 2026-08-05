@@ -1,0 +1,189 @@
+{
+  "entries": {
+    "music_separation_demucs_v4": {
+      "base_url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4/",
+      "files": {
+        "htdemucs_fwd.bin": {
+          "sha256": "74c4e1ebd68b648ea5a2aabefb65d5c3ba805658037fc97a37b84ce9c72f4eb1",
+          "size": 104552746,
+          "url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4/htdemucs_fwd.bin?download=true"
+        },
+        "htdemucs_fwd.xml": {
+          "sha256": "1557f96f11cf1667beca60679926bf43b393d3ff71eb4b9a625c6a07bc23f4a4",
+          "size": 1477599,
+          "url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4/htdemucs_fwd.xml?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "music_separation_demucs_v4_6s": {
+      "base_url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4_6s/",
+      "files": {
+        "htdemucs_fwd.bin": {
+          "sha256": "5d66281099b5fdaba8844e306f3d6710b3e0b005fa9aad4514ce7604e24fbec9",
+          "size": 74384618,
+          "url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4_6s/htdemucs_fwd.bin?download=true"
+        },
+        "htdemucs_fwd.xml": {
+          "sha256": "06c68a8a21a6cefb905575cbe689cfa3241416a4c263271804ae5690f8ba5cbf",
+          "size": 1461204,
+          "url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4_6s/htdemucs_fwd.xml?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "music_separation_demucs_v4_ft_bass": {
+      "base_url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4_ht_bass/",
+      "files": {
+        "htdemucs_fwd.bin": {
+          "sha256": "a7ec34d838b0f8f36b11a90d6f4e588141a383faadc77e9648e19fdd9eefc95e",
+          "size": 104552746,
+          "url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4_ht_bass/htdemucs_fwd.bin?download=true"
+        },
+        "htdemucs_fwd.xml": {
+          "sha256": "1557f96f11cf1667beca60679926bf43b393d3ff71eb4b9a625c6a07bc23f4a4",
+          "size": 1477599,
+          "url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4_ht_bass/htdemucs_fwd.xml?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "music_separation_demucs_v4_ft_drums": {
+      "base_url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4_ht_drums/",
+      "files": {
+        "htdemucs_fwd.bin": {
+          "sha256": "340e5f6d8dd4d5d0d987f545b922a8252cc5ea6e53649f91eadd8b36e77fcbac",
+          "size": 104552746,
+          "url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4_ht_drums/htdemucs_fwd.bin?download=true"
+        },
+        "htdemucs_fwd.xml": {
+          "sha256": "1557f96f11cf1667beca60679926bf43b393d3ff71eb4b9a625c6a07bc23f4a4",
+          "size": 1477599,
+          "url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4_ht_drums/htdemucs_fwd.xml?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "music_separation_demucs_v4_ft_other": {
+      "base_url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4_ht_other/",
+      "files": {
+        "htdemucs_fwd.bin": {
+          "sha256": "c5f4bb99e91fea0bda75f64086712884457a5c9f861d1c2a7a02e09e92c2846e",
+          "size": 104552746,
+          "url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4_ht_other/htdemucs_fwd.bin?download=true"
+        },
+        "htdemucs_fwd.xml": {
+          "sha256": "1557f96f11cf1667beca60679926bf43b393d3ff71eb4b9a625c6a07bc23f4a4",
+          "size": 1477599,
+          "url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4_ht_other/htdemucs_fwd.xml?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "music_separation_demucs_v4_ft_vocals": {
+      "base_url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4_ht_vocals/",
+      "files": {
+        "htdemucs_fwd.bin": {
+          "sha256": "8576b4bd27095bc7f2dae39c529124b04eebc3e04009a45b7cc170f5b563f749",
+          "size": 104552746,
+          "url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4_ht_vocals/htdemucs_fwd.bin?download=true"
+        },
+        "htdemucs_fwd.xml": {
+          "sha256": "1557f96f11cf1667beca60679926bf43b393d3ff71eb4b9a625c6a07bc23f4a4",
+          "size": 1477599,
+          "url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4_ht_vocals/htdemucs_fwd.xml?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "music_separation_mel_crowd_aufr33_viperx": {
+      "base_url": "https://huggingface.co/Intel/crowd_mel_band_roformer_aufr33_viperx_openvino/resolve/b35f0dc8e9ee507582bc93a6e2b52e0dba9eca93/",
+      "files": {
+        "mel_band_fwd.bin": {
+          "sha256": "bf585466ba9b3666d16ad18e0ca40cba59c6bf67a7017a95014d81f8aec0317a",
+          "size": 456659406,
+          "url": "https://huggingface.co/Intel/crowd_mel_band_roformer_aufr33_viperx_openvino/resolve/b35f0dc8e9ee507582bc93a6e2b52e0dba9eca93/mel_band_fwd.bin?download=true"
+        },
+        "mel_band_fwd.xml": {
+          "sha256": "e9f681f7184f542338e3c963ba837fd2e622e08bf27e6592aeae92fca757efa4",
+          "size": 2470791,
+          "url": "https://huggingface.co/Intel/crowd_mel_band_roformer_aufr33_viperx_openvino/resolve/b35f0dc8e9ee507582bc93a6e2b52e0dba9eca93/mel_band_fwd.xml?download=true"
+        },
+        "mel_band_post.bin": {
+          "sha256": "b7ebaa78cc9468995474b9a05c9887079fb806f4c861c834b1e9161effde447c",
+          "size": 36094,
+          "url": "https://huggingface.co/Intel/crowd_mel_band_roformer_aufr33_viperx_openvino/resolve/b35f0dc8e9ee507582bc93a6e2b52e0dba9eca93/mel_band_post.bin?download=true"
+        },
+        "mel_band_post.xml": {
+          "sha256": "b87793f6eedb7cb66d0e6c9efbb23b130ad494f360689ef32a5c19afd906320e",
+          "size": 49300,
+          "url": "https://huggingface.co/Intel/crowd_mel_band_roformer_aufr33_viperx_openvino/resolve/b35f0dc8e9ee507582bc93a6e2b52e0dba9eca93/mel_band_post.xml?download=true"
+        },
+        "mel_band_pre.bin": {
+          "sha256": "ded35e388bb5662a161003d4036534a03cd7efa45e3c0c1383f1f1acb73d7f9a",
+          "size": 4242,
+          "url": "https://huggingface.co/Intel/crowd_mel_band_roformer_aufr33_viperx_openvino/resolve/b35f0dc8e9ee507582bc93a6e2b52e0dba9eca93/mel_band_pre.bin?download=true"
+        },
+        "mel_band_pre.xml": {
+          "sha256": "863afb676b3401a0030b3e84aa34db436d553491bf490b2e3f2ea04fea2a03f0",
+          "size": 25802,
+          "url": "https://huggingface.co/Intel/crowd_mel_band_roformer_aufr33_viperx_openvino/resolve/b35f0dc8e9ee507582bc93a6e2b52e0dba9eca93/mel_band_pre.xml?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "music_separation_mel_vocals_kimberley_jenson": {
+      "base_url": "https://huggingface.co/Intel/vocals_mel_band_roformer_kimberleyJSN_openvino/resolve/ce2bae0e27f9b115f38b1ddad35439df2d28cbbd/",
+      "files": {
+        "mel_band_fwd.bin": {
+          "sha256": "1a23e353c7b41267ef683beb9be2d1c5f25a7cc2725b43f6beee68cb7cfc1a0b",
+          "size": 456659406,
+          "url": "https://huggingface.co/Intel/vocals_mel_band_roformer_kimberleyJSN_openvino/resolve/ce2bae0e27f9b115f38b1ddad35439df2d28cbbd/mel_band_fwd.bin?download=true"
+        },
+        "mel_band_fwd.xml": {
+          "sha256": "e9f681f7184f542338e3c963ba837fd2e622e08bf27e6592aeae92fca757efa4",
+          "size": 2470791,
+          "url": "https://huggingface.co/Intel/vocals_mel_band_roformer_kimberleyJSN_openvino/resolve/ce2bae0e27f9b115f38b1ddad35439df2d28cbbd/mel_band_fwd.xml?download=true"
+        },
+        "mel_band_post.bin": {
+          "sha256": "b7ebaa78cc9468995474b9a05c9887079fb806f4c861c834b1e9161effde447c",
+          "size": 36094,
+          "url": "https://huggingface.co/Intel/vocals_mel_band_roformer_kimberleyJSN_openvino/resolve/ce2bae0e27f9b115f38b1ddad35439df2d28cbbd/mel_band_post.bin?download=true"
+        },
+        "mel_band_post.xml": {
+          "sha256": "b87793f6eedb7cb66d0e6c9efbb23b130ad494f360689ef32a5c19afd906320e",
+          "size": 49300,
+          "url": "https://huggingface.co/Intel/vocals_mel_band_roformer_kimberleyJSN_openvino/resolve/ce2bae0e27f9b115f38b1ddad35439df2d28cbbd/mel_band_post.xml?download=true"
+        },
+        "mel_band_pre.bin": {
+          "sha256": "ded35e388bb5662a161003d4036534a03cd7efa45e3c0c1383f1f1acb73d7f9a",
+          "size": 4242,
+          "url": "https://huggingface.co/Intel/vocals_mel_band_roformer_kimberleyJSN_openvino/resolve/ce2bae0e27f9b115f38b1ddad35439df2d28cbbd/mel_band_pre.bin?download=true"
+        },
+        "mel_band_pre.xml": {
+          "sha256": "863afb676b3401a0030b3e84aa34db436d553491bf490b2e3f2ea04fea2a03f0",
+          "size": 25802,
+          "url": "https://huggingface.co/Intel/vocals_mel_band_roformer_kimberleyJSN_openvino/resolve/ce2bae0e27f9b115f38b1ddad35439df2d28cbbd/mel_band_pre.xml?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "music_separation_msdx23c_drum_sep_jarredou": {
+      "base_url": "https://huggingface.co/Intel/drumsep_mdx23c_jarredou_openvino/resolve/2944425500506842ccc4ca130b22be8cfe95b20d/",
+      "files": {
+        "mdx23c_fwd.bin": {
+          "sha256": "682f8616845a9f31bb21df38198df2d36ef79e96182d0ac7671d332afc80270e",
+          "size": 218753348,
+          "url": "https://huggingface.co/Intel/drumsep_mdx23c_jarredou_openvino/resolve/2944425500506842ccc4ca130b22be8cfe95b20d/mdx23c_fwd.bin?download=true"
+        },
+        "mdx23c_fwd.xml": {
+          "sha256": "62c7107ad49bac24bb4e0839971387d6053446c6aa234cf99bce7af7f6ec532c",
+          "size": 775186,
+          "url": "https://huggingface.co/Intel/drumsep_mdx23c_jarredou_openvino/resolve/2944425500506842ccc4ca130b22be8cfe95b20d/mdx23c_fwd.xml?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    }
+  },
+  "version": 1
+}
