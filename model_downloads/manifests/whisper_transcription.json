@@ -1,0 +1,187 @@
+{
+  "file_sets": {
+    "whisper_bundle": [
+      "added_tokens.json",
+      "config.json",
+      "generation_config.json",
+      "normalizer.json",
+      "openvino_decoder_model.bin",
+      "openvino_decoder_model.xml",
+      "openvino_detokenizer.bin",
+      "openvino_detokenizer.xml",
+      "openvino_encoder_model.bin",
+      "openvino_encoder_model.xml",
+      "openvino_tokenizer.bin",
+      "openvino_tokenizer.xml",
+      "preprocessor_config.json",
+      "special_tokens_map.json",
+      "tokenizer.json",
+      "tokenizer_config.json",
+      "vocab.json"
+    ]
+  },
+  "models": [
+    {
+      "effect": "Whisper Transcription",
+      "id": "whisper_base_fp16",
+      "name": "Whisper Base (FP16)",
+      "info_key": "whisper_transcription_info",
+      "base_url": "https://huggingface.co/OpenVINO/whisper-base-fp16-ov/resolve/84fbe975a79a8c996fd32c036558f29e2db6670f/",
+      "relative_path": "whisper/whisper-base-fp16-ov",
+      "file_set": "whisper_bundle"
+    },
+    {
+      "effect": "Whisper Transcription",
+      "id": "whisper_base_int8",
+      "name": "Whisper Base (INT8)",
+      "info_key": "whisper_transcription_info",
+      "base_url": "https://huggingface.co/OpenVINO/whisper-base-int8-ov/resolve/0606293f0511136ada21755a265492f623a934b8/",
+      "relative_path": "whisper/whisper-base-int8-ov",
+      "file_set": "whisper_bundle"
+    },
+    {
+      "effect": "Whisper Transcription",
+      "id": "whisper_base_int4",
+      "name": "Whisper Base (INT4)",
+      "info_key": "whisper_transcription_info",
+      "base_url": "https://huggingface.co/OpenVINO/whisper-base-int4-ov/resolve/21b22adb8e49b79dab004804a1b40655a4767c37/",
+      "relative_path": "whisper/whisper-base-int4-ov",
+      "file_set": "whisper_bundle"
+    },
+    {
+      "effect": "Whisper Transcription",
+      "id": "whisper_medium_fp16",
+      "name": "Whisper Medium (FP16)",
+      "info_key": "whisper_transcription_info",
+      "base_url": "https://huggingface.co/OpenVINO/whisper-medium-fp16-ov/resolve/4508616c9c0774807e7d315c26cec49dcfe1f0a8/",
+      "relative_path": "whisper/whisper-medium-fp16-ov",
+      "file_set": "whisper_bundle"
+    },
+    {
+      "effect": "Whisper Transcription",
+      "id": "whisper_medium_int8",
+      "name": "Whisper Medium (INT8)",
+      "info_key": "whisper_transcription_info",
+      "base_url": "https://huggingface.co/OpenVINO/whisper-medium-int8-ov/resolve/8d43cce846729381f56bd45a1c70925cee2222ff/",
+      "relative_path": "whisper/whisper-medium-int8-ov",
+      "file_set": "whisper_bundle"
+    },
+    {
+      "effect": "Whisper Transcription",
+      "id": "whisper_medium_int4",
+      "name": "Whisper Medium (INT4)",
+      "info_key": "whisper_transcription_info",
+      "base_url": "https://huggingface.co/OpenVINO/whisper-medium-int4-ov/resolve/14bba652dc6604717bf1cbdf358645d414548522/",
+      "relative_path": "whisper/whisper-medium-int4-ov",
+      "file_set": "whisper_bundle"
+    },
+    {
+      "effect": "Whisper Transcription",
+      "id": "whisper_large_v2_fp16",
+      "name": "Whisper Large V2 (FP16)",
+      "info_key": "whisper_transcription_info",
+      "base_url": "",
+      "relative_path": "whisper/whisper-large-v2-fp16-ov",
+      "file_set": "whisper_bundle"
+    },
+    {
+      "effect": "Whisper Transcription",
+      "id": "whisper_large_v2_int8",
+      "name": "Whisper Large V2 (INT8)",
+      "info_key": "whisper_transcription_info",
+      "base_url": "",
+      "relative_path": "whisper/whisper-large-v2-int8-ov",
+      "file_set": "whisper_bundle"
+    },
+    {
+      "effect": "Whisper Transcription",
+      "id": "whisper_large_v2_int4",
+      "name": "Whisper Large V2 (INT4)",
+      "info_key": "whisper_transcription_info",
+      "base_url": "",
+      "relative_path": "whisper/whisper-large-v2-int4-ov",
+      "file_set": "whisper_bundle"
+    },
+    {
+      "effect": "Whisper Transcription",
+      "id": "whisper_large_v3_fp16",
+      "name": "Whisper Large V3 (FP16)",
+      "info_key": "whisper_transcription_info",
+      "base_url": "https://huggingface.co/OpenVINO/whisper-large-v3-fp16-ov/resolve/220761e60602a5ca694c409d5f424563b75d6820/",
+      "relative_path": "whisper/whisper-large-v3-fp16-ov",
+      "file_set": "whisper_bundle"
+    },
+    {
+      "effect": "Whisper Transcription",
+      "id": "whisper_large_v3_int8",
+      "name": "Whisper Large V3 (INT8)",
+      "info_key": "whisper_transcription_info",
+      "base_url": "https://huggingface.co/OpenVINO/whisper-large-v3-int8-ov/resolve/a888a75cc8b494a8a45400fd85f6bfa379ba3955/",
+      "relative_path": "whisper/whisper-large-v3-int8-ov",
+      "file_set": "whisper_bundle"
+    },
+    {
+      "effect": "Whisper Transcription",
+      "id": "whisper_large_v3_int4",
+      "name": "Whisper Large V3 (INT4)",
+      "info_key": "whisper_transcription_info",
+      "base_url": "https://huggingface.co/OpenVINO/whisper-large-v3-int4-ov/resolve/95f08bc1b2b53dafaecae3d806b056adecc0be33/",
+      "relative_path": "whisper/whisper-large-v3-int4-ov",
+      "file_set": "whisper_bundle"
+    },
+    {
+      "effect": "Whisper Transcription",
+      "id": "distil_whisper_large_v3_fp16",
+      "name": "Distil-Whisper Large V3 (FP16)",
+      "info_key": "whisper_transcription_info",
+      "base_url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-fp16-ov/resolve/147fc406c025905fa774599450c3ca98b72e5671/",
+      "relative_path": "whisper/distil-whisper-large-v3-fp16-ov",
+      "file_set": "whisper_bundle"
+    },
+    {
+      "effect": "Whisper Transcription",
+      "id": "distil_whisper_large_v3_int8",
+      "name": "Distil-Whisper Large V3 (INT8)",
+      "info_key": "whisper_transcription_info",
+      "base_url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int8-ov/resolve/ab5db836c48303e296237013d7385924f2828e9d/",
+      "relative_path": "whisper/distil-whisper-large-v3-int8-ov",
+      "file_set": "whisper_bundle"
+    },
+    {
+      "effect": "Whisper Transcription",
+      "id": "distil_whisper_large_v3_int4",
+      "name": "Distil-Whisper Large V3 (INT4)",
+      "info_key": "whisper_transcription_info",
+      "base_url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int4-ov/resolve/954b8ce3ca0e1d668d6ec41ea2b03e8420d95158/",
+      "relative_path": "whisper/distil-whisper-large-v3-int4-ov",
+      "file_set": "whisper_bundle"
+    },
+    {
+      "effect": "Whisper Transcription",
+      "id": "whisper_large_v3_turbo_fp16",
+      "name": "Whisper Large V3 Turbo (FP16)",
+      "info_key": "whisper_transcription_info",
+      "base_url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-fp16-ov/resolve/131d663658f94202779b0bb98ee7a5f71d5bde1a/",
+      "relative_path": "whisper/whisper-large-v3-turbo-fp16-ov",
+      "file_set": "whisper_bundle"
+    },
+    {
+      "effect": "Whisper Transcription",
+      "id": "whisper_large_v3_turbo_int8",
+      "name": "Whisper Large V3 Turbo (INT8)",
+      "info_key": "whisper_transcription_info",
+      "base_url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int8-ov/resolve/4929ae83ea2d1df59f4b5898a9aab8aa1c29e711/",
+      "relative_path": "whisper/whisper-large-v3-turbo-int8-ov",
+      "file_set": "whisper_bundle"
+    },
+    {
+      "effect": "Whisper Transcription",
+      "id": "whisper_large_v3_turbo_int4",
+      "name": "Whisper Large V3 Turbo (INT4)",
+      "info_key": "whisper_transcription_info",
+      "base_url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int4-ov/resolve/ae50b4d9a9dbaf16f2df59c23f3984e42f864dfc/",
+      "relative_path": "whisper/whisper-large-v3-turbo-int4-ov",
+      "file_set": "whisper_bundle"
+    }
+  ]
+}

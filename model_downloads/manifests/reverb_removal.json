@@ -1,0 +1,28 @@
+{
+  "sources": {
+    "hf_intel_dereverb_mel_band_roformer_anvuew_openvino_mono": {
+      "base_url": "https://huggingface.co/Intel/dereverb_mel_band_roformer_anvuew_openvino/resolve/16aeb6904702657415c04bdc906dc9c3ed6524a1/mono/"
+    }
+  },
+  "file_sets": {
+    "reverb_mel_band_roformer_bundle": [
+      "mel_band_pre.xml",
+      "mel_band_pre.bin",
+      "mel_band_post.xml",
+      "mel_band_post.bin",
+      "mel_band_fwd.xml",
+      "mel_band_fwd.bin"
+    ]
+  },
+  "models": [
+    {
+      "effect": "Reverb Removal",
+      "id": "reverb_removal_mel_band_roformer_mono_anvuew",
+      "name": "MelBandRoformer Dereverb Mono (@anvuew)",
+      "info_key": "reverb_removal_mel_band_dereverb_mono_anvuew",
+      "source": "hf_intel_dereverb_mel_band_roformer_anvuew_openvino_mono",
+      "relative_path": "reverb_removal/mel_band_roformer_mono_anvuew",
+      "file_set": "reverb_mel_band_roformer_bundle"
+    }
+  ]
+}

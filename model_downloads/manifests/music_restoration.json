@@ -1,0 +1,33 @@
+{
+  "sources": {
+    "hf_intel_apollo_jusperlee_openvino": {
+      "base_url": "https://huggingface.co/Intel/apollo_jusperlee_openvino/resolve/720c90a7df79fd6add733ca9748a22b471a3bc09/"
+    }
+  },
+  "file_sets": {
+    "apollo_pair": [
+      "apollo_fwd.xml",
+      "apollo_fwd.bin"
+    ]
+  },
+  "models": [
+    {
+      "effect": "Music Restoration",
+      "id": "music_restoration_apollo_mp3_jusperlee",
+      "name": "Apollo MP3 Restore (@JusperLee)",
+      "info_key": "music_restoration_apollo_mp3_jusperlee",
+      "source": "hf_intel_apollo_jusperlee_openvino",
+      "relative_path": "music_restoration/apollo_jusperlee",
+      "file_set": "apollo_pair"
+    },
+    {
+      "effect": "Music Restoration",
+      "id": "music_restoration_apollo_universal_lew",
+      "name": "Apollo Universal Restore (@Lew)",
+      "info_key": "music_restoration_apollo_universal_lew",
+      "base_url": "",
+      "relative_path": "music_restoration/apollo_universal",
+      "file_set": "apollo_pair"
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "sources": {
+    "hf_intel_deepfilternet_openvino": {
+      "base_url": "https://huggingface.co/Intel/deepfilternet-openvino/resolve/0615a1b18be8585156130a98fdbca75e9719eda3/"
+    },
+    "omz_noise_suppression_denseunet_fp16": {
+      "base_url": "https://storage.openvinotoolkit.org/repositories/open_model_zoo/2023.0/models_bin/1/noise-suppression-denseunet-ll-0001/FP16/"
+    }
+  },
+  "file_sets": {
+    "deepfilternet_bundle": [
+      "df_dec.bin",
+      "df_dec.xml",
+      "enc.xml",
+      "enc.bin",
+      "erb_dec.xml",
+      "erb_dec.bin"
+    ],
+    "denseunet_pair": [
+      "noise-suppression-denseunet-ll-0001.xml",
+      "noise-suppression-denseunet-ll-0001.bin"
+    ]
+  },
+  "models": [
+    {
+      "effect": "Noise Suppression",
+      "id": "noise_suppression_deepfilternet2",
+      "name": "DeepFilterNet2",
+      "info_key": "noise_suppression_deepfilternet2",
+      "source": "hf_intel_deepfilternet_openvino",
+      "relative_path": "deepfilternet2",
+      "files": [
+        "deepfilternet2/df_dec.bin",
+        "deepfilternet2/df_dec.xml",
+        "deepfilternet2/enc.xml",
+        "deepfilternet2/enc.bin",
+        "deepfilternet2/erb_dec.xml",
+        "deepfilternet2/erb_dec.bin"
+      ]
+    },
+    {
+      "effect": "Noise Suppression",
+      "id": "noise_suppression_deepfilternet3",
+      "name": "DeepFilterNet3",
+      "info_key": "noise_suppression_deepfilternet3",
+      "source": "hf_intel_deepfilternet_openvino",
+      "relative_path": "deepfilternet3",
+      "files": [
+        "deepfilternet3/df_dec.bin",
+        "deepfilternet3/df_dec.xml",
+        "deepfilternet3/enc.xml",
+        "deepfilternet3/enc.bin",
+        "deepfilternet3/erb_dec.xml",
+        "deepfilternet3/erb_dec.bin"
+      ]
+    },
+    {
+      "effect": "Noise Suppression",
+      "id": "noise_suppression_denseunet",
+      "name": "DenseUNet",
+      "info_key": "noise_suppression_denseunet",
+      "source": "omz_noise_suppression_denseunet_fp16",
+      "post_url": "",
+      "relative_path": "",
+      "file_set": "denseunet_pair"
+    }
+  ]
+}

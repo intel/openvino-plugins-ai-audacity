@@ -25,45 +25,85 @@ const char* ResolveModelInfoFromKey(const std::string& info_key)
    if (info_key == "music_separation_msdx23c_drum_sep_jarredou")
       return music_separation_msdx23c_drum_sep_jarredou;
 
+   if (info_key == "reverb_removal_mel_band_dereverb_mono_anvuew")
+      return reverb_removal_mel_band_dereverb_mono_anvuew;
+
+   if (info_key == "music_restoration_apollo_mp3_jusperlee")
+      return music_restoration_apollo_mp3_jusperlee;
+   if (info_key == "music_restoration_apollo_universal_lew")
+      return music_restoration_apollo_universal_lew;
+
+   if (info_key == "noise_suppression_deepfilternet2")
+      return noise_suppression_deepfilternet2;
+   if (info_key == "noise_suppression_deepfilternet3")
+      return noise_suppression_deepfilternet3;
+   if (info_key == "noise_suppression_denseunet")
+      return noise_suppression_denseunet;
+
+   if (info_key == "super_resolution_basic_general")
+      return super_resolution_basic_general;
+   if (info_key == "super_resolution_speech")
+      return super_resolution_speech;
+
+   if (info_key == "text_to_speech_kokoro_82m")
+      return text_to_speech_kokoro_82m;
+
+   if (info_key == "whisper_transcription_info")
+      return whisper_transcription_info;
+
    return "";
 }
 
-} // namespace
-
-static std::shared_ptr< OVModelManager::ModelCollection > populate_music_separation()
+void CopyManifestModelMetadata(const model_download_manifest::ModelInfo& source_model,
+   const std::shared_ptr<OVModelManager::ModelInfo>& model_info)
 {
-   auto music_sep_collection = std::make_shared< OVModelManager::ModelCollection >();
+   if (!model_info) {
+      return;
+   }
 
+   model_info->baseUrl = source_model.base_url;
+   model_info->postUrl = source_model.post_url;
+   model_info->relative_path = source_model.relative_path;
+
+   model_info->files.clear();
+   model_info->files.reserve(source_model.file_count);
+   for (std::size_t file_index = 0; file_index < source_model.file_count; ++file_index) {
+      const auto& source_file = source_model.files[file_index];
+      model_info->files.push_back({ source_file.name, source_file.expected_sha256 });
+   }
+}
+
+template<typename InfoResolver, typename VisibilityPredicate>
+std::shared_ptr<OVModelManager::ModelCollection> BuildManifestCollection(
+   const std::string& effect,
+   InfoResolver&& resolveInfo,
+   VisibilityPredicate&& isVisible)
+{
+   auto collection = std::make_shared<OVModelManager::ModelCollection>();
    std::unordered_map<std::string, std::shared_ptr<OVModelManager::ModelInfo>> models_by_id;
 
    for (std::size_t i = 0; i < model_download_manifest::kModelCount; ++i)
    {
       const auto& source_model = model_download_manifest::kModels[i];
-      if (source_model.effect != OVModelManager::MusicSepName()) {
+      if (source_model.effect != effect) {
          continue;
       }
 
       auto model_info = std::make_shared<OVModelManager::ModelInfo>();
       model_info->model_name = source_model.model_name;
-      model_info->info = ResolveModelInfoFromKey(source_model.info_key);
-      model_info->baseUrl = source_model.base_url;
-      model_info->postUrl = source_model.post_url;
-      model_info->relative_path = source_model.relative_path;
+      model_info->info = resolveInfo(source_model);
+      CopyManifestModelMetadata(source_model, model_info);
 
-      model_info->files.reserve(source_model.file_count);
-      for (std::size_t file_index = 0; file_index < source_model.file_count; ++file_index) {
-         const auto& source_file = source_model.files[file_index];
-         model_info->files.push_back({ source_file.name, source_file.expected_sha256 });
-      }
-
-      music_sep_collection->models.emplace_back(model_info);
       models_by_id[source_model.model_id] = model_info;
+      if (isVisible(source_model)) {
+         collection->models.emplace_back(model_info);
+      }
    }
 
    for (std::size_t i = 0; i < model_download_manifest::kModelCount; ++i)
    {
       const auto& source_model = model_download_manifest::kModels[i];
-      if (source_model.effect != OVModelManager::MusicSepName()) {
+      if (source_model.effect != effect) {
          continue;
       }
 
@@ -82,403 +122,121 @@ static std::shared_ptr< OVModelManager::ModelCollection > populate_music_separat
       }
    }
 
-   return music_sep_collection;
+   return collection;
 }
 
+std::string WhisperQuickDescription(const std::string& model_id)
+{
+   static const std::unordered_map<std::string, std::string> quick_description_by_id {
+      { "whisper_base_fp16", "FP16-quantized version of Whisper-Base. See Quantization / Model Variant Guides below for more information." },
+      { "whisper_base_int8", "INT8-quantized version of Whisper-Base. See Quantization / Model Variant Guides below for more information." },
+      { "whisper_base_int4", "INT4-quantized version of Whisper-Base. See Quantization / Model Variant Guides below for more information." },
+      { "whisper_medium_fp16", "FP16-quantized version of Whisper-Medium. See Quantization / Model Variant Guides below for more information." },
+      { "whisper_medium_int8", "INT8-quantized version of Whisper-Medium. See Quantization / Model Variant Guides below for more information." },
+      { "whisper_medium_int4", "INT4-quantized version of Whisper-Medium. See Quantization / Model Variant Guides below for more information." },
+      { "whisper_large_v2_fp16", "FP16-quantized version of Whisper-Large-V2. See Quantization / Model Variant Guides below for more information." },
+      { "whisper_large_v2_int8", "INT8-quantized version of Whisper-Large-V2. See Quantization / Model Variant Guides below for more information." },
+      { "whisper_large_v2_int4", "INT4-quantized version of Whisper-Large-V2. See Quantization / Model Variant Guides below for more information." },
+      { "whisper_large_v3_fp16", "FP16-quantized version of Whisper-Large-V3. See Quantization / Model Variant Guides below for more information." },
+      { "whisper_large_v3_int8", "INT8-quantized version of Whisper-Large-V3. See Quantization / Model Variant Guides below for more information." },
+      { "whisper_large_v3_int4", "INT4-quantized version of Whisper-Large-V3. See Quantization / Model Variant Guides below for more information." },
+      { "distil_whisper_large_v3_fp16", "FP16-quantized version of Distil-Whisper-Large-V3. See Quantization / Model Variant Guides below for more information." },
+      { "distil_whisper_large_v3_int8", "INT8-quantized version of Distil-Whisper-Large-V3. See Quantization / Model Variant Guides below for more information." },
+      { "distil_whisper_large_v3_int4", "INT4-quantized version of Distil-Whisper-Large-V3. See Quantization / Model Variant Guides below for more information." },
+      { "whisper_large_v3_turbo_fp16", "FP16-quantized version of Whisper-Large-V3-Turbo. See Quantization / Model Variant Guides below for more information." },
+      { "whisper_large_v3_turbo_int8", "INT8-quantized version of Whisper-Large-V3-Turbo. See Quantization / Model Variant Guides below for more information." },
+      { "whisper_large_v3_turbo_int4", "INT4-quantized version of Whisper-Large-V3-Turbo. See Quantization / Model Variant Guides below for more information." },
+   };
+
+   auto it = quick_description_by_id.find(model_id);
+   if (it != quick_description_by_id.end()) {
+      return it->second;
+   }
+
+   return "See Quantization / Model Variant Guides below for more information.";
+}
+
+} // namespace
+
+static std::shared_ptr< OVModelManager::ModelCollection > populate_music_separation()
+{
+   return BuildManifestCollection(
+      OVModelManager::MusicSepName(),
+      [](const model_download_manifest::ModelInfo& source_model) {
+         return std::string(ResolveModelInfoFromKey(source_model.info_key));
+      },
+      [](const model_download_manifest::ModelInfo&) { return true; });
+}
 
 static std::shared_ptr< OVModelManager::ModelCollection > populate_reverb_removal()
 {
-   auto collection = std::make_shared< OVModelManager::ModelCollection >();
-
-   std::string relative_path = "reverb_removal/";
-
-   //mel band roformer models
-   {
-      std::vector< std::string > fileList = { "mel_band_pre.xml", "mel_band_pre.bin",
-                                              "mel_band_post.xml", "mel_band_post.bin",
-                                              "mel_band_fwd.xml", "mel_band_fwd.bin" };
-
-      {
-         std::shared_ptr<OVModelManager::ModelInfo> mel_model_info = std::make_shared<OVModelManager::ModelInfo>();
-         mel_model_info->model_name = "MelBandRoformer Dereverb Mono (@anvuew)";
-         mel_model_info->info = reverb_removal_mel_band_dereverb_mono_anvuew;
-         mel_model_info->baseUrl = "https://huggingface.co/Intel/dereverb_mel_band_roformer_anvuew_openvino/resolve/16aeb6904702657415c04bdc906dc9c3ed6524a1/mono/";
-         mel_model_info->relative_path = relative_path + "mel_band_roformer_mono_anvuew";
-         mel_model_info->SetFileList(fileList);
-         collection->models.emplace_back(mel_model_info);
-      }
-   }
-
-   return collection;
+   return BuildManifestCollection(
+      OVModelManager::ReverbRemovalName(),
+      [](const model_download_manifest::ModelInfo& source_model) {
+         return std::string(ResolveModelInfoFromKey(source_model.info_key));
+      },
+      [](const model_download_manifest::ModelInfo&) { return true; });
 }
 
 static std::shared_ptr< OVModelManager::ModelCollection > populate_music_restoration()
 {
-   auto collection = std::make_shared< OVModelManager::ModelCollection >();
-
-   std::string relative_path = "music_restoration/";
-
-   //apollo models
-   {
-      std::vector< std::string > fileList = { "apollo_fwd.xml", "apollo_fwd.bin"};
-
-      {
-         std::shared_ptr<OVModelManager::ModelInfo> mel_model_info = std::make_shared<OVModelManager::ModelInfo>();
-         mel_model_info->model_name = "Apollo MP3 Restore (@JusperLee)";
-         mel_model_info->info = music_restoration_apollo_mp3_jusperlee;
-         mel_model_info->baseUrl = "https://huggingface.co/Intel/apollo_jusperlee_openvino/resolve/720c90a7df79fd6add733ca9748a22b471a3bc09/";
-         mel_model_info->relative_path = relative_path + "apollo_jusperlee";
-         mel_model_info->SetFileList(fileList);
-         collection->models.emplace_back(mel_model_info);
-      }
-
-      {
-         std::shared_ptr<OVModelManager::ModelInfo> mel_model_info = std::make_shared<OVModelManager::ModelInfo>();
-         mel_model_info->model_name = "Apollo Universal Restore (@Lew)";
-         mel_model_info->info = music_restoration_apollo_universal_lew;
-         mel_model_info->baseUrl = "";
-         mel_model_info->relative_path = relative_path + "apollo_universal";
-         mel_model_info->SetFileList(fileList);
-         collection->models.emplace_back(mel_model_info);
-      }
-   }
-
-   return collection;
+   return BuildManifestCollection(
+      OVModelManager::MusicRestorationName(),
+      [](const model_download_manifest::ModelInfo& source_model) {
+         return std::string(ResolveModelInfoFromKey(source_model.info_key));
+      },
+      [](const model_download_manifest::ModelInfo&) { return true; });
 }
-
-struct WhisperInfo
-{
-   std::string ui_name;
-   std::string relative_path;
-   std::string base_url;
-   std::string quick_description;
-};
 
 static std::shared_ptr< OVModelManager::ModelCollection > populate_whisper()
 {
-   const std::vector<WhisperInfo> whisper_model_infos
-   {
-      {
-         "Whisper Base (FP16)",
-         "whisper-base-fp16-ov",
-         "https://huggingface.co/OpenVINO/whisper-base-fp16-ov/resolve/84fbe975a79a8c996fd32c036558f29e2db6670f/",
-         "FP16-quantized version of Whisper-Base. See Quantization / Model Variant Guides below for more information."
+   return BuildManifestCollection(
+      OVModelManager::WhisperName(),
+      [](const model_download_manifest::ModelInfo& source_model) {
+         std::string info = "<h1>" + std::string(source_model.model_name) + "</h1>\n\n";
+         info += "<p>" + WhisperQuickDescription(source_model.model_id) + "</p>";
+         info += whisper_transcription_info;
+         return info;
       },
-      {
-         "Whisper Base (INT8)",
-         "whisper-base-int8-ov",
-         "https://huggingface.co/OpenVINO/whisper-base-int8-ov/resolve/0606293f0511136ada21755a265492f623a934b8/",
-         "INT8-quantized version of Whisper-Base. See Quantization / Model Variant Guides below for more information."
-      },
-      {
-         "Whisper Base (INT4)",
-         "whisper-base-int4-ov",
-         "https://huggingface.co/OpenVINO/whisper-base-int4-ov/resolve/21b22adb8e49b79dab004804a1b40655a4767c37/",
-         "INT4-quantized version of Whisper-Base. See Quantization / Model Variant Guides below for more information."
-      },
-      {
-         "Whisper Medium (FP16)",
-         "whisper-medium-fp16-ov",
-         "https://huggingface.co/OpenVINO/whisper-medium-fp16-ov/resolve/4508616c9c0774807e7d315c26cec49dcfe1f0a8/",
-         "FP16-quantized version of Whisper-Medium. See Quantization / Model Variant Guides below for more information."
-      },
-      {
-         "Whisper Medium (INT8)",
-         "whisper-medium-int8-ov",
-         "https://huggingface.co/OpenVINO/whisper-medium-int8-ov/resolve/8d43cce846729381f56bd45a1c70925cee2222ff/",
-         "INT8-quantized version of Whisper-Medium. See Quantization / Model Variant Guides below for more information."
-      },
-      {
-         "Whisper Medium (INT4)",
-         "whisper-medium-int4-ov",
-         "https://huggingface.co/OpenVINO/whisper-medium-int4-ov/resolve/14bba652dc6604717bf1cbdf358645d414548522/",
-         "INT4-quantized version of Whisper-Medium. See Quantization / Model Variant Guides below for more information."
-      },
-      {
-         "Whisper Large V2 (FP16)",
-         "whisper-large-v2-fp16-ov",
-         "", //Not yet on HF. Hopefully soon!
-         "FP16-quantized version of Whisper-Large-V2. See Quantization / Model Variant Guides below for more information."
-      },
-      {
-         "Whisper Large V2 (INT8)",
-         "whisper-large-v2-int8-ov",
-         "", //Not yet on HF. Hopefully soon!
-         "INT8-quantized version of Whisper-Large-V2. See Quantization / Model Variant Guides below for more information."
-      },
-      {
-         "Whisper Large V2 (INT4)",
-         "whisper-large-v2-int4-ov",
-         "", //Not yet on HF. Hopefully soon!
-         "INT4-quantized version of Whisper-Large-V2. See Quantization / Model Variant Guides below for more information."
-      },
-      {
-         "Whisper Large V3 (FP16)",
-         "whisper-large-v3-fp16-ov",
-         "https://huggingface.co/OpenVINO/whisper-large-v3-fp16-ov/resolve/220761e60602a5ca694c409d5f424563b75d6820/",
-         "FP16-quantized version of Whisper-Large-V3. See Quantization / Model Variant Guides below for more information."
-      },
-      {
-         "Whisper Large V3 (INT8)",
-         "whisper-large-v3-int8-ov",
-         "https://huggingface.co/OpenVINO/whisper-large-v3-int8-ov/resolve/a888a75cc8b494a8a45400fd85f6bfa379ba3955/",
-         "INT8-quantized version of Whisper-Large-V3. See Quantization / Model Variant Guides below for more information."
-      },
-      {
-         "Whisper Large V3 (INT4)",
-         "whisper-large-v3-int4-ov",
-         "https://huggingface.co/OpenVINO/whisper-large-v3-int4-ov/resolve/95f08bc1b2b53dafaecae3d806b056adecc0be33/",
-         "INT4-quantized version of Whisper-Large-V3. See Quantization / Model Variant Guides below for more information."
-      },
-      {
-         "Distil-Whisper Large V3 (FP16)",
-         "distil-whisper-large-v3-fp16-ov",
-         "https://huggingface.co/OpenVINO/distil-whisper-large-v3-fp16-ov/resolve/147fc406c025905fa774599450c3ca98b72e5671/",
-         "FP16-quantized version of Distil-Whisper-Large-V3. See Quantization / Model Variant Guides below for more information."
-      },
-      {
-         "Distil-Whisper Large V3 (INT8)",
-         "distil-whisper-large-v3-int8-ov",
-         "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int8-ov/resolve/ab5db836c48303e296237013d7385924f2828e9d/",
-         "INT8-quantized version of Distil-Whisper-Large-V3. See Quantization / Model Variant Guides below for more information."
-      },
-      {
-         "Distil-Whisper Large V3 (INT4)",
-         "distil-whisper-large-v3-int4-ov",
-         "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int4-ov/resolve/954b8ce3ca0e1d668d6ec41ea2b03e8420d95158/",
-         "INT4-quantized version of Distil-Whisper-Large-V3. See Quantization / Model Variant Guides below for more information."
-      },
-      {
-         "Whisper Large V3 Turbo (FP16)",
-         "whisper-large-v3-turbo-fp16-ov",
-         "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-fp16-ov/resolve/131d663658f94202779b0bb98ee7a5f71d5bde1a/",
-         "FP16-quantized version of Whisper-Large-V3-Turbo. See Quantization / Model Variant Guides below for more information."
-      },
-      {
-         "Whisper Large V3 Turbo (INT8)",
-         "whisper-large-v3-turbo-int8-ov",
-         "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int8-ov/resolve/4929ae83ea2d1df59f4b5898a9aab8aa1c29e711/",
-         "INT8-quantized version of Whisper-Large-V3-Turbo. See Quantization / Model Variant Guides below for more information."
-      },
-      {
-         "Whisper Large V3 Turbo (INT4)",
-         "whisper-large-v3-turbo-int4-ov",
-         "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int4-ov/resolve/ae50b4d9a9dbaf16f2df59c23f3984e42f864dfc/",
-         "INT4-quantized version of Whisper-Large-V3-Turbo. See Quantization / Model Variant Guides below for more information."
-      }
-   };
-
-   auto whisper_collection = std::make_shared< OVModelManager::ModelCollection >();
-
-   for (auto& whisper_model_info : whisper_model_infos)
-   {
-      std::shared_ptr<OVModelManager::ModelInfo> whisper_info = std::make_shared<OVModelManager::ModelInfo>();
-      whisper_info->model_name = whisper_model_info.ui_name;
-
-      std::string info = "<h1>" + whisper_model_info.ui_name + "</h1>\n\n";
-      info += "<p>" + whisper_model_info.quick_description + "</p>";
-
-      // Add the 'general' info from whisper/info.md
-      info += whisper_transcription_info;
-
-      whisper_info->info = info;
-
-      whisper_info->baseUrl = whisper_model_info.base_url;
-      whisper_info->relative_path = "whisper/" + whisper_model_info.relative_path;
-      whisper_info->SetFileList({
-         "added_tokens.json", "config.json", "generation_config.json", "normalizer.json", "openvino_decoder_model.bin",
-         "openvino_decoder_model.xml", "openvino_detokenizer.bin", "openvino_detokenizer.xml", "openvino_encoder_model.bin", "openvino_encoder_model.xml",
-         "openvino_tokenizer.bin", "openvino_tokenizer.xml", "preprocessor_config.json", "special_tokens_map.json",
-         "tokenizer.json", "tokenizer_config.json", "vocab.json"
-      });
-
-      whisper_collection->models.push_back(whisper_info);
-   }
-
-   return whisper_collection;
+      [](const model_download_manifest::ModelInfo&) { return true; });
 }
 
 static std::shared_ptr< OVModelManager::ModelCollection > populate_super_resolution()
 {
-   std::string baseUrl = "https://huggingface.co/Intel/versatile_audio_super_resolution_openvino/resolve/b98a5a9e21ede61cd556cd04d425bf5bfd675328/";
-   std::shared_ptr<OVModelManager::ModelInfo> common = std::make_shared<OVModelManager::ModelInfo>();
-   common->model_name = "Super Resolution Common";
-   common->baseUrl = baseUrl;
-   common->relative_path = "audiosr";
-   common->SetFileList({ "audiosr_decoder.bin", "audiosr_decoder.xml", "audiosr_encoder.bin", "audiosr_encoder.xml",
-                         "mel_24000_cpu.raw", "post_quant_conv.bin", "post_quant_conv.xml", "quant_conv.bin",
-                         "quant_conv.xml", "vae_feature_extract.bin", "vae_feature_extract.xml", "vocoder.xml",
-                         "vocoder.bin"});
-
-   auto collection = std::make_shared< OVModelManager::ModelCollection >();
-
-   //Basic (General) FP16
-   {
-      std::shared_ptr<OVModelManager::ModelInfo> model = std::make_shared<OVModelManager::ModelInfo>();
-      model->model_name = "Basic (General) (FP16)";
-      model->info = super_resolution_basic_general;
-      model->baseUrl = baseUrl;
-      model->relative_path = "audiosr";
-      model->dependencies.push_back(common);
-      model->SetFileList({ "basic/ddpm.xml", "basic/ddpm.bin" });
-      collection->models.emplace_back(model);
-   }
-
-   //Speech FP16
-   {
-      std::shared_ptr<OVModelManager::ModelInfo> model = std::make_shared<OVModelManager::ModelInfo>();
-      model->model_name = "Speech (FP16)";
-      model->info = super_resolution_speech;
-      model->baseUrl = baseUrl;
-      model->relative_path = "audiosr";
-      model->dependencies.push_back(common);
-      model->SetFileList({ "speech/ddpm.xml", "speech/ddpm.bin" });
-      collection->models.emplace_back(model);
-   }
-
-   return collection;
+   return BuildManifestCollection(
+      OVModelManager::SuperResName(),
+      [](const model_download_manifest::ModelInfo& source_model) {
+         return std::string(ResolveModelInfoFromKey(source_model.info_key));
+      },
+      [](const model_download_manifest::ModelInfo& source_model) {
+         return std::string(source_model.model_id) != "super_resolution_common";
+      });
 }
 
 static std::shared_ptr< OVModelManager::ModelCollection > populate_noise_suppression()
 {
-   auto collection = std::make_shared< OVModelManager::ModelCollection >();
-
-   //deepfilternet
-   {
-      std::string baseUrl = "https://huggingface.co/Intel/deepfilternet-openvino/resolve/0615a1b18be8585156130a98fdbca75e9719eda3/";
-
-      // deepfilternet2
-      {
-         std::shared_ptr<OVModelManager::ModelInfo> model = std::make_shared<OVModelManager::ModelInfo>();
-         model->model_name = "DeepFilterNet2";
-         model->info = noise_suppression_deepfilternet2;
-         model->baseUrl = baseUrl;
-         model->SetFileList({ "df_dec.bin", "df_dec.xml", "enc.xml", "enc.bin", "erb_dec.xml", "erb_dec.bin" });
-         model->PrependFilePathPrefix("deepfilternet2/");
-
-         collection->models.emplace_back(model);
-      }
-
-      // deepfilternet3
-      {
-         std::shared_ptr<OVModelManager::ModelInfo> model = std::make_shared<OVModelManager::ModelInfo>();
-         model->model_name = "DeepFilterNet3";
-         model->info = noise_suppression_deepfilternet3;
-         model->baseUrl = baseUrl;
-         model->SetFileList({ "df_dec.bin", "df_dec.xml", "enc.xml", "enc.bin", "erb_dec.xml", "erb_dec.bin" });
-         model->PrependFilePathPrefix("deepfilternet3/");
-
-         collection->models.emplace_back(model);
-      }
-   }
-
-   // denseunet
-   {
-      std::shared_ptr<OVModelManager::ModelInfo> model = std::make_shared<OVModelManager::ModelInfo>();
-      model->model_name = "DenseUNet";
-      model->info = noise_suppression_denseunet;
-      model->baseUrl = "https://storage.openvinotoolkit.org/repositories/open_model_zoo/2023.0/models_bin/1/noise-suppression-denseunet-ll-0001/FP16/";
-      model->postUrl = "";
-      model->SetFileList({ "noise-suppression-denseunet-ll-0001.xml", "noise-suppression-denseunet-ll-0001.bin" });
-      collection->models.emplace_back(model);
-   }
-
-   return collection;
+   return BuildManifestCollection(
+      OVModelManager::NoiseSuppressName(),
+      [](const model_download_manifest::ModelInfo& source_model) {
+         return std::string(ResolveModelInfoFromKey(source_model.info_key));
+      },
+      [](const model_download_manifest::ModelInfo&) { return true; });
 }
-
 
 static std::shared_ptr< OVModelManager::ModelCollection > populate_tts()
 {
-   auto collection = std::make_shared< OVModelManager::ModelCollection >();
-
-   // Kokoro-82M: no public download URL yet; flagged as installed if files are found locally.
-   {
-      std::shared_ptr<OVModelManager::ModelInfo> model = std::make_shared<OVModelManager::ModelInfo>();
-      model->model_name = "Kokoro-82M";
-      model->info = text_to_speech_kokoro_82m;
-      model->baseUrl = ""; // not yet available for download
-      model->relative_path = "text_to_speech/ov_Kokoro-82M";
-      model->SetFileList({
-         // Core model files
-         "openvino_model.xml",
-         "openvino_model.bin",
-         "config.json",
-         // Data files
-         "data/gb_gold.json",
-         "data/gb_silver.json",
-         "data/ja_words.txt",
-         "data/us_gold.json",
-         "data/us_silver.json",
-         "data/vi_acronyms.json",
-         "data/vi_symbols.json",
-         "data/vi_teencode.json",
-         // Voice embeddings (af = American Female, am = American Male,
-         //                   bf = British Female, bm = British Male, etc.)
-         "voices/af_alloy.bin",
-         "voices/af_aoede.bin",
-         "voices/af_bella.bin",
-         "voices/af_heart.bin",
-         "voices/af_jessica.bin",
-         "voices/af_kore.bin",
-         "voices/af_nicole.bin",
-         "voices/af_nova.bin",
-         "voices/af_river.bin",
-         "voices/af_sarah.bin",
-         "voices/af_sky.bin",
-         "voices/am_adam.bin",
-         "voices/am_echo.bin",
-         "voices/am_eric.bin",
-         "voices/am_fenrir.bin",
-         "voices/am_liam.bin",
-         "voices/am_michael.bin",
-         "voices/am_onyx.bin",
-         "voices/am_puck.bin",
-         "voices/am_santa.bin",
-         "voices/bf_alice.bin",
-         "voices/bf_emma.bin",
-         "voices/bf_isabella.bin",
-         "voices/bf_lily.bin",
-         "voices/bm_daniel.bin",
-         "voices/bm_fable.bin",
-         "voices/bm_george.bin",
-         "voices/bm_lewis.bin",
-         "voices/ef_dora.bin",
-         "voices/em_alex.bin",
-         "voices/em_santa.bin",
-         "voices/ff_siwis.bin",
-         "voices/hf_alpha.bin",
-         "voices/hf_beta.bin",
-         "voices/hm_omega.bin",
-         "voices/hm_psi.bin",
-         "voices/if_sara.bin",
-         "voices/im_nicola.bin",
-         "voices/jf_alpha.bin",
-         "voices/jf_gongitsune.bin",
-         "voices/jf_nezumi.bin",
-         "voices/jf_tebukuro.bin",
-         "voices/jm_kumo.bin",
-         "voices/pf_dora.bin",
-         "voices/pm_alex.bin",
-         "voices/pm_santa.bin",
-         "voices/zf_xiaobei.bin",
-         "voices/zf_xiaoni.bin",
-         "voices/zf_xiaoxiao.bin",
-         "voices/zf_xiaoyi.bin",
-         "voices/zm_yunjian.bin",
-         "voices/zm_yunxi.bin",
-         "voices/zm_yunxia.bin",
-         "voices/zm_yunyang.bin",
-      });
-      collection->models.emplace_back(model);
-   }
-
-   return collection;
+   return BuildManifestCollection(
+      OVModelManager::TtsName(),
+      [](const model_download_manifest::ModelInfo& source_model) {
+         return std::string(ResolveModelInfoFromKey(source_model.info_key));
+      },
+      [](const model_download_manifest::ModelInfo&) { return true; });
 }
 
 void OVModelManager::_populate_model_collection()
 {
    mModelCollection.insert({ MusicSepName(), populate_music_separation() });
-   mModelCollection.insert({ NoiseSuppressName(), populate_noise_suppression()});
+   mModelCollection.insert({ NoiseSuppressName(), populate_noise_suppression() });
    mModelCollection.insert({ SuperResName(), populate_super_resolution() });
    mModelCollection.insert({ WhisperName(), populate_whisper() });
    mModelCollection.insert({ ReverbRemovalName(), populate_reverb_removal() });
