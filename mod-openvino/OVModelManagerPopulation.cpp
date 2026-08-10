@@ -69,7 +69,7 @@ void CopyManifestModelMetadata(const model_download_manifest::ModelInfo& source_
    model_info->files.reserve(source_model.file_count);
    for (std::size_t file_index = 0; file_index < source_model.file_count; ++file_index) {
       const auto& source_file = source_model.files[file_index];
-      model_info->files.push_back({ source_file.name, source_file.expected_sha256 });
+      model_info->files.push_back({ source_file.name, source_file.expected_sha256, source_file.expected_size });
    }
 }
 

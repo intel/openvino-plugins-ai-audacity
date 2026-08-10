@@ -242,6 +242,7 @@ def generate_header(manifest_dir, output_file, lock_file):
     lines.append("#pragma once")
     lines.append("")
     lines.append("#include <cstddef>")
+    lines.append("#include <cstdint>")
     lines.append("")
     lines.append("namespace model_download_manifest {")
     lines.append("")
@@ -249,6 +250,7 @@ def generate_header(manifest_dir, output_file, lock_file):
     lines.append("{")
     lines.append("   const char* name;")
     lines.append("   const char* expected_sha256;")
+    lines.append("   std::uint64_t expected_size;")
     lines.append("};")
     lines.append("")
     lines.append("struct ModelInfo")
@@ -275,8 +277,12 @@ def generate_header(manifest_dir, output_file, lock_file):
         lines.append(f"inline constexpr ModelFileInfo kFiles_{model_identifier}[] = {{")
         for file_info in model["files"]:
             file_name = file_info["name"]
-            sha256 = locked_files.get(file_name, {}).get("sha256", "")
-            lines.append(f"   {{ {cpp_string_literal(file_name)}, {cpp_string_literal(sha256)} }},")
+            locked_file = locked_files.get(file_name, {})
+            sha256 = locked_file.get("sha256", "")
+            expected_size = locked_file.get("size", 0)
+            if expected_size is None:
+                expected_size = 0
+            lines.append(f"   {{ {cpp_string_literal(file_name)}, {cpp_string_literal(sha256)}, {int(expected_size)}ULL }},")
         lines.append("};")
         lines.append("")
 

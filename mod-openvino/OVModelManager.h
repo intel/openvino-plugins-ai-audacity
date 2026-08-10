@@ -5,6 +5,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <cstdint>
 #include <FileNames.h>
 
 class OVModelManager {
@@ -15,6 +16,7 @@ public:
    {
       std::string name;
       std::string expected_sha256;
+      std::uint64_t expected_size = 0;
    };
 
    struct ModelInfo
@@ -56,7 +58,7 @@ public:
          files.reserve(fileList.size());
 
          for (auto& file : fileList) {
-            files.push_back({ std::move(file), {} });
+            files.push_back({ std::move(file), {}, 0 });
          }
       }
 

@@ -20,8 +20,6 @@
 namespace {
 
 constexpr size_t DownloadBufferSize = 64 * 1024;
-constexpr int SizeLookupMaxAttempts = 3;
-constexpr auto SizeLookupRetryDelay = std::chrono::milliseconds(250);
 constexpr int DownloadMaxAttempts = 3;
 constexpr auto DownloadRetryDelay = std::chrono::milliseconds(250);
 
@@ -224,111 +222,27 @@ static inline void mkdir_relative_paths(std::string relative_file, wxString base
 OVModelManager::InstallResult OVModelManager::install_model_size(std::shared_ptr<ModelInfo> model_info, size_t& total_size)
 {
    total_size = 0;
-#ifdef HAS_NETWORKING
    if (!model_info) {
-   wxLogError("OVModelManager::install_model_size called on null model_info.");
+      wxLogError("OVModelManager::install_model_size called on null model_info.");
       return InstallResult::Failure(
          "Model size calculation failed.",
          BuildInstallDetails({}, {}, "Size Check", "install_model_size received a null model pointer."));
    }
 
-   auto baseUrl = model_info->baseUrl;
-   audacity::network_manager::NetworkManager& manager = audacity::network_manager::NetworkManager::GetInstance();
-
    for (const auto& file : model_info->files) {
-      std::string url = baseUrl + file.name + "?download=true";
-      audacity::network_manager::Request request;
-
-      try {
-         request = audacity::network_manager::Request(url);
-      }
-      catch (const std::exception& error) {
-         wxLogError("OVModelManager: failed to create HEAD request for URL '%s'. Exception: %s", url.c_str(), error.what());
+      if (file.expected_size == 0) {
          return InstallResult::Failure(
-            "Could not create a download request.",
-            BuildInstallDetails({}, model_info->model_name, "Size Check", "Could not create a HEAD request for model download size lookup.", url, error.what()));
+            "Model size metadata is missing.",
+            BuildInstallDetails({}, model_info->model_name, "Size Check",
+               "Model manifest lock data did not provide expected_size for one or more files.",
+               file.name,
+               "All files must include expected_size before download starts."));
       }
 
-      InstallResult lastFailure = InstallResult::Failure(
-         "Could not retrieve model download metadata.",
-         BuildInstallDetails({}, model_info->model_name, "Size Check", "Model size lookup did not run.", url));
-
-      bool sizeResolved = false;
-      for (int attempt = 1; attempt <= SizeLookupMaxAttempts; ++attempt) {
-         try {
-            auto response = manager.doHead(request);
-
-            while (!response->isFinished())
-            {
-               std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            }
-
-            if ((response->getHTTPCode() != 200) && (response->getHTTPCode() != 302)) {
-               const auto errorString = response->getErrorString();
-               wxLogWarning("OVModelManager: HEAD metadata attempt %d/%d returned HTTP status %d for URL '%s'. Network error: %s",
-                  attempt, SizeLookupMaxAttempts, response->getHTTPCode(), url.c_str(), errorString.c_str());
-               lastFailure = InstallResult::Failure(
-                  "Could not retrieve model download metadata.",
-                  BuildInstallDetails({}, model_info->model_name, "Size Check", "HEAD request returned an unexpected HTTP status.", url,
-                     "Attempt: " + std::to_string(attempt) + "/" + std::to_string(SizeLookupMaxAttempts)
-                     + "\nHTTP status: " + std::to_string(response->getHTTPCode())
-                     + (errorString.empty() ? std::string{} : "\nNetwork error: " + errorString)));
-            }
-            else {
-               // For LFS files on GitHub (usually large ones, like .bin's) have 'X-Linked-Size' headers,
-               // so we look for those first. If that doesn't exist, we use 'Content-Length' header.
-               std::vector < std::string> size_headers = { "X-Linked-Size", "Content-Length" };
-               bool size_header_found = false;
-               for (auto& header : size_headers)
-               {
-                  if (response->hasHeader(header)) {
-                     std::string length = response->getHeader(header);
-                     size_t size = (size_t)std::stoull(length);
-                     total_size += size;
-
-                     size_header_found = true;
-                     sizeResolved = true;
-                     break;
-                  }
-               }
-
-               if (size_header_found) {
-                  break;
-               }
-
-               wxLogWarning("OVModelManager: HEAD metadata attempt %d/%d missing size headers for URL '%s'.",
-                  attempt, SizeLookupMaxAttempts, url.c_str());
-               lastFailure = InstallResult::Failure(
-                  "Could not determine model download size.",
-                  BuildInstallDetails({}, model_info->model_name, "Size Check", "Response did not include X-Linked-Size or Content-Length.", url,
-                     "Attempt: " + std::to_string(attempt) + "/" + std::to_string(SizeLookupMaxAttempts)));
-            }
-         }
-         catch (const std::exception& error) {
-            wxLogWarning("OVModelManager: exception during HEAD metadata attempt %d/%d for URL '%s'. Exception: %s",
-               attempt, SizeLookupMaxAttempts, url.c_str(), error.what());
-            lastFailure = InstallResult::Failure(
-               "Could not retrieve model download metadata.",
-               BuildInstallDetails({}, model_info->model_name, "Size Check", "Exception while reading HEAD response for size calculation.", url,
-                  "Attempt: " + std::to_string(attempt) + "/" + std::to_string(SizeLookupMaxAttempts) + "\n" + error.what()));
-         }
-
-         if (attempt < SizeLookupMaxAttempts) {
-            std::this_thread::sleep_for(SizeLookupRetryDelay);
-         }
-      }
-
-      if (!sizeResolved) {
-         return lastFailure;
-      }
+      total_size += static_cast<size_t>(file.expected_size);
    }
 
    return InstallResult::Success();
-#else
-   return InstallResult::Failure(
-      "Model downloads are not available in this build.",
-      BuildInstallDetails({}, model_info ? model_info->model_name : std::string{}, "Size Check", "install_model_size called, but this build has no networking support."));
-#endif
 }
 
 static OVModelManager::InstallResult download_model_files(const std::string& effect, std::shared_ptr<OVModelManager::ModelInfo> model_info, const FilePath &base_openvino_models_path, size_t total_download_size,
@@ -416,9 +330,10 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
          std::string file_error_details;
          auto downloadBuffer = std::make_shared<std::array<uint8_t, DownloadBufferSize>>();
          auto fileHasher = std::make_shared<crypto::SHA256>();
+         auto fileBytesReceived = std::make_shared<std::uint64_t>(0);
 
          response->setOnDataReceivedCallback(
-            [response, wx_file, downloadBuffer, fileHasher, tempFilePath, &bError, &bytes_downloaded_so_far, callback, &total_download_size, &file_error_summary, &file_error_details, &effect, model_info, url, fullFilePath](audacity::network_manager::IResponse*)
+            [response, wx_file, downloadBuffer, fileHasher, fileBytesReceived, tempFilePath, &bError, &bytes_downloaded_so_far, callback, &total_download_size, &file_error_summary, &file_error_details, &effect, model_info, url, fullFilePath, file, attempt](audacity::network_manager::IResponse*)
             {
                int httpCode = response->getHTTPCode();
                if ((httpCode == 200) || (httpCode == 302))
@@ -450,6 +365,56 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
                      }
 
                      bytes_downloaded_so_far += bytesWritten;
+                     *fileBytesReceived += static_cast<std::uint64_t>(bytesRead);
+
+                     if (file.expected_size > 0 && *fileBytesReceived > file.expected_size)
+                     {
+                        wxLogError("OVModelManager: download exceeded expected file size on attempt %d/%d for '%s'. Expected %llu bytes, received %llu bytes.",
+                           attempt,
+                           DownloadMaxAttempts,
+                           fullFilePath.GetFullPath(),
+                           static_cast<unsigned long long>(file.expected_size),
+                           static_cast<unsigned long long>(*fileBytesReceived));
+                        file_error_summary = "Downloaded model file exceeded expected size.";
+                        file_error_details = BuildInstallDetails(
+                           effect,
+                           model_info->model_name,
+                           "Size Verification",
+                           "The streamed download exceeded the expected file size from model metadata before completion.",
+                           fullFilePath.GetFullPath().ToStdString(),
+                           "Attempt: " + std::to_string(attempt) + "/" + std::to_string(DownloadMaxAttempts)
+                           + "\nExpected bytes: " + std::to_string(file.expected_size)
+                           + "\nBytes received so far: " + std::to_string(*fileBytesReceived)
+                           + "\nSource URL: " + url);
+                        bError = true;
+                        response->Cancel();
+                        return;
+                     }
+
+                     if (total_download_size > 0 && bytes_downloaded_so_far > total_download_size)
+                     {
+                        wxLogError("OVModelManager: aggregate download exceeded planned total on attempt %d/%d for '%s'. Planned %llu bytes, downloaded %llu bytes so far.",
+                           attempt,
+                           DownloadMaxAttempts,
+                           fullFilePath.GetFullPath(),
+                           static_cast<unsigned long long>(total_download_size),
+                           static_cast<unsigned long long>(bytes_downloaded_so_far));
+                        file_error_summary = "Downloaded data exceeded planned total size.";
+                        file_error_details = BuildInstallDetails(
+                           effect,
+                           model_info->model_name,
+                           "Size Verification",
+                           "Accumulated downloaded bytes exceeded the planned total size before completion.",
+                           fullFilePath.GetFullPath().ToStdString(),
+                           "Attempt: " + std::to_string(attempt) + "/" + std::to_string(DownloadMaxAttempts)
+                           + "\nPlanned total bytes: " + std::to_string(total_download_size)
+                           + "\nDownloaded bytes so far: " + std::to_string(bytes_downloaded_so_far)
+                           + "\nSource URL: " + url);
+                        bError = true;
+                        response->Cancel();
+                        return;
+                     }
+
                      fileHasher->Update(downloadBuffer->data(), static_cast<std::size_t>(bytesRead));
 
                      if (total_download_size > 0 && callback) {
@@ -536,6 +501,42 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
                std::this_thread::sleep_for(DownloadRetryDelay);
                continue;
             }
+            return lastFailure;
+         }
+
+         if (file.expected_size > 0 && *fileBytesReceived != file.expected_size) {
+            wxLogWarning("OVModelManager: size mismatch on attempt %d/%d for '%s'. Expected %llu bytes, got %llu bytes.",
+               attempt,
+               DownloadMaxAttempts,
+               fullFilePath.GetFullPath(),
+               static_cast<unsigned long long>(file.expected_size),
+               static_cast<unsigned long long>(*fileBytesReceived));
+
+            if (wx_file->IsOpened()) {
+               wx_file->Close();
+            }
+            if (wxFileExists(tempFilePath)) {
+               wxRemoveFile(tempFilePath);
+            }
+
+            lastFailure = OVModelManager::InstallResult::Failure(
+               "Downloaded model file size did not match expected metadata.",
+               BuildInstallDetails(
+                  effect,
+                  model_info->model_name,
+                  "Size Verification",
+                  "The downloaded file size did not match the expected value from the model manifest lock data.",
+                  fullFilePath.GetFullPath().ToStdString(),
+                  "Attempt: " + std::to_string(attempt) + "/" + std::to_string(DownloadMaxAttempts)
+                  + "\nExpected bytes: " + std::to_string(file.expected_size)
+                  + "\nActual bytes: " + std::to_string(*fileBytesReceived)
+                  + "\nSource URL: " + url));
+
+            if (attempt < DownloadMaxAttempts) {
+               std::this_thread::sleep_for(DownloadRetryDelay);
+               continue;
+            }
+
             return lastFailure;
          }
 
