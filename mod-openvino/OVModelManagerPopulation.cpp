@@ -2,6 +2,8 @@
 #include "model_download_manifest_info.h"
 #include "model_md_card_info.h"
 
+#include <unordered_map>
+
 namespace {
 
 const char* ResolveModelInfoFromKey(const std::string& info_key)
