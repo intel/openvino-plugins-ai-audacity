@@ -43,6 +43,23 @@ def ensure_trailing_slash(value):
     return value
 
 
+def extract_revision_from_base_url(base_url):
+    marker = "/resolve/"
+    marker_pos = base_url.find(marker)
+    if marker_pos < 0:
+        return ""
+
+    start = marker_pos + len(marker)
+    if start >= len(base_url):
+        return ""
+
+    end = base_url.find("/", start)
+    if end < 0 or end == start:
+        return ""
+
+    return base_url[start:end]
+
+
 def sanitize_identifier(value):
     result = []
     for char in value:
@@ -140,15 +157,30 @@ def resolve_models(manifest_data):
             source_name = model["source"]
             if source_name not in manifest_data["sources"]:
                 raise ValueError(f"Model '{model['id']}' references missing source '{source_name}'")
-            base_url = manifest_data["sources"][source_name]["base_url"]
+            source_data = manifest_data["sources"][source_name]
+            base_url = source_data["base_url"]
+            has_source_revision = "revision" in source_data
+            source_revision = source_data.get("revision", "")
         else:
             base_url = model.get("base_url", "")
+            has_source_revision = False
+            source_revision = ""
 
-        subdir = model.get("subdir", "")
-        if base_url and subdir:
-            base_url = join_url(base_url, subdir)
+        url_subdir = model.get("url_subdir", "")
+        if base_url and url_subdir:
+            base_url = join_url(base_url, url_subdir)
 
         base_url = ensure_trailing_slash(base_url)
+        has_model_revision = "revision" in model
+        if has_model_revision:
+            resolved_revision = model.get("revision", "")
+        elif has_source_revision:
+            resolved_revision = source_revision
+        else:
+            resolved_revision = ""
+
+        if not has_model_revision and not has_source_revision and not resolved_revision and base_url:
+            resolved_revision = extract_revision_from_base_url(base_url)
 
         resolved.append({
             "effect": model["effect"],
@@ -156,6 +188,7 @@ def resolve_models(manifest_data):
             "name": model["name"],
             "info_key": model["info_key"],
             "base_url": base_url,
+            "revision": resolved_revision,
             "post_url": model.get("post_url", "?download=true"),
             "relative_path": model["relative_path"],
             "dependencies": list(model.get("dependencies", [])),
@@ -194,10 +227,31 @@ def compute_remote_file_hash(url, timeout):
     return sha256.hexdigest(), size
 
 
+def prune_stale_lock_entries(lock_data, models, selected_models):
+    selected_model_ids = set(selected_models or [])
+
+    for model in models:
+        if selected_model_ids and model["id"] not in selected_model_ids:
+            continue
+
+        lock_entry = lock_data.get("entries", {}).get(model["id"])
+        if not lock_entry:
+            continue
+
+        file_entries = lock_entry.setdefault("files", {})
+        current_file_names = {file_info["name"] for file_info in model["files"]}
+
+        for stale_file_name in list(file_entries.keys()):
+            if stale_file_name not in current_file_names:
+                del file_entries[stale_file_name]
+
+
 def refresh_lock(manifest_dir, lock_file, timeout, force, selected_models):
     manifest_data = load_manifests(manifest_dir)
     models = resolve_models(manifest_data)
     lock_data = load_lock_file(lock_file)
+
+    prune_stale_lock_entries(lock_data, models, selected_models)
 
     selected_model_ids = set(selected_models or [])
 
@@ -211,6 +265,11 @@ def refresh_lock(manifest_dir, lock_file, timeout, force, selected_models):
 
         lock_entry = ensure_lock_entry(lock_data, model)
         file_entries = lock_entry.setdefault("files", {})
+        current_file_names = {file_info["name"] for file_info in model["files"]}
+
+        for stale_file_name in list(file_entries.keys()):
+            if stale_file_name not in current_file_names:
+                del file_entries[stale_file_name]
 
         for file_info in model["files"]:
             file_name = file_info["name"]
@@ -229,6 +288,31 @@ def refresh_lock(manifest_dir, lock_file, timeout, force, selected_models):
 
     write_json(lock_file, lock_data)
     print(f"Lock file written to: {lock_file}")
+
+
+def cleanup_lock(manifest_dir, lock_file, selected_models):
+    manifest_data = load_manifests(manifest_dir)
+    models = resolve_models(manifest_data)
+    lock_data = load_lock_file(lock_file)
+
+    prune_stale_lock_entries(lock_data, models, selected_models)
+
+    write_json(lock_file, lock_data)
+    print(f"Lock file cleaned: {lock_file}")
+
+
+def list_model_ids(manifest_dir, effect_filter):
+    manifest_data = load_manifests(manifest_dir)
+    models = resolve_models(manifest_data)
+
+    filtered_ids = []
+    for model in models:
+        if effect_filter and model["effect"] != effect_filter:
+            continue
+        filtered_ids.append(model["id"])
+
+    for model_id in sorted(filtered_ids):
+        print(model_id)
 
 
 def generate_header(manifest_dir, output_file, lock_file):
@@ -260,6 +344,7 @@ def generate_header(manifest_dir, output_file, lock_file):
     lines.append("   const char* model_name;")
     lines.append("   const char* info_key;")
     lines.append("   const char* base_url;")
+    lines.append("   const char* revision;")
     lines.append("   const char* post_url;")
     lines.append("   const char* relative_path;")
     lines.append("   const char* const* dependencies;")
@@ -308,6 +393,7 @@ def generate_header(manifest_dir, output_file, lock_file):
         lines.append(f"      {cpp_string_literal(model['name'])},")
         lines.append(f"      {cpp_string_literal(model['info_key'])},")
         lines.append(f"      {cpp_string_literal(model['base_url'])},")
+        lines.append(f"      {cpp_string_literal(model['revision'])},")
         lines.append(f"      {cpp_string_literal(model['post_url'])},")
         lines.append(f"      {cpp_string_literal(model['relative_path'])},")
         lines.append(f"      {dependency_ref},")
@@ -360,6 +446,15 @@ def main():
     refresh_parser.add_argument("--force", action="store_true", help="Recompute hashes even if lock entries already exist")
     refresh_parser.add_argument("--model-id", action="append", default=[], help="Restrict refresh to specific model ids")
 
+    cleanup_parser = subparsers.add_parser("cleanup", help="Remove stale file keys from the checksum lock file")
+    cleanup_parser.add_argument("manifest_dir", help="Directory to search recursively for manifest JSON files")
+    cleanup_parser.add_argument("lock_file", help="Input/output lock file path")
+    cleanup_parser.add_argument("--model-id", action="append", default=[], help="Restrict cleanup to specific model ids")
+
+    list_parser = subparsers.add_parser("list-model-ids", help="Print the current model ids from manifests")
+    list_parser.add_argument("manifest_dir", help="Directory to search recursively for manifest JSON files")
+    list_parser.add_argument("--effect", default="", help="Restrict output to a single effect name")
+
     args = parser.parse_args()
 
     if args.command == "generate":
@@ -367,6 +462,10 @@ def main():
         generate_header(args.manifest_dir, args.output_file, lock_file)
     elif args.command == "refresh":
         refresh_lock(args.manifest_dir, args.lock_file, args.timeout, args.force, args.model_id)
+    elif args.command == "cleanup":
+        cleanup_lock(args.manifest_dir, args.lock_file, args.model_id)
+    elif args.command == "list-model-ids":
+        list_model_ids(args.manifest_dir, args.effect)
 
 
 if __name__ == "__main__":

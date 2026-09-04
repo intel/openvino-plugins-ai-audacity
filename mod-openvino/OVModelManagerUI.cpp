@@ -187,22 +187,10 @@ ModelEntryPanel::ModelEntryPanel(wxWindow* parent, const std::string peffect, st
    installButton = new wxButton(this, wxID_ANY, model->installed ? "Installed" : "Install");
    const int installButtonMinWidth = GetTextExtent("Restart Required").x + 32;
    installButton->SetMinSize(wxSize(installButtonMinWidth, -1));
-   installButton->Enable(!model->installed && !restartRequired);
-   if (model->baseUrl.empty()) {
-      if (!model->installed) {
-         installButton->SetLabelText("Not Installed");
-      }
-      installButton->Enable(false);
-   }
 #ifndef HAS_NETWORKING
    // if we don't have networking support, disable (grey-out) install button.
    installButton->Enable(false);
 #endif
-
-   if (restartRequired && !model->installed) {
-      installButton->SetLabelText("Restart Required");
-      installButton->Enable(false);
-   }
 
    sizer->Add(installButton, 0, wxALIGN_CENTER_VERTICAL);
 
@@ -213,6 +201,8 @@ ModelEntryPanel::ModelEntryPanel(wxWindow* parent, const std::string peffect, st
 
    infoBtn->Bind(wxEVT_BUTTON, &ModelEntryPanel::OnInfo, this);
    installButton->Bind(wxEVT_BUTTON, &ModelEntryPanel::OnInstall, this);
+
+   UpdateStatus();
 }
 
 void ModelEntryPanel::OnInfo(wxCommandEvent&) {
@@ -233,6 +223,13 @@ void ModelEntryPanel::OnInstall(wxCommandEvent&) {
 void ModelEntryPanel::UpdateStatus() {
    RefreshSizeLabel();
 
+   if (model->baseUrl.empty()) {
+      installButton->SetLabelText(model->installed ? "Installed" : "Not Installed");
+      installButton->Enable(false);
+      installButton->SetToolTip({});
+      return;
+   }
+
    if (restartRequired && !model->installed) {
       installButton->SetLabelText("Restart Required");
       installButton->Enable(false);
@@ -240,9 +237,22 @@ void ModelEntryPanel::UpdateStatus() {
       return;
    }
 
+   if (model->update_available) {
+      installButton->SetLabelText("Update");
+      installButton->Enable(true);
+      installButton->SetToolTip("Installed model revision does not match this plugin build.");
+#ifndef HAS_NETWORKING
+      installButton->Enable(false);
+#endif
+      return;
+   }
+
    installButton->SetLabelText(model->installed ? "Installed" : "Install");
    installButton->Enable(!model->installed);
    installButton->SetToolTip({});
+#ifndef HAS_NETWORKING
+   installButton->Enable(false);
+#endif
 }
 
 void ModelEntryPanel::SetQueued() {
@@ -269,9 +279,12 @@ void ModelEntryPanel::SetFailed(const wxString& summary) {
       return;
    }
 
-   installButton->SetLabelText("Retry Install");
-   installButton->Enable(!model->installed);
+   installButton->SetLabelText(model->update_available ? "Retry Update" : "Retry Install");
+   installButton->Enable(!model->installed && !model->baseUrl.empty());
    installButton->SetToolTip(summary);
+#ifndef HAS_NETWORKING
+   installButton->Enable(false);
+#endif
 }
 
 void ModelEntryPanel::RefreshSizeLabel() {

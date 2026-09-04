@@ -34,6 +34,10 @@ public:
       // baseUrl + filename + postUrl
       std::string postUrl = "?download=true";
 
+      // Explicit model revision/version (for example Hugging Face commit id)
+      // used for compatibility stamp checks.
+      std::string revision;
+
       // relative folder path (away from from 'base' openvino-models folder).
       std::string relative_path;
 
@@ -42,6 +46,10 @@ public:
 
       // If true, all files in 'files' are present.
       bool installed = false;
+
+      // True when files are present but the installed model revision stamp
+      // does not match the revision expected by this plugin build.
+      bool update_available = false;
 
       //This will be set to absolute path of openvino-models + relative_path, but only
       // if 'installed' is true.

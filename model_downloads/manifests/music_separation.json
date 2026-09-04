@@ -38,7 +38,7 @@
       "name": "Demucs v4",
       "info_key": "music_separation_demucs_v4",
       "source": "hf_intel_demucs_openvino",
-      "subdir": "htdemucs_v4",
+      "url_subdir": "htdemucs_v4",
       "relative_path": "stem_separation/htdemucs_v4",
       "file_set": "demucs_pair"
     },
@@ -48,7 +48,7 @@
       "name": "Demucs v4 FT Drums",
       "info_key": "music_separation_demucs_v4_ft_drums",
       "source": "hf_intel_demucs_openvino",
-      "subdir": "htdemucs_v4_ht_drums",
+      "url_subdir": "htdemucs_v4_ht_drums",
       "relative_path": "stem_separation/htdemucs_v4_ht_drums",
       "file_set": "demucs_pair"
     },
@@ -58,7 +58,7 @@
       "name": "Demucs v4 FT Bass",
       "info_key": "music_separation_demucs_v4_ft_bass",
       "source": "hf_intel_demucs_openvino",
-      "subdir": "htdemucs_v4_ht_bass",
+      "url_subdir": "htdemucs_v4_ht_bass",
       "relative_path": "stem_separation/htdemucs_v4_ht_bass",
       "file_set": "demucs_pair"
     },
@@ -68,7 +68,7 @@
       "name": "Demucs v4 FT Other Instruments",
       "info_key": "music_separation_demucs_v4_ft_other",
       "source": "hf_intel_demucs_openvino",
-      "subdir": "htdemucs_v4_ht_other",
+      "url_subdir": "htdemucs_v4_ht_other",
       "relative_path": "stem_separation/htdemucs_v4_ht_other",
       "file_set": "demucs_pair"
     },
@@ -78,7 +78,7 @@
       "name": "Demucs v4 FT Vocals",
       "info_key": "music_separation_demucs_v4_ft_vocals",
       "source": "hf_intel_demucs_openvino",
-      "subdir": "htdemucs_v4_ht_vocals",
+      "url_subdir": "htdemucs_v4_ht_vocals",
       "relative_path": "stem_separation/htdemucs_v4_ht_vocals",
       "file_set": "demucs_pair"
     },
@@ -88,7 +88,7 @@
       "name": "Demucs v4 6s",
       "info_key": "music_separation_demucs_v4_6s",
       "source": "hf_intel_demucs_openvino",
-      "subdir": "htdemucs_v4_6s",
+      "url_subdir": "htdemucs_v4_6s",
       "relative_path": "stem_separation/htdemucs_v4_6s",
       "file_set": "demucs_pair"
     },

@@ -62,6 +62,7 @@ void CopyManifestModelMetadata(const model_download_manifest::ModelInfo& source_
    }
 
    model_info->baseUrl = source_model.base_url;
+      model_info->revision = source_model.revision;
    model_info->postUrl = source_model.post_url;
    model_info->relative_path = source_model.relative_path;
 

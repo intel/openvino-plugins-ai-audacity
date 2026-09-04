@@ -13,6 +13,7 @@
 #include <array>
 #include <algorithm>
 #include <cctype>
+#include <wx/textfile.h>
 
 #include <wx/file.h>
 #include <wx/log.h>
@@ -22,6 +23,15 @@ namespace {
 constexpr size_t DownloadBufferSize = 64 * 1024;
 constexpr int DownloadMaxAttempts = 3;
 constexpr auto DownloadRetryDelay = std::chrono::milliseconds(250);
+constexpr char ModelRevisionStampFileName[] = ".ov_model_revision";
+
+std::string BuildInstallDetails(
+   const std::string& effect,
+   const std::string& modelName,
+   const std::string& stage,
+   const std::string& message,
+   const std::string& resource = {},
+   const std::string& extra = {});
 
 std::string NormalizeHexDigest(std::string digest)
 {
@@ -55,13 +65,93 @@ bool IsPathWithinBase(const wxString& basePath, const wxString& candidatePath)
    return normalizedCandidate.rfind(normalizedBase, 0) == 0;
 }
 
+wxString BuildRevisionStampPath(const FilePath& searchPathBase, const std::string& relativePath)
+{
+   wxFileName stampPath(searchPathBase + "/" + relativePath + "/" + ModelRevisionStampFileName);
+   stampPath.Normalize();
+   return stampPath.GetFullPath();
+}
+
+bool ReadRevisionStamp(const wxString& stampPath, std::string& revision)
+{
+   revision.clear();
+
+   if (!wxFileExists(stampPath)) {
+      return false;
+   }
+
+   wxTextFile stampFile;
+   if (!stampFile.Open(stampPath)) {
+      return false;
+   }
+
+   for (size_t i = 0; i < stampFile.GetLineCount(); ++i) {
+      const wxString line = stampFile.GetLine(i);
+      if (line.StartsWith("revision=")) {
+         revision = line.Mid(9).ToStdString();
+         break;
+      }
+   }
+
+   stampFile.Close();
+   return !revision.empty();
+}
+
+OVModelManager::InstallResult WriteRevisionStamp(
+   const std::string& effect,
+   const std::shared_ptr<OVModelManager::ModelInfo>& model_info,
+   const FilePath& searchPathBase)
+{
+   if (!model_info) {
+      return OVModelManager::InstallResult::Failure(
+         "Model revision stamp write failed.",
+         BuildInstallDetails(effect, {}, "Revision Stamp", "write stamp called with null model."));
+   }
+
+   const auto revision = model_info->revision;
+   if (revision.empty()) {
+      return OVModelManager::InstallResult::Success();
+   }
+
+   const auto stampPath = BuildRevisionStampPath(searchPathBase, model_info->relative_path);
+   if (wxFileExists(stampPath) && !wxRemoveFile(stampPath)) {
+      return OVModelManager::InstallResult::Failure(
+         "Model revision stamp write failed.",
+         BuildInstallDetails(effect, model_info->model_name, "Revision Stamp",
+            "Could not remove existing model revision stamp before rewrite.",
+            stampPath.ToStdString()));
+   }
+
+   wxTextFile stampFile;
+   if (!stampFile.Create(stampPath)) {
+      return OVModelManager::InstallResult::Failure(
+         "Model revision stamp write failed.",
+         BuildInstallDetails(effect, model_info->model_name, "Revision Stamp",
+            "Could not create model revision stamp file.",
+            stampPath.ToStdString()));
+   }
+
+   stampFile.AddLine("revision=" + wxString::FromUTF8(revision.c_str()));
+   if (!stampFile.Write()) {
+      stampFile.Close();
+      return OVModelManager::InstallResult::Failure(
+         "Model revision stamp write failed.",
+         BuildInstallDetails(effect, model_info->model_name, "Revision Stamp",
+            "Could not write model revision stamp file.",
+            stampPath.ToStdString()));
+   }
+
+   stampFile.Close();
+   return OVModelManager::InstallResult::Success();
+}
+
 std::string BuildInstallDetails(
    const std::string& effect,
    const std::string& modelName,
    const std::string& stage,
    const std::string& message,
-   const std::string& resource = {},
-   const std::string& extra = {})
+   const std::string& resource,
+   const std::string& extra)
 {
    std::ostringstream stream;
    stream << "Effect: " << effect << "\n";
@@ -147,6 +237,8 @@ static inline std::vector<std::string> splitPath(const std::string& path, char d
 static void _check_installed_model_impl(std::shared_ptr<OVModelManager::ModelInfo> model_info, const FilePath& search_path_base)
 {
    model_info->installed = false;
+   model_info->update_available = false;
+   model_info->installation_path.clear();
 
    if (!model_info->dependencies.empty())
    {
@@ -155,6 +247,9 @@ static void _check_installed_model_impl(std::shared_ptr<OVModelManager::ModelInf
 
          if (!d->installed)
          {
+            if (d->update_available) {
+               model_info->update_available = true;
+            }
             // of the dependencies aren't installed, then no point in proceeding.
             return;
          }
@@ -181,6 +276,27 @@ static void _check_installed_model_impl(std::shared_ptr<OVModelManager::ModelInf
       for (int i = 0; i < split_path.size(); i++)
       {
          fullInstallationPath = wxFileName(fullInstallationPath, wxString(split_path[i])).GetFullPath();
+      }
+
+      const auto expectedRevision = model_info->revision;
+      if (!expectedRevision.empty()) {
+         std::string installedRevision;
+         const auto stampPath = BuildRevisionStampPath(search_path_base, model_info->relative_path);
+         if (!ReadRevisionStamp(stampPath, installedRevision)) {
+            model_info->update_available = true;
+            wxLogInfo("OVModelManager: model '%s' is present but has no readable revision stamp; update/reinstall required.",
+               model_info->model_name.c_str());
+            return;
+         }
+
+         if (installedRevision != expectedRevision) {
+            model_info->update_available = true;
+            wxLogInfo("OVModelManager: model '%s' revision stamp mismatch (installed='%s', expected='%s'); update/reinstall required.",
+               model_info->model_name.c_str(),
+               installedRevision.c_str(),
+               expectedRevision.c_str());
+            return;
+         }
       }
 
       model_info->installed = true;
@@ -734,11 +850,16 @@ OVModelManager::InstallResult OVModelManager::install_model(std::string effect, 
                      d->model_name);
                }
 
+               auto dependencyStampResult = WriteRevisionStamp(effect, d, base_openvino_models_path);
+               if (!dependencyStampResult) {
+                  return dependencyStampResult;
+               }
+
                _check_installed_model_impl(d, base_openvino_models_path);
                if (!d->installed) {
                   return InstallResult::Failure(
-                     "A required dependency did not verify after download.",
-                     BuildInstallDetails(effect, model_id, "Dependency Verification", "Downloaded dependency files were not found during post-download verification.", d->model_name));
+                     "A required dependency revision did not match this plugin build.",
+                     BuildInstallDetails(effect, model_id, "Dependency Revision Verification", "Downloaded dependency files are present, but revision stamp verification failed.", d->model_name));
                }
             }
          }
@@ -747,6 +868,11 @@ OVModelManager::InstallResult OVModelManager::install_model(std::string effect, 
       auto downloadResult = download_model_files(effect, model_info, base_openvino_models_path, total_download_size, bytes_downloaded_so_far, callback);
       if (!downloadResult) {
          return downloadResult;
+      }
+
+      auto stampResult = WriteRevisionStamp(effect, model_info, base_openvino_models_path);
+      if (!stampResult) {
+         return stampResult;
       }
 
       //re-run file check for this model.
