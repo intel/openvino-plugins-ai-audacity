@@ -47,7 +47,7 @@
       "effect": "Noise Suppression",
       "id": "noise_suppression_denseunet",
       "name": "DenseUNet",
-      "info_key": "noise_suppression/noise_suppression_denseunet",
+      "info_key": "noise_suppression_denseunet",
       "source": "omz_noise_suppression_denseunet_fp16",
       "post_url": "",
       "relative_path": "noise_suppression/denseunet",

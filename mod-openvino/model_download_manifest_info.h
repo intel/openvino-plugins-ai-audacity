@@ -843,7 +843,7 @@ inline constexpr ModelInfo kModels[] = {
       "Noise Suppression",
       "noise_suppression_denseunet",
       "DenseUNet",
-      "noise_suppression/noise_suppression_denseunet",
+      "noise_suppression_denseunet",
       "https://storage.openvinotoolkit.org/repositories/open_model_zoo/2023.0/models_bin/1/noise-suppression-denseunet-ll-0001/FP16/",
       "2023.0",
       "",
