@@ -870,9 +870,15 @@ OVModelManager::InstallResult OVModelManager::install_model(std::string effect, 
 
                _check_installed_model_impl(d, base_openvino_models_path);
                if (!d->installed) {
+                  if (d->update_available) {
+                     return InstallResult::Failure(
+                        "A required dependency revision did not match this plugin build.",
+                        BuildInstallDetails(effect, model_id, "Dependency Revision Verification", "Downloaded dependency files are present, but revision stamp verification failed.", d->model_name));
+                  }
+
                   return InstallResult::Failure(
-                     "A required dependency revision did not match this plugin build.",
-                     BuildInstallDetails(effect, model_id, "Dependency Revision Verification", "Downloaded dependency files are present, but revision stamp verification failed.", d->model_name));
+                     "A required dependency failed file verification after download.",
+                     BuildInstallDetails(effect, model_id, "Dependency Verification", "Downloaded dependency files were missing or unreadable after download verification.", d->model_name));
                }
             }
          }
