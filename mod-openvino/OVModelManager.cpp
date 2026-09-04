@@ -113,7 +113,20 @@ OVModelManager::InstallResult WriteRevisionStamp(
       return OVModelManager::InstallResult::Success();
    }
 
+   wxFileName baseModelsPath(searchPathBase);
+   baseModelsPath.Normalize();
+   const auto normalizedBaseModelsPath = baseModelsPath.GetFullPath();
+
    const auto stampPath = BuildRevisionStampPath(searchPathBase, model_info->relative_path);
+   if (!IsPathWithinBase(normalizedBaseModelsPath, stampPath)) {
+      return OVModelManager::InstallResult::Failure(
+         "Model revision stamp path validation failed.",
+         BuildInstallDetails(effect, model_info->model_name, "Revision Stamp",
+            "Resolved revision stamp path escaped the configured model directory.",
+            stampPath.ToStdString(),
+            "Model base path: " + normalizedBaseModelsPath.ToStdString()));
+   }
+
    if (wxFileExists(stampPath) && !wxRemoveFile(stampPath)) {
       return OVModelManager::InstallResult::Failure(
          "Model revision stamp write failed.",
