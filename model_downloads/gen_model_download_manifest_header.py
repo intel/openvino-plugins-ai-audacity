@@ -273,11 +273,12 @@ def refresh_lock(manifest_dir, lock_file, timeout, force, selected_models):
 
         for file_info in model["files"]:
             file_name = file_info["name"]
+            url = model["base_url"] + file_name + model["post_url"]
             existing = file_entries.get(file_name, {})
-            if existing.get("sha256") and not force:
+            existing_url = existing.get("url", "")
+            if existing.get("sha256") and existing_url == url and not force:
                 continue
 
-            url = model["base_url"] + file_name + model["post_url"]
             print(f"Hashing {model['id']} -> {file_name}", file=sys.stderr)
             sha256, size = compute_remote_file_hash(url, timeout)
             file_entries[file_name] = {
