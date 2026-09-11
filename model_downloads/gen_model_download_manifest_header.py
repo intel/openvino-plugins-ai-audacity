@@ -265,11 +265,6 @@ def refresh_lock(manifest_dir, lock_file, timeout, force, selected_models):
 
         lock_entry = ensure_lock_entry(lock_data, model)
         file_entries = lock_entry.setdefault("files", {})
-        current_file_names = {file_info["name"] for file_info in model["files"]}
-
-        for stale_file_name in list(file_entries.keys()):
-            if stale_file_name not in current_file_names:
-                del file_entries[stale_file_name]
 
         for file_info in model["files"]:
             file_name = file_info["name"]
