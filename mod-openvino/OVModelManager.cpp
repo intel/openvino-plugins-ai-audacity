@@ -462,14 +462,14 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
          auto fileBytesReceived = std::make_shared<std::uint64_t>(0);
 
          response->setOnDataReceivedCallback(
-            [response, wx_file, downloadBuffer, fileHasher, fileBytesReceived, tempFilePath, &bError, &bytes_downloaded_so_far, callback, &total_download_size, &file_error_summary, &file_error_details, &effect, model_info, url, fullFilePath, file, attempt](audacity::network_manager::IResponse*)
+            [wx_file, downloadBuffer, fileHasher, fileBytesReceived, tempFilePath, &bError, &bytes_downloaded_so_far, callback, &total_download_size, &file_error_summary, &file_error_details, &effect, model_info, url, fullFilePath, file, attempt](audacity::network_manager::IResponse* responseRaw)
             {
-               int httpCode = response->getHTTPCode();
+               int httpCode = responseRaw->getHTTPCode();
                if ((httpCode == 200) || (httpCode == 302))
                {
                   while (true)
                   {
-                     const auto bytesRead = response->readData(downloadBuffer->data(), downloadBuffer->size());
+                     const auto bytesRead = responseRaw->readData(downloadBuffer->data(), downloadBuffer->size());
                      if (bytesRead == 0) {
                         break;
                      }
@@ -489,7 +489,7 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
                            tempFilePath.ToStdString(),
                            "wxFile last error: " + std::to_string(last_error) + "\nSource URL: " + url);
                         bError = true;
-                        response->Cancel();
+                        responseRaw->Cancel();
                         return;
                      }
 
@@ -516,7 +516,7 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
                            + "\nBytes received so far: " + std::to_string(*fileBytesReceived)
                            + "\nSource URL: " + url);
                         bError = true;
-                        response->Cancel();
+                        responseRaw->Cancel();
                         return;
                      }
 
@@ -540,7 +540,7 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
                            + "\nDownloaded bytes so far: " + std::to_string(bytes_downloaded_so_far)
                            + "\nSource URL: " + url);
                         bError = true;
-                        response->Cancel();
+                        responseRaw->Cancel();
                         return;
                      }
 
@@ -566,7 +566,7 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
                            tempFilePath.ToStdString(),
                            "Bytes written: " + std::to_string(bytesWritten) + "\nBytes received: " + std::to_string(bytesRead) + "\nSource URL: " + url);
                         bError = true;
-                        response->Cancel();
+                        responseRaw->Cancel();
                         return;
                      }
                   }
@@ -583,7 +583,7 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
                      url,
                      "HTTP status: " + std::to_string(httpCode));
                   bError = true;
-                  response->Cancel();
+                  responseRaw->Cancel();
                   return;
                }
             }
