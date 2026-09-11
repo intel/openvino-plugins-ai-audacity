@@ -12,6 +12,7 @@
 #include <future>
 #include <array>
 #include <algorithm>
+#include <atomic>
 #include <cctype>
 #include <wx/textfile.h>
 
@@ -23,6 +24,8 @@ namespace {
 constexpr size_t DownloadBufferSize = 64 * 1024;
 constexpr int DownloadMaxAttempts = 3;
 constexpr auto DownloadRetryDelay = std::chrono::milliseconds(250);
+constexpr auto DownloadFinishedPollInterval = std::chrono::milliseconds(100);
+constexpr auto DownloadCancelFinishTimeout = std::chrono::seconds(10);
 constexpr char ModelRevisionStampFileName[] = ".ov_model_revision";
 
 std::string BuildInstallDetails(
@@ -460,9 +463,10 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
          auto downloadBuffer = std::make_shared<std::array<uint8_t, DownloadBufferSize>>();
          auto fileHasher = std::make_shared<crypto::SHA256>();
          auto fileBytesReceived = std::make_shared<std::uint64_t>(0);
+         auto cancelRequested = std::make_shared<std::atomic<bool>>(false);
 
          response->setOnDataReceivedCallback(
-            [wx_file, downloadBuffer, fileHasher, fileBytesReceived, tempFilePath, &bError, &bytes_downloaded_so_far, callback, &total_download_size, &file_error_summary, &file_error_details, &effect, model_info, url, fullFilePath, file, attempt](audacity::network_manager::IResponse* responseRaw)
+            [wx_file, downloadBuffer, fileHasher, fileBytesReceived, cancelRequested, tempFilePath, &bError, &bytes_downloaded_so_far, callback, &total_download_size, &file_error_summary, &file_error_details, &effect, model_info, url, fullFilePath, file, attempt](audacity::network_manager::IResponse* responseRaw)
             {
                int httpCode = responseRaw->getHTTPCode();
                if ((httpCode == 200) || (httpCode == 302))
@@ -489,6 +493,7 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
                            tempFilePath.ToStdString(),
                            "wxFile last error: " + std::to_string(last_error) + "\nSource URL: " + url);
                         bError = true;
+                        cancelRequested->store(true, std::memory_order_release);
                         responseRaw->Cancel();
                         return;
                      }
@@ -516,6 +521,7 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
                            + "\nBytes received so far: " + std::to_string(*fileBytesReceived)
                            + "\nSource URL: " + url);
                         bError = true;
+                        cancelRequested->store(true, std::memory_order_release);
                         responseRaw->Cancel();
                         return;
                      }
@@ -540,6 +546,7 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
                            + "\nDownloaded bytes so far: " + std::to_string(bytes_downloaded_so_far)
                            + "\nSource URL: " + url);
                         bError = true;
+                        cancelRequested->store(true, std::memory_order_release);
                         responseRaw->Cancel();
                         return;
                      }
@@ -566,6 +573,7 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
                            tempFilePath.ToStdString(),
                            "Bytes written: " + std::to_string(bytesWritten) + "\nBytes received: " + std::to_string(bytesRead) + "\nSource URL: " + url);
                         bError = true;
+                        cancelRequested->store(true, std::memory_order_release);
                         responseRaw->Cancel();
                         return;
                      }
@@ -583,23 +591,60 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
                      url,
                      "HTTP status: " + std::to_string(httpCode));
                   bError = true;
+                  cancelRequested->store(true, std::memory_order_release);
                   responseRaw->Cancel();
                   return;
                }
             }
          );
 
-         std::promise<void> donePromise;
-         std::future<void> doneFuture = donePromise.get_future();
+         auto donePromise = std::make_shared<std::promise<void>>();
+         std::future<void> doneFuture = donePromise->get_future();
+         auto doneSignaled = std::make_shared<std::atomic<bool>>(false);
 
          response->setRequestFinishedCallback(
-            [&donePromise](audacity::network_manager::IResponse*)
+            [donePromise, doneSignaled](audacity::network_manager::IResponse*)
             {
-               donePromise.set_value();
+               bool expected = false;
+               if (doneSignaled->compare_exchange_strong(expected, true, std::memory_order_acq_rel)) {
+                  donePromise->set_value();
+               }
             }
          );
 
-         doneFuture.get();
+         bool requestFinished = false;
+         auto cancelWaitStart = std::chrono::steady_clock::time_point{};
+         while (true) {
+            const auto waitStatus = doneFuture.wait_for(DownloadFinishedPollInterval);
+            if (waitStatus == std::future_status::ready) {
+               requestFinished = true;
+               break;
+            }
+
+            if (cancelRequested->load(std::memory_order_acquire)) {
+               const auto now = std::chrono::steady_clock::now();
+               if (cancelWaitStart == std::chrono::steady_clock::time_point{}) {
+                  cancelWaitStart = now;
+               }
+               else if ((now - cancelWaitStart) > DownloadCancelFinishTimeout) {
+                  file_error_summary = "Model download cancellation did not complete.";
+                  file_error_details = BuildInstallDetails(
+                     effect,
+                     model_info->model_name,
+                     "Download",
+                     "The request was cancelled after an error, but no request-finished callback arrived in time.",
+                     url,
+                     "Attempt: " + std::to_string(attempt) + "/" + std::to_string(DownloadMaxAttempts));
+                  bError = true;
+                  response->Cancel();
+                  break;
+               }
+            }
+         }
+
+         if (requestFinished) {
+            doneFuture.get();
+         }
 
          const auto networkError = response->getError();
          const auto networkErrorString = response->getErrorString();
