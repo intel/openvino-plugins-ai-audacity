@@ -1,0 +1,67 @@
+{
+  "sources": {
+    "hf_intel_versatile_audio_super_resolution_openvino": {
+      "base_url": "https://huggingface.co/Intel/versatile_audio_super_resolution_openvino/resolve/b98a5a9e21ede61cd556cd04d425bf5bfd675328/"
+    }
+  },
+  "file_sets": {
+    "audiosr_common": [
+      "audiosr_decoder.bin",
+      "audiosr_decoder.xml",
+      "audiosr_encoder.bin",
+      "audiosr_encoder.xml",
+      "mel_24000_cpu.raw",
+      "post_quant_conv.bin",
+      "post_quant_conv.xml",
+      "quant_conv.bin",
+      "quant_conv.xml",
+      "vae_feature_extract.bin",
+      "vae_feature_extract.xml",
+      "vocoder.xml",
+      "vocoder.bin"
+    ],
+    "audiosr_basic_specific": [
+      "basic/ddpm.xml",
+      "basic/ddpm.bin"
+    ],
+    "audiosr_speech_specific": [
+      "speech/ddpm.xml",
+      "speech/ddpm.bin"
+    ]
+  },
+  "models": [
+    {
+      "effect": "Super Resolution",
+      "id": "super_resolution_common",
+      "name": "Super Resolution Common",
+      "info_key": "super_resolution_common",
+      "source": "hf_intel_versatile_audio_super_resolution_openvino",
+      "relative_path": "audiosr",
+      "file_set": "audiosr_common"
+    },
+    {
+      "effect": "Super Resolution",
+      "id": "super_resolution_basic_general_fp16",
+      "name": "Basic (General) (FP16)",
+      "info_key": "super_resolution_basic_general",
+      "source": "hf_intel_versatile_audio_super_resolution_openvino",
+      "relative_path": "audiosr",
+      "dependencies": [
+        "super_resolution_common"
+      ],
+      "file_set": "audiosr_basic_specific"
+    },
+    {
+      "effect": "Super Resolution",
+      "id": "super_resolution_speech_fp16",
+      "name": "Speech (FP16)",
+      "info_key": "super_resolution_speech",
+      "source": "hf_intel_versatile_audio_super_resolution_openvino",
+      "relative_path": "audiosr",
+      "dependencies": [
+        "super_resolution_common"
+      ],
+      "file_set": "audiosr_speech_specific"
+    }
+  ]
+}

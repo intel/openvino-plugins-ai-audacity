@@ -1,0 +1,1797 @@
+{
+  "entries": {
+    "distil_whisper_large_v3_fp16": {
+      "base_url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-fp16-ov/resolve/147fc406c025905fa774599450c3ca98b72e5671/",
+      "files": {
+        "added_tokens.json": {
+          "sha256": "3c51f66c4c21f9e126970078f11ae77a78c74aee8df606ee9daba86e467108e0",
+          "size": 34648,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-fp16-ov/resolve/147fc406c025905fa774599450c3ca98b72e5671/added_tokens.json?download=true"
+        },
+        "config.json": {
+          "sha256": "f2ad7fe724f34cca9c4a17ee3e8e9dd297461cedef357318179198ae00697b55",
+          "size": 1302,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-fp16-ov/resolve/147fc406c025905fa774599450c3ca98b72e5671/config.json?download=true"
+        },
+        "generation_config.json": {
+          "sha256": "1ace5fd5a162c94e76f170b372974db0dd44e60a3619ecbf09d1ab909fcf6490",
+          "size": 4242,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-fp16-ov/resolve/147fc406c025905fa774599450c3ca98b72e5671/generation_config.json?download=true"
+        },
+        "normalizer.json": {
+          "sha256": "bf1c507dc8724ca9cf9903640dacfb69dae2f00edee4f21ceba106a7392f26dd",
+          "size": 52666,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-fp16-ov/resolve/147fc406c025905fa774599450c3ca98b72e5671/normalizer.json?download=true"
+        },
+        "openvino_decoder_model.bin": {
+          "sha256": "4c11fc0c32a804cb351748873570567d4d4472a257879db8da78401e2a1f6875",
+          "size": 238873756,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-fp16-ov/resolve/147fc406c025905fa774599450c3ca98b72e5671/openvino_decoder_model.bin?download=true"
+        },
+        "openvino_decoder_model.xml": {
+          "sha256": "cddf8f3cb5082c0deefac70de15206a51ee241de9fb87400c2acfceaacccaa07",
+          "size": 190521,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-fp16-ov/resolve/147fc406c025905fa774599450c3ca98b72e5671/openvino_decoder_model.xml?download=true"
+        },
+        "openvino_detokenizer.bin": {
+          "sha256": "f2b3c47825a1089525ff65c0c8e49271e1dee69a401a04fc827ac2de5b7766e4",
+          "size": 736198,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-fp16-ov/resolve/147fc406c025905fa774599450c3ca98b72e5671/openvino_detokenizer.bin?download=true"
+        },
+        "openvino_detokenizer.xml": {
+          "sha256": "0960740690766d773a6afa0f96e456381ceec1e667ca2951f440d084a2f91700",
+          "size": 9699,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-fp16-ov/resolve/147fc406c025905fa774599450c3ca98b72e5671/openvino_detokenizer.xml?download=true"
+        },
+        "openvino_encoder_model.bin": {
+          "sha256": "76de5b22435747d7f0d7f74b003acd23ab5c10b7e1198d36373cdf0f6975b630",
+          "size": 1273938026,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-fp16-ov/resolve/147fc406c025905fa774599450c3ca98b72e5671/openvino_encoder_model.bin?download=true"
+        },
+        "openvino_encoder_model.xml": {
+          "sha256": "d913c09a5c5c1f86e6b5dced2a44df0b69b9aacf8218451d9100ee4fa12dec3d",
+          "size": 1239276,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-fp16-ov/resolve/147fc406c025905fa774599450c3ca98b72e5671/openvino_encoder_model.xml?download=true"
+        },
+        "openvino_tokenizer.bin": {
+          "sha256": "adfa3d9a2920d0f314121270a960ab331ec0f05838544bb8ecaaa422282a6fd4",
+          "size": 1898973,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-fp16-ov/resolve/147fc406c025905fa774599450c3ca98b72e5671/openvino_tokenizer.bin?download=true"
+        },
+        "openvino_tokenizer.xml": {
+          "sha256": "c1b63607b10040e0ae94b248fec36098799d12ef921b98bb2116277c3840fed9",
+          "size": 27011,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-fp16-ov/resolve/147fc406c025905fa774599450c3ca98b72e5671/openvino_tokenizer.xml?download=true"
+        },
+        "preprocessor_config.json": {
+          "sha256": "654cf18d3e163b948ceaf9766da56ce0b52de265d58673cf61c9376f126bd499",
+          "size": 357,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-fp16-ov/resolve/147fc406c025905fa774599450c3ca98b72e5671/preprocessor_config.json?download=true"
+        },
+        "special_tokens_map.json": {
+          "sha256": "baea4ea09372eb4fca86b4e4346139fd73cb807d5087e9de0948e971739c3e74",
+          "size": 2186,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-fp16-ov/resolve/147fc406c025905fa774599450c3ca98b72e5671/special_tokens_map.json?download=true"
+        },
+        "tokenizer.json": {
+          "sha256": "5c1bf30c9e716e1477bedef846b01be0013daecb89e9e3ef7ab89b23c178df1b",
+          "size": 3930645,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-fp16-ov/resolve/147fc406c025905fa774599450c3ca98b72e5671/tokenizer.json?download=true"
+        },
+        "tokenizer_config.json": {
+          "sha256": "3c75940dfce3a294fca7041a5faff011677f1b68fa85e47511bb8cf6dccaded6",
+          "size": 282873,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-fp16-ov/resolve/147fc406c025905fa774599450c3ca98b72e5671/tokenizer_config.json?download=true"
+        },
+        "vocab.json": {
+          "sha256": "6788c80b082e9b0d1393147d3a3e62ba19285ac0c82ace8e5ef00f37ead58971",
+          "size": 835528,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-fp16-ov/resolve/147fc406c025905fa774599450c3ca98b72e5671/vocab.json?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "distil_whisper_large_v3_int4": {
+      "base_url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int4-ov/resolve/954b8ce3ca0e1d668d6ec41ea2b03e8420d95158/",
+      "files": {
+        "added_tokens.json": {
+          "sha256": "3c51f66c4c21f9e126970078f11ae77a78c74aee8df606ee9daba86e467108e0",
+          "size": 34648,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int4-ov/resolve/954b8ce3ca0e1d668d6ec41ea2b03e8420d95158/added_tokens.json?download=true"
+        },
+        "config.json": {
+          "sha256": "f2ad7fe724f34cca9c4a17ee3e8e9dd297461cedef357318179198ae00697b55",
+          "size": 1302,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int4-ov/resolve/954b8ce3ca0e1d668d6ec41ea2b03e8420d95158/config.json?download=true"
+        },
+        "generation_config.json": {
+          "sha256": "1ace5fd5a162c94e76f170b372974db0dd44e60a3619ecbf09d1ab909fcf6490",
+          "size": 4242,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int4-ov/resolve/954b8ce3ca0e1d668d6ec41ea2b03e8420d95158/generation_config.json?download=true"
+        },
+        "normalizer.json": {
+          "sha256": "bf1c507dc8724ca9cf9903640dacfb69dae2f00edee4f21ceba106a7392f26dd",
+          "size": 52666,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int4-ov/resolve/954b8ce3ca0e1d668d6ec41ea2b03e8420d95158/normalizer.json?download=true"
+        },
+        "openvino_decoder_model.bin": {
+          "sha256": "f380be8ef88c032991fc80a3492ea8a2df2e465027b2453c209c099b121a4a53",
+          "size": 94541798,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int4-ov/resolve/954b8ce3ca0e1d668d6ec41ea2b03e8420d95158/openvino_decoder_model.bin?download=true"
+        },
+        "openvino_decoder_model.xml": {
+          "sha256": "9acb092cbb86645c3a390a57d6e51800907b0cf53dd5fbe6c83b5b77a8d0afd4",
+          "size": 237067,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int4-ov/resolve/954b8ce3ca0e1d668d6ec41ea2b03e8420d95158/openvino_decoder_model.xml?download=true"
+        },
+        "openvino_detokenizer.bin": {
+          "sha256": "f2b3c47825a1089525ff65c0c8e49271e1dee69a401a04fc827ac2de5b7766e4",
+          "size": 736198,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int4-ov/resolve/954b8ce3ca0e1d668d6ec41ea2b03e8420d95158/openvino_detokenizer.bin?download=true"
+        },
+        "openvino_detokenizer.xml": {
+          "sha256": "c72f533f031414f0bd8ef83bd9b76e2a6a601edf3b8e8ea749c2a5b9c343ff73",
+          "size": 9699,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int4-ov/resolve/954b8ce3ca0e1d668d6ec41ea2b03e8420d95158/openvino_detokenizer.xml?download=true"
+        },
+        "openvino_encoder_model.bin": {
+          "sha256": "678fbeebf9856e533f2ea4515608d0dec6cb6abb0c3caf5169f03654365fb952",
+          "size": 345094560,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int4-ov/resolve/954b8ce3ca0e1d668d6ec41ea2b03e8420d95158/openvino_encoder_model.bin?download=true"
+        },
+        "openvino_encoder_model.xml": {
+          "sha256": "7de1f16b6f475a5021423d7ff769546189fdc6bf75dc63a3f5c087dc40385dfc",
+          "size": 1721341,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int4-ov/resolve/954b8ce3ca0e1d668d6ec41ea2b03e8420d95158/openvino_encoder_model.xml?download=true"
+        },
+        "openvino_tokenizer.bin": {
+          "sha256": "adfa3d9a2920d0f314121270a960ab331ec0f05838544bb8ecaaa422282a6fd4",
+          "size": 1898973,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int4-ov/resolve/954b8ce3ca0e1d668d6ec41ea2b03e8420d95158/openvino_tokenizer.bin?download=true"
+        },
+        "openvino_tokenizer.xml": {
+          "sha256": "382c880c4b75b84a6469fc55f2b39c6bba4bed9457b9bf62ad6967a85526a915",
+          "size": 27011,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int4-ov/resolve/954b8ce3ca0e1d668d6ec41ea2b03e8420d95158/openvino_tokenizer.xml?download=true"
+        },
+        "preprocessor_config.json": {
+          "sha256": "654cf18d3e163b948ceaf9766da56ce0b52de265d58673cf61c9376f126bd499",
+          "size": 357,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int4-ov/resolve/954b8ce3ca0e1d668d6ec41ea2b03e8420d95158/preprocessor_config.json?download=true"
+        },
+        "special_tokens_map.json": {
+          "sha256": "baea4ea09372eb4fca86b4e4346139fd73cb807d5087e9de0948e971739c3e74",
+          "size": 2186,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int4-ov/resolve/954b8ce3ca0e1d668d6ec41ea2b03e8420d95158/special_tokens_map.json?download=true"
+        },
+        "tokenizer.json": {
+          "sha256": "5c1bf30c9e716e1477bedef846b01be0013daecb89e9e3ef7ab89b23c178df1b",
+          "size": 3930645,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int4-ov/resolve/954b8ce3ca0e1d668d6ec41ea2b03e8420d95158/tokenizer.json?download=true"
+        },
+        "tokenizer_config.json": {
+          "sha256": "3c75940dfce3a294fca7041a5faff011677f1b68fa85e47511bb8cf6dccaded6",
+          "size": 282873,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int4-ov/resolve/954b8ce3ca0e1d668d6ec41ea2b03e8420d95158/tokenizer_config.json?download=true"
+        },
+        "vocab.json": {
+          "sha256": "6788c80b082e9b0d1393147d3a3e62ba19285ac0c82ace8e5ef00f37ead58971",
+          "size": 835528,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int4-ov/resolve/954b8ce3ca0e1d668d6ec41ea2b03e8420d95158/vocab.json?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "distil_whisper_large_v3_int8": {
+      "base_url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int8-ov/resolve/ab5db836c48303e296237013d7385924f2828e9d/",
+      "files": {
+        "added_tokens.json": {
+          "sha256": "3c51f66c4c21f9e126970078f11ae77a78c74aee8df606ee9daba86e467108e0",
+          "size": 34648,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int8-ov/resolve/ab5db836c48303e296237013d7385924f2828e9d/added_tokens.json?download=true"
+        },
+        "config.json": {
+          "sha256": "f2ad7fe724f34cca9c4a17ee3e8e9dd297461cedef357318179198ae00697b55",
+          "size": 1302,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int8-ov/resolve/ab5db836c48303e296237013d7385924f2828e9d/config.json?download=true"
+        },
+        "generation_config.json": {
+          "sha256": "1ace5fd5a162c94e76f170b372974db0dd44e60a3619ecbf09d1ab909fcf6490",
+          "size": 4242,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int8-ov/resolve/ab5db836c48303e296237013d7385924f2828e9d/generation_config.json?download=true"
+        },
+        "normalizer.json": {
+          "sha256": "bf1c507dc8724ca9cf9903640dacfb69dae2f00edee4f21ceba106a7392f26dd",
+          "size": 52666,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int8-ov/resolve/ab5db836c48303e296237013d7385924f2828e9d/normalizer.json?download=true"
+        },
+        "openvino_decoder_model.bin": {
+          "sha256": "15c407b7850fb126e8fe053dff744b9df1c312e8a3aca9818e43c7f4eab2c6d0",
+          "size": 119831990,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int8-ov/resolve/ab5db836c48303e296237013d7385924f2828e9d/openvino_decoder_model.bin?download=true"
+        },
+        "openvino_decoder_model.xml": {
+          "sha256": "955b4a2c4c60909377d04a6d06b9b0a2acf49cd43c2aef81c8840c133ff3558e",
+          "size": 216009,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int8-ov/resolve/ab5db836c48303e296237013d7385924f2828e9d/openvino_decoder_model.xml?download=true"
+        },
+        "openvino_detokenizer.bin": {
+          "sha256": "f2b3c47825a1089525ff65c0c8e49271e1dee69a401a04fc827ac2de5b7766e4",
+          "size": 736198,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int8-ov/resolve/ab5db836c48303e296237013d7385924f2828e9d/openvino_detokenizer.bin?download=true"
+        },
+        "openvino_detokenizer.xml": {
+          "sha256": "c72f533f031414f0bd8ef83bd9b76e2a6a601edf3b8e8ea749c2a5b9c343ff73",
+          "size": 9699,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int8-ov/resolve/ab5db836c48303e296237013d7385924f2828e9d/openvino_detokenizer.xml?download=true"
+        },
+        "openvino_encoder_model.bin": {
+          "sha256": "fffcbf47a4cfd5a1e3f57c0569f5ef706245b798ef626db5ffea7b84166ed865",
+          "size": 645332592,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int8-ov/resolve/ab5db836c48303e296237013d7385924f2828e9d/openvino_encoder_model.bin?download=true"
+        },
+        "openvino_encoder_model.xml": {
+          "sha256": "961a70d37b7209ddf465a7646cec7f02606fbbb84850a1b7e65adb212477751d",
+          "size": 1518639,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int8-ov/resolve/ab5db836c48303e296237013d7385924f2828e9d/openvino_encoder_model.xml?download=true"
+        },
+        "openvino_tokenizer.bin": {
+          "sha256": "adfa3d9a2920d0f314121270a960ab331ec0f05838544bb8ecaaa422282a6fd4",
+          "size": 1898973,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int8-ov/resolve/ab5db836c48303e296237013d7385924f2828e9d/openvino_tokenizer.bin?download=true"
+        },
+        "openvino_tokenizer.xml": {
+          "sha256": "382c880c4b75b84a6469fc55f2b39c6bba4bed9457b9bf62ad6967a85526a915",
+          "size": 27011,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int8-ov/resolve/ab5db836c48303e296237013d7385924f2828e9d/openvino_tokenizer.xml?download=true"
+        },
+        "preprocessor_config.json": {
+          "sha256": "654cf18d3e163b948ceaf9766da56ce0b52de265d58673cf61c9376f126bd499",
+          "size": 357,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int8-ov/resolve/ab5db836c48303e296237013d7385924f2828e9d/preprocessor_config.json?download=true"
+        },
+        "special_tokens_map.json": {
+          "sha256": "baea4ea09372eb4fca86b4e4346139fd73cb807d5087e9de0948e971739c3e74",
+          "size": 2186,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int8-ov/resolve/ab5db836c48303e296237013d7385924f2828e9d/special_tokens_map.json?download=true"
+        },
+        "tokenizer.json": {
+          "sha256": "5c1bf30c9e716e1477bedef846b01be0013daecb89e9e3ef7ab89b23c178df1b",
+          "size": 3930645,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int8-ov/resolve/ab5db836c48303e296237013d7385924f2828e9d/tokenizer.json?download=true"
+        },
+        "tokenizer_config.json": {
+          "sha256": "3c75940dfce3a294fca7041a5faff011677f1b68fa85e47511bb8cf6dccaded6",
+          "size": 282873,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int8-ov/resolve/ab5db836c48303e296237013d7385924f2828e9d/tokenizer_config.json?download=true"
+        },
+        "vocab.json": {
+          "sha256": "6788c80b082e9b0d1393147d3a3e62ba19285ac0c82ace8e5ef00f37ead58971",
+          "size": 835528,
+          "url": "https://huggingface.co/OpenVINO/distil-whisper-large-v3-int8-ov/resolve/ab5db836c48303e296237013d7385924f2828e9d/vocab.json?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "music_restoration_apollo_mp3_jusperlee": {
+      "base_url": "https://huggingface.co/Intel/apollo_jusperlee_openvino/resolve/720c90a7df79fd6add733ca9748a22b471a3bc09/",
+      "files": {
+        "apollo_fwd.bin": {
+          "sha256": "5c1d9a6397827b698416c994ca99e1385fbcab953210264a52abea4f00fae83d",
+          "size": 33034848,
+          "url": "https://huggingface.co/Intel/apollo_jusperlee_openvino/resolve/720c90a7df79fd6add733ca9748a22b471a3bc09/apollo_fwd.bin?download=true"
+        },
+        "apollo_fwd.xml": {
+          "sha256": "4cfc5c85eb8f5e78e8eb220724be75728ce1c703e442e4404f0117fc2f1719c1",
+          "size": 4473711,
+          "url": "https://huggingface.co/Intel/apollo_jusperlee_openvino/resolve/720c90a7df79fd6add733ca9748a22b471a3bc09/apollo_fwd.xml?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "music_separation_demucs_v4": {
+      "base_url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4/",
+      "files": {
+        "htdemucs_fwd.bin": {
+          "sha256": "74c4e1ebd68b648ea5a2aabefb65d5c3ba805658037fc97a37b84ce9c72f4eb1",
+          "size": 104552746,
+          "url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4/htdemucs_fwd.bin?download=true"
+        },
+        "htdemucs_fwd.xml": {
+          "sha256": "1557f96f11cf1667beca60679926bf43b393d3ff71eb4b9a625c6a07bc23f4a4",
+          "size": 1477599,
+          "url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4/htdemucs_fwd.xml?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "music_separation_demucs_v4_6s": {
+      "base_url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4_6s/",
+      "files": {
+        "htdemucs_fwd.bin": {
+          "sha256": "5d66281099b5fdaba8844e306f3d6710b3e0b005fa9aad4514ce7604e24fbec9",
+          "size": 74384618,
+          "url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4_6s/htdemucs_fwd.bin?download=true"
+        },
+        "htdemucs_fwd.xml": {
+          "sha256": "06c68a8a21a6cefb905575cbe689cfa3241416a4c263271804ae5690f8ba5cbf",
+          "size": 1461204,
+          "url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4_6s/htdemucs_fwd.xml?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "music_separation_demucs_v4_ft_bass": {
+      "base_url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4_ht_bass/",
+      "files": {
+        "htdemucs_fwd.bin": {
+          "sha256": "a7ec34d838b0f8f36b11a90d6f4e588141a383faadc77e9648e19fdd9eefc95e",
+          "size": 104552746,
+          "url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4_ht_bass/htdemucs_fwd.bin?download=true"
+        },
+        "htdemucs_fwd.xml": {
+          "sha256": "1557f96f11cf1667beca60679926bf43b393d3ff71eb4b9a625c6a07bc23f4a4",
+          "size": 1477599,
+          "url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4_ht_bass/htdemucs_fwd.xml?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "music_separation_demucs_v4_ft_drums": {
+      "base_url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4_ht_drums/",
+      "files": {
+        "htdemucs_fwd.bin": {
+          "sha256": "340e5f6d8dd4d5d0d987f545b922a8252cc5ea6e53649f91eadd8b36e77fcbac",
+          "size": 104552746,
+          "url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4_ht_drums/htdemucs_fwd.bin?download=true"
+        },
+        "htdemucs_fwd.xml": {
+          "sha256": "1557f96f11cf1667beca60679926bf43b393d3ff71eb4b9a625c6a07bc23f4a4",
+          "size": 1477599,
+          "url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4_ht_drums/htdemucs_fwd.xml?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "music_separation_demucs_v4_ft_other": {
+      "base_url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4_ht_other/",
+      "files": {
+        "htdemucs_fwd.bin": {
+          "sha256": "c5f4bb99e91fea0bda75f64086712884457a5c9f861d1c2a7a02e09e92c2846e",
+          "size": 104552746,
+          "url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4_ht_other/htdemucs_fwd.bin?download=true"
+        },
+        "htdemucs_fwd.xml": {
+          "sha256": "1557f96f11cf1667beca60679926bf43b393d3ff71eb4b9a625c6a07bc23f4a4",
+          "size": 1477599,
+          "url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4_ht_other/htdemucs_fwd.xml?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "music_separation_demucs_v4_ft_vocals": {
+      "base_url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4_ht_vocals/",
+      "files": {
+        "htdemucs_fwd.bin": {
+          "sha256": "8576b4bd27095bc7f2dae39c529124b04eebc3e04009a45b7cc170f5b563f749",
+          "size": 104552746,
+          "url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4_ht_vocals/htdemucs_fwd.bin?download=true"
+        },
+        "htdemucs_fwd.xml": {
+          "sha256": "1557f96f11cf1667beca60679926bf43b393d3ff71eb4b9a625c6a07bc23f4a4",
+          "size": 1477599,
+          "url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/htdemucs_v4_ht_vocals/htdemucs_fwd.xml?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "music_separation_mel_crowd_aufr33_viperx": {
+      "base_url": "https://huggingface.co/Intel/crowd_mel_band_roformer_aufr33_viperx_openvino/resolve/b35f0dc8e9ee507582bc93a6e2b52e0dba9eca93/",
+      "files": {
+        "mel_band_fwd.bin": {
+          "sha256": "bf585466ba9b3666d16ad18e0ca40cba59c6bf67a7017a95014d81f8aec0317a",
+          "size": 456659406,
+          "url": "https://huggingface.co/Intel/crowd_mel_band_roformer_aufr33_viperx_openvino/resolve/b35f0dc8e9ee507582bc93a6e2b52e0dba9eca93/mel_band_fwd.bin?download=true"
+        },
+        "mel_band_fwd.xml": {
+          "sha256": "e9f681f7184f542338e3c963ba837fd2e622e08bf27e6592aeae92fca757efa4",
+          "size": 2470791,
+          "url": "https://huggingface.co/Intel/crowd_mel_band_roformer_aufr33_viperx_openvino/resolve/b35f0dc8e9ee507582bc93a6e2b52e0dba9eca93/mel_band_fwd.xml?download=true"
+        },
+        "mel_band_post.bin": {
+          "sha256": "b7ebaa78cc9468995474b9a05c9887079fb806f4c861c834b1e9161effde447c",
+          "size": 36094,
+          "url": "https://huggingface.co/Intel/crowd_mel_band_roformer_aufr33_viperx_openvino/resolve/b35f0dc8e9ee507582bc93a6e2b52e0dba9eca93/mel_band_post.bin?download=true"
+        },
+        "mel_band_post.xml": {
+          "sha256": "b87793f6eedb7cb66d0e6c9efbb23b130ad494f360689ef32a5c19afd906320e",
+          "size": 49300,
+          "url": "https://huggingface.co/Intel/crowd_mel_band_roformer_aufr33_viperx_openvino/resolve/b35f0dc8e9ee507582bc93a6e2b52e0dba9eca93/mel_band_post.xml?download=true"
+        },
+        "mel_band_pre.bin": {
+          "sha256": "ded35e388bb5662a161003d4036534a03cd7efa45e3c0c1383f1f1acb73d7f9a",
+          "size": 4242,
+          "url": "https://huggingface.co/Intel/crowd_mel_band_roformer_aufr33_viperx_openvino/resolve/b35f0dc8e9ee507582bc93a6e2b52e0dba9eca93/mel_band_pre.bin?download=true"
+        },
+        "mel_band_pre.xml": {
+          "sha256": "863afb676b3401a0030b3e84aa34db436d553491bf490b2e3f2ea04fea2a03f0",
+          "size": 25802,
+          "url": "https://huggingface.co/Intel/crowd_mel_band_roformer_aufr33_viperx_openvino/resolve/b35f0dc8e9ee507582bc93a6e2b52e0dba9eca93/mel_band_pre.xml?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "music_separation_mel_vocals_kimberley_jenson": {
+      "base_url": "https://huggingface.co/Intel/vocals_mel_band_roformer_kimberleyJSN_openvino/resolve/ce2bae0e27f9b115f38b1ddad35439df2d28cbbd/",
+      "files": {
+        "mel_band_fwd.bin": {
+          "sha256": "1a23e353c7b41267ef683beb9be2d1c5f25a7cc2725b43f6beee68cb7cfc1a0b",
+          "size": 456659406,
+          "url": "https://huggingface.co/Intel/vocals_mel_band_roformer_kimberleyJSN_openvino/resolve/ce2bae0e27f9b115f38b1ddad35439df2d28cbbd/mel_band_fwd.bin?download=true"
+        },
+        "mel_band_fwd.xml": {
+          "sha256": "e9f681f7184f542338e3c963ba837fd2e622e08bf27e6592aeae92fca757efa4",
+          "size": 2470791,
+          "url": "https://huggingface.co/Intel/vocals_mel_band_roformer_kimberleyJSN_openvino/resolve/ce2bae0e27f9b115f38b1ddad35439df2d28cbbd/mel_band_fwd.xml?download=true"
+        },
+        "mel_band_post.bin": {
+          "sha256": "b7ebaa78cc9468995474b9a05c9887079fb806f4c861c834b1e9161effde447c",
+          "size": 36094,
+          "url": "https://huggingface.co/Intel/vocals_mel_band_roformer_kimberleyJSN_openvino/resolve/ce2bae0e27f9b115f38b1ddad35439df2d28cbbd/mel_band_post.bin?download=true"
+        },
+        "mel_band_post.xml": {
+          "sha256": "b87793f6eedb7cb66d0e6c9efbb23b130ad494f360689ef32a5c19afd906320e",
+          "size": 49300,
+          "url": "https://huggingface.co/Intel/vocals_mel_band_roformer_kimberleyJSN_openvino/resolve/ce2bae0e27f9b115f38b1ddad35439df2d28cbbd/mel_band_post.xml?download=true"
+        },
+        "mel_band_pre.bin": {
+          "sha256": "ded35e388bb5662a161003d4036534a03cd7efa45e3c0c1383f1f1acb73d7f9a",
+          "size": 4242,
+          "url": "https://huggingface.co/Intel/vocals_mel_band_roformer_kimberleyJSN_openvino/resolve/ce2bae0e27f9b115f38b1ddad35439df2d28cbbd/mel_band_pre.bin?download=true"
+        },
+        "mel_band_pre.xml": {
+          "sha256": "863afb676b3401a0030b3e84aa34db436d553491bf490b2e3f2ea04fea2a03f0",
+          "size": 25802,
+          "url": "https://huggingface.co/Intel/vocals_mel_band_roformer_kimberleyJSN_openvino/resolve/ce2bae0e27f9b115f38b1ddad35439df2d28cbbd/mel_band_pre.xml?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "music_separation_msdx23c_drum_sep_jarredou": {
+      "base_url": "https://huggingface.co/Intel/drumsep_mdx23c_jarredou_openvino/resolve/2944425500506842ccc4ca130b22be8cfe95b20d/",
+      "files": {
+        "mdx23c_fwd.bin": {
+          "sha256": "682f8616845a9f31bb21df38198df2d36ef79e96182d0ac7671d332afc80270e",
+          "size": 218753348,
+          "url": "https://huggingface.co/Intel/drumsep_mdx23c_jarredou_openvino/resolve/2944425500506842ccc4ca130b22be8cfe95b20d/mdx23c_fwd.bin?download=true"
+        },
+        "mdx23c_fwd.xml": {
+          "sha256": "62c7107ad49bac24bb4e0839971387d6053446c6aa234cf99bce7af7f6ec532c",
+          "size": 775186,
+          "url": "https://huggingface.co/Intel/drumsep_mdx23c_jarredou_openvino/resolve/2944425500506842ccc4ca130b22be8cfe95b20d/mdx23c_fwd.xml?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "noise_suppression_deepfilternet2": {
+      "base_url": "https://huggingface.co/Intel/deepfilternet-openvino/resolve/0615a1b18be8585156130a98fdbca75e9719eda3/deepfilternet2/",
+      "files": {
+        "df_dec.bin": {
+          "sha256": "19862c41d157cceb1fd048087709f3a9b187fab883677ba12bf538f1bc5cfd14",
+          "size": 3321828,
+          "url": "https://huggingface.co/Intel/deepfilternet-openvino/resolve/0615a1b18be8585156130a98fdbca75e9719eda3/deepfilternet2/df_dec.bin?download=true"
+        },
+        "df_dec.xml": {
+          "sha256": "cde83f4a1b6dbc017b2966dc0bd6c389360a90988ef99a00639e7e8c9a60a361",
+          "size": 110816,
+          "url": "https://huggingface.co/Intel/deepfilternet-openvino/resolve/0615a1b18be8585156130a98fdbca75e9719eda3/deepfilternet2/df_dec.xml?download=true"
+        },
+        "enc.bin": {
+          "sha256": "ed35e70c2e8c8035909466c82af4fd447238821734bc2d85c92efe721a49145a",
+          "size": 2589012,
+          "url": "https://huggingface.co/Intel/deepfilternet-openvino/resolve/0615a1b18be8585156130a98fdbca75e9719eda3/deepfilternet2/enc.bin?download=true"
+        },
+        "enc.xml": {
+          "sha256": "667881baeef4e44b66642e1ba4fed267b02a818ada05f57efecfc9cc755f2e07",
+          "size": 173466,
+          "url": "https://huggingface.co/Intel/deepfilternet-openvino/resolve/0615a1b18be8585156130a98fdbca75e9719eda3/deepfilternet2/enc.xml?download=true"
+        },
+        "erb_dec.bin": {
+          "sha256": "f1df0fb3173ef334abf338b1f11e55c40ec413abdd77cfbf80867294c3de937f",
+          "size": 3311612,
+          "url": "https://huggingface.co/Intel/deepfilternet-openvino/resolve/0615a1b18be8585156130a98fdbca75e9719eda3/deepfilternet2/erb_dec.bin?download=true"
+        },
+        "erb_dec.xml": {
+          "sha256": "d06b04a3ece3079b3fd1869f9960a7c3c9db6cc724162c0efc2dadc6b40d8a81",
+          "size": 178896,
+          "url": "https://huggingface.co/Intel/deepfilternet-openvino/resolve/0615a1b18be8585156130a98fdbca75e9719eda3/deepfilternet2/erb_dec.xml?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "noise_suppression_deepfilternet3": {
+      "base_url": "https://huggingface.co/Intel/deepfilternet-openvino/resolve/0615a1b18be8585156130a98fdbca75e9719eda3/deepfilternet3/",
+      "files": {
+        "df_dec.bin": {
+          "sha256": "7bd50b92ae1c6175be9ddb3e8cf7f81b65b95223957bcd558cb2c6ef281aa435",
+          "size": 3325940,
+          "url": "https://huggingface.co/Intel/deepfilternet-openvino/resolve/0615a1b18be8585156130a98fdbca75e9719eda3/deepfilternet3/df_dec.bin?download=true"
+        },
+        "df_dec.xml": {
+          "sha256": "7366c6715fb2c0febbcd05b0d3f1e47d48eaeeb213fb2d7eeb2f4aa24b63dc42",
+          "size": 122326,
+          "url": "https://huggingface.co/Intel/deepfilternet-openvino/resolve/0615a1b18be8585156130a98fdbca75e9719eda3/deepfilternet3/df_dec.xml?download=true"
+        },
+        "enc.bin": {
+          "sha256": "fa1ed5feb4dd234e051188a2cda6c6f6efabefd87404cbae20fe6c9913dc9838",
+          "size": 1934676,
+          "url": "https://huggingface.co/Intel/deepfilternet-openvino/resolve/0615a1b18be8585156130a98fdbca75e9719eda3/deepfilternet3/enc.bin?download=true"
+        },
+        "enc.xml": {
+          "sha256": "ed385d86a59d84fcebf11bdceb2b2e3d2a7b4a1379a744dc9b0d47121622df32",
+          "size": 184737,
+          "url": "https://huggingface.co/Intel/deepfilternet-openvino/resolve/0615a1b18be8585156130a98fdbca75e9719eda3/deepfilternet3/enc.xml?download=true"
+        },
+        "erb_dec.bin": {
+          "sha256": "d5e9dc11c071f72b343d5af5d344a504a903347d455952e8d4027da3ab47e792",
+          "size": 3278844,
+          "url": "https://huggingface.co/Intel/deepfilternet-openvino/resolve/0615a1b18be8585156130a98fdbca75e9719eda3/deepfilternet3/erb_dec.bin?download=true"
+        },
+        "erb_dec.xml": {
+          "sha256": "bc0cf4e25911714e074658cfeeccc686787a4d274889a88afef855b542689faa",
+          "size": 182978,
+          "url": "https://huggingface.co/Intel/deepfilternet-openvino/resolve/0615a1b18be8585156130a98fdbca75e9719eda3/deepfilternet3/erb_dec.xml?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "noise_suppression_denseunet": {
+      "base_url": "https://storage.openvinotoolkit.org/repositories/open_model_zoo/2023.0/models_bin/1/noise-suppression-denseunet-ll-0001/FP16/",
+      "files": {
+        "noise-suppression-denseunet-ll-0001.bin": {
+          "sha256": "da59b41a656b2948a4b45580b4870614d2dfa071a7566555aea4547423888e08",
+          "size": 8625568,
+          "url": "https://storage.openvinotoolkit.org/repositories/open_model_zoo/2023.0/models_bin/1/noise-suppression-denseunet-ll-0001/FP16/noise-suppression-denseunet-ll-0001.bin"
+        },
+        "noise-suppression-denseunet-ll-0001.xml": {
+          "sha256": "89116a01cc59f7ac3f1f1365c851e47c9089fd33ca86712c30dc1f0ee7d14803",
+          "size": 689820,
+          "url": "https://storage.openvinotoolkit.org/repositories/open_model_zoo/2023.0/models_bin/1/noise-suppression-denseunet-ll-0001/FP16/noise-suppression-denseunet-ll-0001.xml"
+        }
+      },
+      "post_url": ""
+    },
+    "reverb_removal_mel_band_roformer_mono_anvuew": {
+      "base_url": "https://huggingface.co/Intel/dereverb_mel_band_roformer_anvuew_openvino/resolve/16aeb6904702657415c04bdc906dc9c3ed6524a1/mono/",
+      "files": {
+        "mel_band_fwd.bin": {
+          "sha256": "aacebaac7db6756c8e954331610f4664ad3ff1212df50feda6c4446b7d1155e8",
+          "size": 456659406,
+          "url": "https://huggingface.co/Intel/dereverb_mel_band_roformer_anvuew_openvino/resolve/16aeb6904702657415c04bdc906dc9c3ed6524a1/mono/mel_band_fwd.bin?download=true"
+        },
+        "mel_band_fwd.xml": {
+          "sha256": "e9f681f7184f542338e3c963ba837fd2e622e08bf27e6592aeae92fca757efa4",
+          "size": 2470791,
+          "url": "https://huggingface.co/Intel/dereverb_mel_band_roformer_anvuew_openvino/resolve/16aeb6904702657415c04bdc906dc9c3ed6524a1/mono/mel_band_fwd.xml?download=true"
+        },
+        "mel_band_post.bin": {
+          "sha256": "b7ebaa78cc9468995474b9a05c9887079fb806f4c861c834b1e9161effde447c",
+          "size": 36094,
+          "url": "https://huggingface.co/Intel/dereverb_mel_band_roformer_anvuew_openvino/resolve/16aeb6904702657415c04bdc906dc9c3ed6524a1/mono/mel_band_post.bin?download=true"
+        },
+        "mel_band_post.xml": {
+          "sha256": "b87793f6eedb7cb66d0e6c9efbb23b130ad494f360689ef32a5c19afd906320e",
+          "size": 49300,
+          "url": "https://huggingface.co/Intel/dereverb_mel_band_roformer_anvuew_openvino/resolve/16aeb6904702657415c04bdc906dc9c3ed6524a1/mono/mel_band_post.xml?download=true"
+        },
+        "mel_band_pre.bin": {
+          "sha256": "ded35e388bb5662a161003d4036534a03cd7efa45e3c0c1383f1f1acb73d7f9a",
+          "size": 4242,
+          "url": "https://huggingface.co/Intel/dereverb_mel_band_roformer_anvuew_openvino/resolve/16aeb6904702657415c04bdc906dc9c3ed6524a1/mono/mel_band_pre.bin?download=true"
+        },
+        "mel_band_pre.xml": {
+          "sha256": "863afb676b3401a0030b3e84aa34db436d553491bf490b2e3f2ea04fea2a03f0",
+          "size": 25802,
+          "url": "https://huggingface.co/Intel/dereverb_mel_band_roformer_anvuew_openvino/resolve/16aeb6904702657415c04bdc906dc9c3ed6524a1/mono/mel_band_pre.xml?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "super_resolution_basic_general_fp16": {
+      "base_url": "https://huggingface.co/Intel/versatile_audio_super_resolution_openvino/resolve/b98a5a9e21ede61cd556cd04d425bf5bfd675328/",
+      "files": {
+        "basic/ddpm.bin": {
+          "sha256": "03fa2b86f718e23b0c81e1ef481c1d75c87d3d6eb949cdfe06ca351b8f509d8d",
+          "size": 516390728,
+          "url": "https://huggingface.co/Intel/versatile_audio_super_resolution_openvino/resolve/b98a5a9e21ede61cd556cd04d425bf5bfd675328/basic/ddpm.bin?download=true"
+        },
+        "basic/ddpm.xml": {
+          "sha256": "70915c83faf9e66df638328d00c391daf3aefb68e66aa916022e13ddb5f51c0e",
+          "size": 4355984,
+          "url": "https://huggingface.co/Intel/versatile_audio_super_resolution_openvino/resolve/b98a5a9e21ede61cd556cd04d425bf5bfd675328/basic/ddpm.xml?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "super_resolution_common": {
+      "base_url": "https://huggingface.co/Intel/versatile_audio_super_resolution_openvino/resolve/b98a5a9e21ede61cd556cd04d425bf5bfd675328/",
+      "files": {
+        "audiosr_decoder.bin": {
+          "sha256": "3f15dd621d5ffb191f1dbb5540b7c75301e8769ccbe062942b74a81e98ac2dd2",
+          "size": 267047980,
+          "url": "https://huggingface.co/Intel/versatile_audio_super_resolution_openvino/resolve/b98a5a9e21ede61cd556cd04d425bf5bfd675328/audiosr_decoder.bin?download=true"
+        },
+        "audiosr_decoder.xml": {
+          "sha256": "bc650ad5ce4e03db47640e2a777b78984d6d078a8cf0a13f166ea3ac14209016",
+          "size": 247413,
+          "url": "https://huggingface.co/Intel/versatile_audio_super_resolution_openvino/resolve/b98a5a9e21ede61cd556cd04d425bf5bfd675328/audiosr_decoder.xml?download=true"
+        },
+        "audiosr_encoder.bin": {
+          "sha256": "9eb70d3baff6a5859a8f05f6ab7b3a13d5d0b23540758c78ccf91b0ccd4f83d6",
+          "size": 180020602,
+          "url": "https://huggingface.co/Intel/versatile_audio_super_resolution_openvino/resolve/b98a5a9e21ede61cd556cd04d425bf5bfd675328/audiosr_encoder.bin?download=true"
+        },
+        "audiosr_encoder.xml": {
+          "sha256": "68f54ed5d3bf86c0be87419a70328470231bf4dfba616d7c44817591418a5095",
+          "size": 268416,
+          "url": "https://huggingface.co/Intel/versatile_audio_super_resolution_openvino/resolve/b98a5a9e21ede61cd556cd04d425bf5bfd675328/audiosr_encoder.xml?download=true"
+        },
+        "mel_24000_cpu.raw": {
+          "sha256": "8dd24b6b1a81dc8f70ed479186fe66b1ccb4fc2dcffc3133dfd01daa93618c1d",
+          "size": 1049600,
+          "url": "https://huggingface.co/Intel/versatile_audio_super_resolution_openvino/resolve/b98a5a9e21ede61cd556cd04d425bf5bfd675328/mel_24000_cpu.raw?download=true"
+        },
+        "post_quant_conv.bin": {
+          "sha256": "fe865e2ad452ac5de682a7d9afecd685da2fca328ff453d0575fd75196f809c0",
+          "size": 544,
+          "url": "https://huggingface.co/Intel/versatile_audio_super_resolution_openvino/resolve/b98a5a9e21ede61cd556cd04d425bf5bfd675328/post_quant_conv.bin?download=true"
+        },
+        "post_quant_conv.xml": {
+          "sha256": "35437f666d07fda6c61c4d226111e26b99d58801aa3b7a7a941e9e414c8b862b",
+          "size": 4127,
+          "url": "https://huggingface.co/Intel/versatile_audio_super_resolution_openvino/resolve/b98a5a9e21ede61cd556cd04d425bf5bfd675328/post_quant_conv.xml?download=true"
+        },
+        "quant_conv.bin": {
+          "sha256": "5a10eb725d47b58dd4edf72284681c78edcd56c83386e2665d3f7dcdf22ff96f",
+          "size": 2112,
+          "url": "https://huggingface.co/Intel/versatile_audio_super_resolution_openvino/resolve/b98a5a9e21ede61cd556cd04d425bf5bfd675328/quant_conv.bin?download=true"
+        },
+        "quant_conv.xml": {
+          "sha256": "9a481b5cb353c050da3377bc709a9f939d41533221810a1ee23eea474f2a93c4",
+          "size": 4134,
+          "url": "https://huggingface.co/Intel/versatile_audio_super_resolution_openvino/resolve/b98a5a9e21ede61cd556cd04d425bf5bfd675328/quant_conv.xml?download=true"
+        },
+        "vae_feature_extract.bin": {
+          "sha256": "9cb961e646544a8de08cddef328aabe222e7e701794bb37193cd651f522a188f",
+          "size": 180022744,
+          "url": "https://huggingface.co/Intel/versatile_audio_super_resolution_openvino/resolve/b98a5a9e21ede61cd556cd04d425bf5bfd675328/vae_feature_extract.bin?download=true"
+        },
+        "vae_feature_extract.xml": {
+          "sha256": "307cd9825f64f72da24a5737df620b76443e5effbeaf34637ca1f7c1f6e60599",
+          "size": 296881,
+          "url": "https://huggingface.co/Intel/versatile_audio_super_resolution_openvino/resolve/b98a5a9e21ede61cd556cd04d425bf5bfd675328/vae_feature_extract.xml?download=true"
+        },
+        "vocoder.bin": {
+          "sha256": "33a9c6375fe33bc652f8e22d4fc0b5317351f9acdaa7121bf92c9b1e594fdd8f",
+          "size": 380563784,
+          "url": "https://huggingface.co/Intel/versatile_audio_super_resolution_openvino/resolve/b98a5a9e21ede61cd556cd04d425bf5bfd675328/vocoder.bin?download=true"
+        },
+        "vocoder.xml": {
+          "sha256": "387b3a16868146e78d321eb58abfcaa2ec4ecac80ab1f1196a00260b94b99e67",
+          "size": 592981,
+          "url": "https://huggingface.co/Intel/versatile_audio_super_resolution_openvino/resolve/b98a5a9e21ede61cd556cd04d425bf5bfd675328/vocoder.xml?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "super_resolution_speech_fp16": {
+      "base_url": "https://huggingface.co/Intel/versatile_audio_super_resolution_openvino/resolve/b98a5a9e21ede61cd556cd04d425bf5bfd675328/",
+      "files": {
+        "speech/ddpm.bin": {
+          "sha256": "3565cdfca685b7d6bbce89257dd62c54827bb5b5452ce5bf5439e271fa2d2c8d",
+          "size": 516390728,
+          "url": "https://huggingface.co/Intel/versatile_audio_super_resolution_openvino/resolve/b98a5a9e21ede61cd556cd04d425bf5bfd675328/speech/ddpm.bin?download=true"
+        },
+        "speech/ddpm.xml": {
+          "sha256": "70915c83faf9e66df638328d00c391daf3aefb68e66aa916022e13ddb5f51c0e",
+          "size": 4355984,
+          "url": "https://huggingface.co/Intel/versatile_audio_super_resolution_openvino/resolve/b98a5a9e21ede61cd556cd04d425bf5bfd675328/speech/ddpm.xml?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "whisper_base_fp16": {
+      "base_url": "https://huggingface.co/OpenVINO/whisper-base-fp16-ov/resolve/84fbe975a79a8c996fd32c036558f29e2db6670f/",
+      "files": {
+        "added_tokens.json": {
+          "sha256": "9715fd2243b6f06a5858b5e32950d2853f73dd5bc201aafcf76f5082a2d8acd1",
+          "size": 34604,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-fp16-ov/resolve/84fbe975a79a8c996fd32c036558f29e2db6670f/added_tokens.json?download=true"
+        },
+        "config.json": {
+          "sha256": "7580357cd33e60d3c453b90b6ab4d78606cbc5de32cc2da8df873468dcfac237",
+          "size": 1320,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-fp16-ov/resolve/84fbe975a79a8c996fd32c036558f29e2db6670f/config.json?download=true"
+        },
+        "generation_config.json": {
+          "sha256": "a24ccb25a8638fb23d3acfa0b234982497dd30bb3c577d145619525629f38e97",
+          "size": 3802,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-fp16-ov/resolve/84fbe975a79a8c996fd32c036558f29e2db6670f/generation_config.json?download=true"
+        },
+        "normalizer.json": {
+          "sha256": "bf1c507dc8724ca9cf9903640dacfb69dae2f00edee4f21ceba106a7392f26dd",
+          "size": 52666,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-fp16-ov/resolve/84fbe975a79a8c996fd32c036558f29e2db6670f/normalizer.json?download=true"
+        },
+        "openvino_decoder_model.bin": {
+          "sha256": "36f67da0ba9327bf817a258855bf696ad01cbf899268bc6c06f7e10c448f0427",
+          "size": 104006812,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-fp16-ov/resolve/84fbe975a79a8c996fd32c036558f29e2db6670f/openvino_decoder_model.bin?download=true"
+        },
+        "openvino_decoder_model.xml": {
+          "sha256": "272e09a043e5f08bb8d9f0c93f28d3e33aa08aac065be6a4be397c9e4c8bae9d",
+          "size": 496004,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-fp16-ov/resolve/84fbe975a79a8c996fd32c036558f29e2db6670f/openvino_decoder_model.xml?download=true"
+        },
+        "openvino_detokenizer.bin": {
+          "sha256": "2542d1fe6c4c5d838e7b7c61b24996b94ae0cb54e64ff6dbaab2b9dd5ddd7ca0",
+          "size": 736181,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-fp16-ov/resolve/84fbe975a79a8c996fd32c036558f29e2db6670f/openvino_detokenizer.bin?download=true"
+        },
+        "openvino_detokenizer.xml": {
+          "sha256": "ccb191d7e6bd5d4f5f5fcf3ffac54a6c109d60280f4befc1f7996625db594ead",
+          "size": 9699,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-fp16-ov/resolve/84fbe975a79a8c996fd32c036558f29e2db6670f/openvino_detokenizer.xml?download=true"
+        },
+        "openvino_encoder_model.bin": {
+          "sha256": "9ee2fa771d004d1af47ffc7da0909f2025d43b7df05e5c92532d959b9c2db234",
+          "size": 41181290,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-fp16-ov/resolve/84fbe975a79a8c996fd32c036558f29e2db6670f/openvino_encoder_model.bin?download=true"
+        },
+        "openvino_encoder_model.xml": {
+          "sha256": "5920849e30a3af25bcb674c539862d418e1b7ba4fe666105fb66cfd97e4d450d",
+          "size": 241299,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-fp16-ov/resolve/84fbe975a79a8c996fd32c036558f29e2db6670f/openvino_encoder_model.xml?download=true"
+        },
+        "openvino_tokenizer.bin": {
+          "sha256": "846f3c65f7a71f120fce7aaaf41b342f0767eb13e3c4e7c2a54f1d49b5c38fda",
+          "size": 1898933,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-fp16-ov/resolve/84fbe975a79a8c996fd32c036558f29e2db6670f/openvino_tokenizer.bin?download=true"
+        },
+        "openvino_tokenizer.xml": {
+          "sha256": "01051cc5271b954a660dbe6a8a72c8266c65461678a62ab478fac138942bc411",
+          "size": 27011,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-fp16-ov/resolve/84fbe975a79a8c996fd32c036558f29e2db6670f/openvino_tokenizer.xml?download=true"
+        },
+        "preprocessor_config.json": {
+          "sha256": "994838f1fa6462c8b9b3c90edada831f11f3dd8b4664634e18f4694d005c9dbf",
+          "size": 356,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-fp16-ov/resolve/84fbe975a79a8c996fd32c036558f29e2db6670f/preprocessor_config.json?download=true"
+        },
+        "special_tokens_map.json": {
+          "sha256": "e67ae3a0aaa99abcd9f187138e12db1f65c16a14761c50ef10eef2c174a7a691",
+          "size": 2194,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-fp16-ov/resolve/84fbe975a79a8c996fd32c036558f29e2db6670f/special_tokens_map.json?download=true"
+        },
+        "tokenizer.json": {
+          "sha256": "7b469ff15eb7816315aa45eec391f5943d639b9d73d110f5c003df5192fd54e3",
+          "size": 3930494,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-fp16-ov/resolve/84fbe975a79a8c996fd32c036558f29e2db6670f/tokenizer.json?download=true"
+        },
+        "tokenizer_config.json": {
+          "sha256": "21a4fc0483c14b87f4e0bbc177a9a357479bfa7c95aaf21ad53d71e9c5afafb9",
+          "size": 282713,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-fp16-ov/resolve/84fbe975a79a8c996fd32c036558f29e2db6670f/tokenizer_config.json?download=true"
+        },
+        "vocab.json": {
+          "sha256": "8f680bba319e01a653d2e8a5dbc17a9157179e0576e6ce74ce0c06356c6e24f9",
+          "size": 835550,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-fp16-ov/resolve/84fbe975a79a8c996fd32c036558f29e2db6670f/vocab.json?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "whisper_base_int4": {
+      "base_url": "https://huggingface.co/OpenVINO/whisper-base-int4-ov/resolve/21b22adb8e49b79dab004804a1b40655a4767c37/",
+      "files": {
+        "added_tokens.json": {
+          "sha256": "9715fd2243b6f06a5858b5e32950d2853f73dd5bc201aafcf76f5082a2d8acd1",
+          "size": 34604,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int4-ov/resolve/21b22adb8e49b79dab004804a1b40655a4767c37/added_tokens.json?download=true"
+        },
+        "config.json": {
+          "sha256": "7580357cd33e60d3c453b90b6ab4d78606cbc5de32cc2da8df873468dcfac237",
+          "size": 1320,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int4-ov/resolve/21b22adb8e49b79dab004804a1b40655a4767c37/config.json?download=true"
+        },
+        "generation_config.json": {
+          "sha256": "a24ccb25a8638fb23d3acfa0b234982497dd30bb3c577d145619525629f38e97",
+          "size": 3802,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int4-ov/resolve/21b22adb8e49b79dab004804a1b40655a4767c37/generation_config.json?download=true"
+        },
+        "normalizer.json": {
+          "sha256": "bf1c507dc8724ca9cf9903640dacfb69dae2f00edee4f21ceba106a7392f26dd",
+          "size": 52666,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int4-ov/resolve/21b22adb8e49b79dab004804a1b40655a4767c37/normalizer.json?download=true"
+        },
+        "openvino_decoder_model.bin": {
+          "sha256": "2dd4497dc017a79fd7816355a90eae0578041acb0db09d706f71a6367cdb4999",
+          "size": 40228835,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int4-ov/resolve/21b22adb8e49b79dab004804a1b40655a4767c37/openvino_decoder_model.bin?download=true"
+        },
+        "openvino_decoder_model.xml": {
+          "sha256": "8002db18f58e105aa6978f2ab0954bef39e7dd89799143a9eb96b48d77c6f898",
+          "size": 627401,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int4-ov/resolve/21b22adb8e49b79dab004804a1b40655a4767c37/openvino_decoder_model.xml?download=true"
+        },
+        "openvino_detokenizer.bin": {
+          "sha256": "2542d1fe6c4c5d838e7b7c61b24996b94ae0cb54e64ff6dbaab2b9dd5ddd7ca0",
+          "size": 736181,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int4-ov/resolve/21b22adb8e49b79dab004804a1b40655a4767c37/openvino_detokenizer.bin?download=true"
+        },
+        "openvino_detokenizer.xml": {
+          "sha256": "2ef46e0d325a858753784b4f96172bd0e627cd9ff1fd0c9db5ac8bc1785b8c7f",
+          "size": 9699,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int4-ov/resolve/21b22adb8e49b79dab004804a1b40655a4767c37/openvino_detokenizer.xml?download=true"
+        },
+        "openvino_encoder_model.bin": {
+          "sha256": "1e27d9ae27adaf114c8ec1736d8b9afcc6f73702984736d43cc6678a4dcfaf37",
+          "size": 14451360,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int4-ov/resolve/21b22adb8e49b79dab004804a1b40655a4767c37/openvino_encoder_model.bin?download=true"
+        },
+        "openvino_encoder_model.xml": {
+          "sha256": "9dffc149d8726bdbb980c45f191a61bc8cc3e1beb9729dbf6c92bd326b55e017",
+          "size": 332326,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int4-ov/resolve/21b22adb8e49b79dab004804a1b40655a4767c37/openvino_encoder_model.xml?download=true"
+        },
+        "openvino_tokenizer.bin": {
+          "sha256": "846f3c65f7a71f120fce7aaaf41b342f0767eb13e3c4e7c2a54f1d49b5c38fda",
+          "size": 1898933,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int4-ov/resolve/21b22adb8e49b79dab004804a1b40655a4767c37/openvino_tokenizer.bin?download=true"
+        },
+        "openvino_tokenizer.xml": {
+          "sha256": "3e4ddd6e2031c307d5db367630298ae77d6f9f5675b689cb536e0da617a0e38d",
+          "size": 27011,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int4-ov/resolve/21b22adb8e49b79dab004804a1b40655a4767c37/openvino_tokenizer.xml?download=true"
+        },
+        "preprocessor_config.json": {
+          "sha256": "994838f1fa6462c8b9b3c90edada831f11f3dd8b4664634e18f4694d005c9dbf",
+          "size": 356,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int4-ov/resolve/21b22adb8e49b79dab004804a1b40655a4767c37/preprocessor_config.json?download=true"
+        },
+        "special_tokens_map.json": {
+          "sha256": "e67ae3a0aaa99abcd9f187138e12db1f65c16a14761c50ef10eef2c174a7a691",
+          "size": 2194,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int4-ov/resolve/21b22adb8e49b79dab004804a1b40655a4767c37/special_tokens_map.json?download=true"
+        },
+        "tokenizer.json": {
+          "sha256": "7b469ff15eb7816315aa45eec391f5943d639b9d73d110f5c003df5192fd54e3",
+          "size": 3930494,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int4-ov/resolve/21b22adb8e49b79dab004804a1b40655a4767c37/tokenizer.json?download=true"
+        },
+        "tokenizer_config.json": {
+          "sha256": "21a4fc0483c14b87f4e0bbc177a9a357479bfa7c95aaf21ad53d71e9c5afafb9",
+          "size": 282713,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int4-ov/resolve/21b22adb8e49b79dab004804a1b40655a4767c37/tokenizer_config.json?download=true"
+        },
+        "vocab.json": {
+          "sha256": "8f680bba319e01a653d2e8a5dbc17a9157179e0576e6ce74ce0c06356c6e24f9",
+          "size": 835550,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int4-ov/resolve/21b22adb8e49b79dab004804a1b40655a4767c37/vocab.json?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "whisper_base_int8": {
+      "base_url": "https://huggingface.co/OpenVINO/whisper-base-int8-ov/resolve/0606293f0511136ada21755a265492f623a934b8/",
+      "files": {
+        "added_tokens.json": {
+          "sha256": "9715fd2243b6f06a5858b5e32950d2853f73dd5bc201aafcf76f5082a2d8acd1",
+          "size": 34604,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int8-ov/resolve/0606293f0511136ada21755a265492f623a934b8/added_tokens.json?download=true"
+        },
+        "config.json": {
+          "sha256": "7580357cd33e60d3c453b90b6ab4d78606cbc5de32cc2da8df873468dcfac237",
+          "size": 1320,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int8-ov/resolve/0606293f0511136ada21755a265492f623a934b8/config.json?download=true"
+        },
+        "generation_config.json": {
+          "sha256": "a24ccb25a8638fb23d3acfa0b234982497dd30bb3c577d145619525629f38e97",
+          "size": 3802,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int8-ov/resolve/0606293f0511136ada21755a265492f623a934b8/generation_config.json?download=true"
+        },
+        "normalizer.json": {
+          "sha256": "bf1c507dc8724ca9cf9903640dacfb69dae2f00edee4f21ceba106a7392f26dd",
+          "size": 52666,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int8-ov/resolve/0606293f0511136ada21755a265492f623a934b8/normalizer.json?download=true"
+        },
+        "openvino_decoder_model.bin": {
+          "sha256": "1e373d629c4a1a5c7a1964188f77c2b52b0bb488f27015fd9dc35bcb1e7eef42",
+          "size": 52439987,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int8-ov/resolve/0606293f0511136ada21755a265492f623a934b8/openvino_decoder_model.bin?download=true"
+        },
+        "openvino_decoder_model.xml": {
+          "sha256": "901c8584bd9c7721b879d617d2941fb9c318150cfec5d04056bc8faaa9745285",
+          "size": 564428,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int8-ov/resolve/0606293f0511136ada21755a265492f623a934b8/openvino_decoder_model.xml?download=true"
+        },
+        "openvino_detokenizer.bin": {
+          "sha256": "2542d1fe6c4c5d838e7b7c61b24996b94ae0cb54e64ff6dbaab2b9dd5ddd7ca0",
+          "size": 736181,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int8-ov/resolve/0606293f0511136ada21755a265492f623a934b8/openvino_detokenizer.bin?download=true"
+        },
+        "openvino_detokenizer.xml": {
+          "sha256": "2ef46e0d325a858753784b4f96172bd0e627cd9ff1fd0c9db5ac8bc1785b8c7f",
+          "size": 9699,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int8-ov/resolve/0606293f0511136ada21755a265492f623a934b8/openvino_detokenizer.xml?download=true"
+        },
+        "openvino_encoder_model.bin": {
+          "sha256": "a0aa4518850411dfadc7799b426d7c08e966a85367be96588432fbadf40789d8",
+          "size": 23097456,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int8-ov/resolve/0606293f0511136ada21755a265492f623a934b8/openvino_encoder_model.bin?download=true"
+        },
+        "openvino_encoder_model.xml": {
+          "sha256": "79dc09241718475ca14277bb16766cfb688b279f412cae8972b1c1857863ae3a",
+          "size": 295834,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int8-ov/resolve/0606293f0511136ada21755a265492f623a934b8/openvino_encoder_model.xml?download=true"
+        },
+        "openvino_tokenizer.bin": {
+          "sha256": "846f3c65f7a71f120fce7aaaf41b342f0767eb13e3c4e7c2a54f1d49b5c38fda",
+          "size": 1898933,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int8-ov/resolve/0606293f0511136ada21755a265492f623a934b8/openvino_tokenizer.bin?download=true"
+        },
+        "openvino_tokenizer.xml": {
+          "sha256": "3e4ddd6e2031c307d5db367630298ae77d6f9f5675b689cb536e0da617a0e38d",
+          "size": 27011,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int8-ov/resolve/0606293f0511136ada21755a265492f623a934b8/openvino_tokenizer.xml?download=true"
+        },
+        "preprocessor_config.json": {
+          "sha256": "994838f1fa6462c8b9b3c90edada831f11f3dd8b4664634e18f4694d005c9dbf",
+          "size": 356,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int8-ov/resolve/0606293f0511136ada21755a265492f623a934b8/preprocessor_config.json?download=true"
+        },
+        "special_tokens_map.json": {
+          "sha256": "e67ae3a0aaa99abcd9f187138e12db1f65c16a14761c50ef10eef2c174a7a691",
+          "size": 2194,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int8-ov/resolve/0606293f0511136ada21755a265492f623a934b8/special_tokens_map.json?download=true"
+        },
+        "tokenizer.json": {
+          "sha256": "7b469ff15eb7816315aa45eec391f5943d639b9d73d110f5c003df5192fd54e3",
+          "size": 3930494,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int8-ov/resolve/0606293f0511136ada21755a265492f623a934b8/tokenizer.json?download=true"
+        },
+        "tokenizer_config.json": {
+          "sha256": "21a4fc0483c14b87f4e0bbc177a9a357479bfa7c95aaf21ad53d71e9c5afafb9",
+          "size": 282713,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int8-ov/resolve/0606293f0511136ada21755a265492f623a934b8/tokenizer_config.json?download=true"
+        },
+        "vocab.json": {
+          "sha256": "8f680bba319e01a653d2e8a5dbc17a9157179e0576e6ce74ce0c06356c6e24f9",
+          "size": 835550,
+          "url": "https://huggingface.co/OpenVINO/whisper-base-int8-ov/resolve/0606293f0511136ada21755a265492f623a934b8/vocab.json?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "whisper_large_v3_fp16": {
+      "base_url": "https://huggingface.co/OpenVINO/whisper-large-v3-fp16-ov/resolve/220761e60602a5ca694c409d5f424563b75d6820/",
+      "files": {
+        "added_tokens.json": {
+          "sha256": "3c51f66c4c21f9e126970078f11ae77a78c74aee8df606ee9daba86e467108e0",
+          "size": 34648,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-fp16-ov/resolve/220761e60602a5ca694c409d5f424563b75d6820/added_tokens.json?download=true"
+        },
+        "config.json": {
+          "sha256": "2efba1fd9d65450929e2d917a32cf9dec2fd5682d29baa6ff48d31d3a61fb501",
+          "size": 1195,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-fp16-ov/resolve/220761e60602a5ca694c409d5f424563b75d6820/config.json?download=true"
+        },
+        "generation_config.json": {
+          "sha256": "041bb1619064440f4cb37a53326f5394de3df380f52ca1e2bfae599535414a7b",
+          "size": 3898,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-fp16-ov/resolve/220761e60602a5ca694c409d5f424563b75d6820/generation_config.json?download=true"
+        },
+        "normalizer.json": {
+          "sha256": "bf1c507dc8724ca9cf9903640dacfb69dae2f00edee4f21ceba106a7392f26dd",
+          "size": 52666,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-fp16-ov/resolve/220761e60602a5ca694c409d5f424563b75d6820/normalizer.json?download=true"
+        },
+        "openvino_decoder_model.bin": {
+          "sha256": "13542f8948ac82e3ffa1bacb54e38de784f35383bb2cda495ddd53e9f864577e",
+          "size": 1813043356,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-fp16-ov/resolve/220761e60602a5ca694c409d5f424563b75d6820/openvino_decoder_model.bin?download=true"
+        },
+        "openvino_decoder_model.xml": {
+          "sha256": "301f769e85b11f28f0b742c4a2ad92ba59ab6267df6b8ebfc5a29ffa8ce49055",
+          "size": 2514921,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-fp16-ov/resolve/220761e60602a5ca694c409d5f424563b75d6820/openvino_decoder_model.xml?download=true"
+        },
+        "openvino_detokenizer.bin": {
+          "sha256": "f2b3c47825a1089525ff65c0c8e49271e1dee69a401a04fc827ac2de5b7766e4",
+          "size": 736198,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-fp16-ov/resolve/220761e60602a5ca694c409d5f424563b75d6820/openvino_detokenizer.bin?download=true"
+        },
+        "openvino_detokenizer.xml": {
+          "sha256": "55ba846c7ab78518b1e8f21923ef0c42fc78e86a0a5bd0b3f488a2e29a236775",
+          "size": 9699,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-fp16-ov/resolve/220761e60602a5ca694c409d5f424563b75d6820/openvino_detokenizer.xml?download=true"
+        },
+        "openvino_encoder_model.bin": {
+          "sha256": "76de5b22435747d7f0d7f74b003acd23ab5c10b7e1198d36373cdf0f6975b630",
+          "size": 1273938026,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-fp16-ov/resolve/220761e60602a5ca694c409d5f424563b75d6820/openvino_encoder_model.bin?download=true"
+        },
+        "openvino_encoder_model.xml": {
+          "sha256": "d913c09a5c5c1f86e6b5dced2a44df0b69b9aacf8218451d9100ee4fa12dec3d",
+          "size": 1239276,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-fp16-ov/resolve/220761e60602a5ca694c409d5f424563b75d6820/openvino_encoder_model.xml?download=true"
+        },
+        "openvino_tokenizer.bin": {
+          "sha256": "adfa3d9a2920d0f314121270a960ab331ec0f05838544bb8ecaaa422282a6fd4",
+          "size": 1898973,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-fp16-ov/resolve/220761e60602a5ca694c409d5f424563b75d6820/openvino_tokenizer.bin?download=true"
+        },
+        "openvino_tokenizer.xml": {
+          "sha256": "11ae95e07936a776ef7e547160acdce17e1b05d6b9e4da623f253120903272d6",
+          "size": 27011,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-fp16-ov/resolve/220761e60602a5ca694c409d5f424563b75d6820/openvino_tokenizer.xml?download=true"
+        },
+        "preprocessor_config.json": {
+          "sha256": "654cf18d3e163b948ceaf9766da56ce0b52de265d58673cf61c9376f126bd499",
+          "size": 357,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-fp16-ov/resolve/220761e60602a5ca694c409d5f424563b75d6820/preprocessor_config.json?download=true"
+        },
+        "special_tokens_map.json": {
+          "sha256": "baea4ea09372eb4fca86b4e4346139fd73cb807d5087e9de0948e971739c3e74",
+          "size": 2186,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-fp16-ov/resolve/220761e60602a5ca694c409d5f424563b75d6820/special_tokens_map.json?download=true"
+        },
+        "tokenizer.json": {
+          "sha256": "5c1bf30c9e716e1477bedef846b01be0013daecb89e9e3ef7ab89b23c178df1b",
+          "size": 3930645,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-fp16-ov/resolve/220761e60602a5ca694c409d5f424563b75d6820/tokenizer.json?download=true"
+        },
+        "tokenizer_config.json": {
+          "sha256": "3c75940dfce3a294fca7041a5faff011677f1b68fa85e47511bb8cf6dccaded6",
+          "size": 282873,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-fp16-ov/resolve/220761e60602a5ca694c409d5f424563b75d6820/tokenizer_config.json?download=true"
+        },
+        "vocab.json": {
+          "sha256": "6788c80b082e9b0d1393147d3a3e62ba19285ac0c82ace8e5ef00f37ead58971",
+          "size": 835528,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-fp16-ov/resolve/220761e60602a5ca694c409d5f424563b75d6820/vocab.json?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "whisper_large_v3_int4": {
+      "base_url": "https://huggingface.co/OpenVINO/whisper-large-v3-int4-ov/resolve/95f08bc1b2b53dafaecae3d806b056adecc0be33/",
+      "files": {
+        "added_tokens.json": {
+          "sha256": "3c51f66c4c21f9e126970078f11ae77a78c74aee8df606ee9daba86e467108e0",
+          "size": 34648,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int4-ov/resolve/95f08bc1b2b53dafaecae3d806b056adecc0be33/added_tokens.json?download=true"
+        },
+        "config.json": {
+          "sha256": "2efba1fd9d65450929e2d917a32cf9dec2fd5682d29baa6ff48d31d3a61fb501",
+          "size": 1195,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int4-ov/resolve/95f08bc1b2b53dafaecae3d806b056adecc0be33/config.json?download=true"
+        },
+        "generation_config.json": {
+          "sha256": "041bb1619064440f4cb37a53326f5394de3df380f52ca1e2bfae599535414a7b",
+          "size": 3898,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int4-ov/resolve/95f08bc1b2b53dafaecae3d806b056adecc0be33/generation_config.json?download=true"
+        },
+        "normalizer.json": {
+          "sha256": "bf1c507dc8724ca9cf9903640dacfb69dae2f00edee4f21ceba106a7392f26dd",
+          "size": 52666,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int4-ov/resolve/95f08bc1b2b53dafaecae3d806b056adecc0be33/normalizer.json?download=true"
+        },
+        "openvino_decoder_model.bin": {
+          "sha256": "9b6c32730575fd4792dfa9c01dc432033ccd6f4c5819cbfee29885f12dfe9484",
+          "size": 505728998,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int4-ov/resolve/95f08bc1b2b53dafaecae3d806b056adecc0be33/openvino_decoder_model.bin?download=true"
+        },
+        "openvino_decoder_model.xml": {
+          "sha256": "a3f84c5e34a732695d4ed09faddfa639a3a6d05de1eff90d1e2f7167f410f99f",
+          "size": 3208882,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int4-ov/resolve/95f08bc1b2b53dafaecae3d806b056adecc0be33/openvino_decoder_model.xml?download=true"
+        },
+        "openvino_detokenizer.bin": {
+          "sha256": "f2b3c47825a1089525ff65c0c8e49271e1dee69a401a04fc827ac2de5b7766e4",
+          "size": 736198,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int4-ov/resolve/95f08bc1b2b53dafaecae3d806b056adecc0be33/openvino_detokenizer.bin?download=true"
+        },
+        "openvino_detokenizer.xml": {
+          "sha256": "ac37fdd9b044a04130747c6773b85f395e5910e0cfb132a2c937fb533d69b4da",
+          "size": 9699,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int4-ov/resolve/95f08bc1b2b53dafaecae3d806b056adecc0be33/openvino_detokenizer.xml?download=true"
+        },
+        "openvino_encoder_model.bin": {
+          "sha256": "678fbeebf9856e533f2ea4515608d0dec6cb6abb0c3caf5169f03654365fb952",
+          "size": 345094560,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int4-ov/resolve/95f08bc1b2b53dafaecae3d806b056adecc0be33/openvino_encoder_model.bin?download=true"
+        },
+        "openvino_encoder_model.xml": {
+          "sha256": "e42313feeb567ade3c8f0eb24ac18d118338559f1a53b475f7c8d31670dbcfb8",
+          "size": 1721425,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int4-ov/resolve/95f08bc1b2b53dafaecae3d806b056adecc0be33/openvino_encoder_model.xml?download=true"
+        },
+        "openvino_tokenizer.bin": {
+          "sha256": "adfa3d9a2920d0f314121270a960ab331ec0f05838544bb8ecaaa422282a6fd4",
+          "size": 1898973,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int4-ov/resolve/95f08bc1b2b53dafaecae3d806b056adecc0be33/openvino_tokenizer.bin?download=true"
+        },
+        "openvino_tokenizer.xml": {
+          "sha256": "dad2092c08510c043acabeae952cdbd381bc7b9c3272eaef524fa4fbea2f9dc4",
+          "size": 27011,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int4-ov/resolve/95f08bc1b2b53dafaecae3d806b056adecc0be33/openvino_tokenizer.xml?download=true"
+        },
+        "preprocessor_config.json": {
+          "sha256": "654cf18d3e163b948ceaf9766da56ce0b52de265d58673cf61c9376f126bd499",
+          "size": 357,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int4-ov/resolve/95f08bc1b2b53dafaecae3d806b056adecc0be33/preprocessor_config.json?download=true"
+        },
+        "special_tokens_map.json": {
+          "sha256": "baea4ea09372eb4fca86b4e4346139fd73cb807d5087e9de0948e971739c3e74",
+          "size": 2186,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int4-ov/resolve/95f08bc1b2b53dafaecae3d806b056adecc0be33/special_tokens_map.json?download=true"
+        },
+        "tokenizer.json": {
+          "sha256": "5c1bf30c9e716e1477bedef846b01be0013daecb89e9e3ef7ab89b23c178df1b",
+          "size": 3930645,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int4-ov/resolve/95f08bc1b2b53dafaecae3d806b056adecc0be33/tokenizer.json?download=true"
+        },
+        "tokenizer_config.json": {
+          "sha256": "3c75940dfce3a294fca7041a5faff011677f1b68fa85e47511bb8cf6dccaded6",
+          "size": 282873,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int4-ov/resolve/95f08bc1b2b53dafaecae3d806b056adecc0be33/tokenizer_config.json?download=true"
+        },
+        "vocab.json": {
+          "sha256": "6788c80b082e9b0d1393147d3a3e62ba19285ac0c82ace8e5ef00f37ead58971",
+          "size": 835528,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int4-ov/resolve/95f08bc1b2b53dafaecae3d806b056adecc0be33/vocab.json?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "whisper_large_v3_int8": {
+      "base_url": "https://huggingface.co/OpenVINO/whisper-large-v3-int8-ov/resolve/a888a75cc8b494a8a45400fd85f6bfa379ba3955/",
+      "files": {
+        "added_tokens.json": {
+          "sha256": "3c51f66c4c21f9e126970078f11ae77a78c74aee8df606ee9daba86e467108e0",
+          "size": 34648,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int8-ov/resolve/a888a75cc8b494a8a45400fd85f6bfa379ba3955/added_tokens.json?download=true"
+        },
+        "config.json": {
+          "sha256": "2efba1fd9d65450929e2d917a32cf9dec2fd5682d29baa6ff48d31d3a61fb501",
+          "size": 1195,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int8-ov/resolve/a888a75cc8b494a8a45400fd85f6bfa379ba3955/config.json?download=true"
+        },
+        "generation_config.json": {
+          "sha256": "041bb1619064440f4cb37a53326f5394de3df380f52ca1e2bfae599535414a7b",
+          "size": 3898,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int8-ov/resolve/a888a75cc8b494a8a45400fd85f6bfa379ba3955/generation_config.json?download=true"
+        },
+        "normalizer.json": {
+          "sha256": "bf1c507dc8724ca9cf9903640dacfb69dae2f00edee4f21ceba106a7392f26dd",
+          "size": 52666,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int8-ov/resolve/a888a75cc8b494a8a45400fd85f6bfa379ba3955/normalizer.json?download=true"
+        },
+        "openvino_decoder_model.bin": {
+          "sha256": "fdf13685d5a9c427b9aa5893c2baef362f1e4dddfbf5bf8a47fc03acb35a45ea",
+          "size": 910372790,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int8-ov/resolve/a888a75cc8b494a8a45400fd85f6bfa379ba3955/openvino_decoder_model.bin?download=true"
+        },
+        "openvino_decoder_model.xml": {
+          "sha256": "cc4b29bb1fc4afb6dcc59db2cf3d149fe5847a7215ca66b4944cb36390b17805",
+          "size": 2869528,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int8-ov/resolve/a888a75cc8b494a8a45400fd85f6bfa379ba3955/openvino_decoder_model.xml?download=true"
+        },
+        "openvino_detokenizer.bin": {
+          "sha256": "f2b3c47825a1089525ff65c0c8e49271e1dee69a401a04fc827ac2de5b7766e4",
+          "size": 736198,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int8-ov/resolve/a888a75cc8b494a8a45400fd85f6bfa379ba3955/openvino_detokenizer.bin?download=true"
+        },
+        "openvino_detokenizer.xml": {
+          "sha256": "ac37fdd9b044a04130747c6773b85f395e5910e0cfb132a2c937fb533d69b4da",
+          "size": 9699,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int8-ov/resolve/a888a75cc8b494a8a45400fd85f6bfa379ba3955/openvino_detokenizer.xml?download=true"
+        },
+        "openvino_encoder_model.bin": {
+          "sha256": "fffcbf47a4cfd5a1e3f57c0569f5ef706245b798ef626db5ffea7b84166ed865",
+          "size": 645332592,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int8-ov/resolve/a888a75cc8b494a8a45400fd85f6bfa379ba3955/openvino_encoder_model.bin?download=true"
+        },
+        "openvino_encoder_model.xml": {
+          "sha256": "2a19e0ae9b77b5fbf2928793aa232eb84b0554a29fd4f16e190617583bdefcfc",
+          "size": 1518681,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int8-ov/resolve/a888a75cc8b494a8a45400fd85f6bfa379ba3955/openvino_encoder_model.xml?download=true"
+        },
+        "openvino_tokenizer.bin": {
+          "sha256": "adfa3d9a2920d0f314121270a960ab331ec0f05838544bb8ecaaa422282a6fd4",
+          "size": 1898973,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int8-ov/resolve/a888a75cc8b494a8a45400fd85f6bfa379ba3955/openvino_tokenizer.bin?download=true"
+        },
+        "openvino_tokenizer.xml": {
+          "sha256": "dad2092c08510c043acabeae952cdbd381bc7b9c3272eaef524fa4fbea2f9dc4",
+          "size": 27011,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int8-ov/resolve/a888a75cc8b494a8a45400fd85f6bfa379ba3955/openvino_tokenizer.xml?download=true"
+        },
+        "preprocessor_config.json": {
+          "sha256": "654cf18d3e163b948ceaf9766da56ce0b52de265d58673cf61c9376f126bd499",
+          "size": 357,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int8-ov/resolve/a888a75cc8b494a8a45400fd85f6bfa379ba3955/preprocessor_config.json?download=true"
+        },
+        "special_tokens_map.json": {
+          "sha256": "baea4ea09372eb4fca86b4e4346139fd73cb807d5087e9de0948e971739c3e74",
+          "size": 2186,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int8-ov/resolve/a888a75cc8b494a8a45400fd85f6bfa379ba3955/special_tokens_map.json?download=true"
+        },
+        "tokenizer.json": {
+          "sha256": "5c1bf30c9e716e1477bedef846b01be0013daecb89e9e3ef7ab89b23c178df1b",
+          "size": 3930645,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int8-ov/resolve/a888a75cc8b494a8a45400fd85f6bfa379ba3955/tokenizer.json?download=true"
+        },
+        "tokenizer_config.json": {
+          "sha256": "3c75940dfce3a294fca7041a5faff011677f1b68fa85e47511bb8cf6dccaded6",
+          "size": 282873,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int8-ov/resolve/a888a75cc8b494a8a45400fd85f6bfa379ba3955/tokenizer_config.json?download=true"
+        },
+        "vocab.json": {
+          "sha256": "6788c80b082e9b0d1393147d3a3e62ba19285ac0c82ace8e5ef00f37ead58971",
+          "size": 835528,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-int8-ov/resolve/a888a75cc8b494a8a45400fd85f6bfa379ba3955/vocab.json?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "whisper_large_v3_turbo_fp16": {
+      "base_url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-fp16-ov/resolve/131d663658f94202779b0bb98ee7a5f71d5bde1a/",
+      "files": {
+        "added_tokens.json": {
+          "sha256": "3c51f66c4c21f9e126970078f11ae77a78c74aee8df606ee9daba86e467108e0",
+          "size": 34648,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-fp16-ov/resolve/131d663658f94202779b0bb98ee7a5f71d5bde1a/added_tokens.json?download=true"
+        },
+        "config.json": {
+          "sha256": "bfd92c097547ab12cb42abae8008be5a59a91fdc5ab39acce24489eb8a3e8a86",
+          "size": 1192,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-fp16-ov/resolve/131d663658f94202779b0bb98ee7a5f71d5bde1a/config.json?download=true"
+        },
+        "generation_config.json": {
+          "sha256": "4617fcca458af3b91a103143aaac919c1ab6680b552d7abd10811b7248bd77b4",
+          "size": 3767,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-fp16-ov/resolve/131d663658f94202779b0bb98ee7a5f71d5bde1a/generation_config.json?download=true"
+        },
+        "normalizer.json": {
+          "sha256": "bf1c507dc8724ca9cf9903640dacfb69dae2f00edee4f21ceba106a7392f26dd",
+          "size": 52666,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-fp16-ov/resolve/131d663658f94202779b0bb98ee7a5f71d5bde1a/normalizer.json?download=true"
+        },
+        "openvino_decoder_model.bin": {
+          "sha256": "58fbe879d2e028fc7792036ba660fde0e6c8dd85b71d596cd1a144672a807b73",
+          "size": 343818396,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-fp16-ov/resolve/131d663658f94202779b0bb98ee7a5f71d5bde1a/openvino_decoder_model.bin?download=true"
+        },
+        "openvino_decoder_model.xml": {
+          "sha256": "926f88e8439e6850264ff14cb57f2737a0d87a8c5b7211870f985a78c69d68f4",
+          "size": 344388,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-fp16-ov/resolve/131d663658f94202779b0bb98ee7a5f71d5bde1a/openvino_decoder_model.xml?download=true"
+        },
+        "openvino_detokenizer.bin": {
+          "sha256": "f2b3c47825a1089525ff65c0c8e49271e1dee69a401a04fc827ac2de5b7766e4",
+          "size": 736198,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-fp16-ov/resolve/131d663658f94202779b0bb98ee7a5f71d5bde1a/openvino_detokenizer.bin?download=true"
+        },
+        "openvino_detokenizer.xml": {
+          "sha256": "cd4c080beed5a2db5b96aa7a50cf98b9e13695f99ffabeb57962893d9459fcc4",
+          "size": 9779,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-fp16-ov/resolve/131d663658f94202779b0bb98ee7a5f71d5bde1a/openvino_detokenizer.xml?download=true"
+        },
+        "openvino_encoder_model.bin": {
+          "sha256": "d36aff56fa2215fd93ffe4e4eb17be8a97fbad16f97f6c96126d79161b5e9b83",
+          "size": 1273938026,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-fp16-ov/resolve/131d663658f94202779b0bb98ee7a5f71d5bde1a/openvino_encoder_model.bin?download=true"
+        },
+        "openvino_encoder_model.xml": {
+          "sha256": "7bd76d5bd60795243ef4aa06b111ea58936d2df59885022b72415d6038d36e28",
+          "size": 1239274,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-fp16-ov/resolve/131d663658f94202779b0bb98ee7a5f71d5bde1a/openvino_encoder_model.xml?download=true"
+        },
+        "openvino_tokenizer.bin": {
+          "sha256": "adfa3d9a2920d0f314121270a960ab331ec0f05838544bb8ecaaa422282a6fd4",
+          "size": 1898973,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-fp16-ov/resolve/131d663658f94202779b0bb98ee7a5f71d5bde1a/openvino_tokenizer.bin?download=true"
+        },
+        "openvino_tokenizer.xml": {
+          "sha256": "79b781222585b8e45dc88791204c9b4bef84cfbce71c96ad505fc3870bd148b7",
+          "size": 27091,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-fp16-ov/resolve/131d663658f94202779b0bb98ee7a5f71d5bde1a/openvino_tokenizer.xml?download=true"
+        },
+        "preprocessor_config.json": {
+          "sha256": "654cf18d3e163b948ceaf9766da56ce0b52de265d58673cf61c9376f126bd499",
+          "size": 357,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-fp16-ov/resolve/131d663658f94202779b0bb98ee7a5f71d5bde1a/preprocessor_config.json?download=true"
+        },
+        "special_tokens_map.json": {
+          "sha256": "baea4ea09372eb4fca86b4e4346139fd73cb807d5087e9de0948e971739c3e74",
+          "size": 2186,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-fp16-ov/resolve/131d663658f94202779b0bb98ee7a5f71d5bde1a/special_tokens_map.json?download=true"
+        },
+        "tokenizer.json": {
+          "sha256": "5c1bf30c9e716e1477bedef846b01be0013daecb89e9e3ef7ab89b23c178df1b",
+          "size": 3930645,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-fp16-ov/resolve/131d663658f94202779b0bb98ee7a5f71d5bde1a/tokenizer.json?download=true"
+        },
+        "tokenizer_config.json": {
+          "sha256": "3c75940dfce3a294fca7041a5faff011677f1b68fa85e47511bb8cf6dccaded6",
+          "size": 282873,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-fp16-ov/resolve/131d663658f94202779b0bb98ee7a5f71d5bde1a/tokenizer_config.json?download=true"
+        },
+        "vocab.json": {
+          "sha256": "6788c80b082e9b0d1393147d3a3e62ba19285ac0c82ace8e5ef00f37ead58971",
+          "size": 835528,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-fp16-ov/resolve/131d663658f94202779b0bb98ee7a5f71d5bde1a/vocab.json?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "whisper_large_v3_turbo_int4": {
+      "base_url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int4-ov/resolve/ae50b4d9a9dbaf16f2df59c23f3984e42f864dfc/",
+      "files": {
+        "added_tokens.json": {
+          "sha256": "3c51f66c4c21f9e126970078f11ae77a78c74aee8df606ee9daba86e467108e0",
+          "size": 34648,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int4-ov/resolve/ae50b4d9a9dbaf16f2df59c23f3984e42f864dfc/added_tokens.json?download=true"
+        },
+        "config.json": {
+          "sha256": "bfd92c097547ab12cb42abae8008be5a59a91fdc5ab39acce24489eb8a3e8a86",
+          "size": 1192,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int4-ov/resolve/ae50b4d9a9dbaf16f2df59c23f3984e42f864dfc/config.json?download=true"
+        },
+        "generation_config.json": {
+          "sha256": "4617fcca458af3b91a103143aaac919c1ab6680b552d7abd10811b7248bd77b4",
+          "size": 3767,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int4-ov/resolve/ae50b4d9a9dbaf16f2df59c23f3984e42f864dfc/generation_config.json?download=true"
+        },
+        "normalizer.json": {
+          "sha256": "bf1c507dc8724ca9cf9903640dacfb69dae2f00edee4f21ceba106a7392f26dd",
+          "size": 52666,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int4-ov/resolve/ae50b4d9a9dbaf16f2df59c23f3984e42f864dfc/normalizer.json?download=true"
+        },
+        "openvino_decoder_model.bin": {
+          "sha256": "70a34bd26aa8b802535420239d61b8d6cc0876ef777046d395c788435bc5572e",
+          "size": 121954278,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int4-ov/resolve/ae50b4d9a9dbaf16f2df59c23f3984e42f864dfc/openvino_decoder_model.bin?download=true"
+        },
+        "openvino_decoder_model.xml": {
+          "sha256": "8306639b2f235c3a2b9a8a7821c21fbdd096e0b1c107868b1dd29e57f2e2588c",
+          "size": 433734,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int4-ov/resolve/ae50b4d9a9dbaf16f2df59c23f3984e42f864dfc/openvino_decoder_model.xml?download=true"
+        },
+        "openvino_detokenizer.bin": {
+          "sha256": "f2b3c47825a1089525ff65c0c8e49271e1dee69a401a04fc827ac2de5b7766e4",
+          "size": 736198,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int4-ov/resolve/ae50b4d9a9dbaf16f2df59c23f3984e42f864dfc/openvino_detokenizer.bin?download=true"
+        },
+        "openvino_detokenizer.xml": {
+          "sha256": "6e106a14f14b0771b46b7948a99b1d819ff93b2455b7da8f47761ab9dba9dc56",
+          "size": 9779,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int4-ov/resolve/ae50b4d9a9dbaf16f2df59c23f3984e42f864dfc/openvino_detokenizer.xml?download=true"
+        },
+        "openvino_encoder_model.bin": {
+          "sha256": "86edfce9765b229a6a47b0036ef2eb96ff898675d424c51fc2b165e088d3bbc4",
+          "size": 345094560,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int4-ov/resolve/ae50b4d9a9dbaf16f2df59c23f3984e42f864dfc/openvino_encoder_model.bin?download=true"
+        },
+        "openvino_encoder_model.xml": {
+          "sha256": "ac2adae65fcc6f6ea958e3a180570e7eca3a453f448387cc703080db6ab88880",
+          "size": 1721370,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int4-ov/resolve/ae50b4d9a9dbaf16f2df59c23f3984e42f864dfc/openvino_encoder_model.xml?download=true"
+        },
+        "openvino_tokenizer.bin": {
+          "sha256": "adfa3d9a2920d0f314121270a960ab331ec0f05838544bb8ecaaa422282a6fd4",
+          "size": 1898973,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int4-ov/resolve/ae50b4d9a9dbaf16f2df59c23f3984e42f864dfc/openvino_tokenizer.bin?download=true"
+        },
+        "openvino_tokenizer.xml": {
+          "sha256": "cba304e7bad54773b9d2cbccfbc8501117ecf2e3c0f4f5331742a0a3c9feed93",
+          "size": 27091,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int4-ov/resolve/ae50b4d9a9dbaf16f2df59c23f3984e42f864dfc/openvino_tokenizer.xml?download=true"
+        },
+        "preprocessor_config.json": {
+          "sha256": "654cf18d3e163b948ceaf9766da56ce0b52de265d58673cf61c9376f126bd499",
+          "size": 357,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int4-ov/resolve/ae50b4d9a9dbaf16f2df59c23f3984e42f864dfc/preprocessor_config.json?download=true"
+        },
+        "special_tokens_map.json": {
+          "sha256": "baea4ea09372eb4fca86b4e4346139fd73cb807d5087e9de0948e971739c3e74",
+          "size": 2186,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int4-ov/resolve/ae50b4d9a9dbaf16f2df59c23f3984e42f864dfc/special_tokens_map.json?download=true"
+        },
+        "tokenizer.json": {
+          "sha256": "5c1bf30c9e716e1477bedef846b01be0013daecb89e9e3ef7ab89b23c178df1b",
+          "size": 3930645,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int4-ov/resolve/ae50b4d9a9dbaf16f2df59c23f3984e42f864dfc/tokenizer.json?download=true"
+        },
+        "tokenizer_config.json": {
+          "sha256": "3c75940dfce3a294fca7041a5faff011677f1b68fa85e47511bb8cf6dccaded6",
+          "size": 282873,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int4-ov/resolve/ae50b4d9a9dbaf16f2df59c23f3984e42f864dfc/tokenizer_config.json?download=true"
+        },
+        "vocab.json": {
+          "sha256": "6788c80b082e9b0d1393147d3a3e62ba19285ac0c82ace8e5ef00f37ead58971",
+          "size": 835528,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int4-ov/resolve/ae50b4d9a9dbaf16f2df59c23f3984e42f864dfc/vocab.json?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "whisper_large_v3_turbo_int8": {
+      "base_url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int8-ov/resolve/4929ae83ea2d1df59f4b5898a9aab8aa1c29e711/",
+      "files": {
+        "added_tokens.json": {
+          "sha256": "3c51f66c4c21f9e126970078f11ae77a78c74aee8df606ee9daba86e467108e0",
+          "size": 34648,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int8-ov/resolve/4929ae83ea2d1df59f4b5898a9aab8aa1c29e711/added_tokens.json?download=true"
+        },
+        "config.json": {
+          "sha256": "bfd92c097547ab12cb42abae8008be5a59a91fdc5ab39acce24489eb8a3e8a86",
+          "size": 1192,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int8-ov/resolve/4929ae83ea2d1df59f4b5898a9aab8aa1c29e711/config.json?download=true"
+        },
+        "generation_config.json": {
+          "sha256": "4617fcca458af3b91a103143aaac919c1ab6680b552d7abd10811b7248bd77b4",
+          "size": 3767,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int8-ov/resolve/4929ae83ea2d1df59f4b5898a9aab8aa1c29e711/generation_config.json?download=true"
+        },
+        "normalizer.json": {
+          "sha256": "bf1c507dc8724ca9cf9903640dacfb69dae2f00edee4f21ceba106a7392f26dd",
+          "size": 52666,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int8-ov/resolve/4929ae83ea2d1df59f4b5898a9aab8aa1c29e711/normalizer.json?download=true"
+        },
+        "openvino_decoder_model.bin": {
+          "sha256": "c064991cbafc4381567d29972b7013dc24026de9c326d03eb1e6e4fc44aa959f",
+          "size": 172534710,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int8-ov/resolve/4929ae83ea2d1df59f4b5898a9aab8aa1c29e711/openvino_decoder_model.bin?download=true"
+        },
+        "openvino_decoder_model.xml": {
+          "sha256": "aeb09fafbf1c0cbf84baf30f46763436005822faf3b365359b8de0aa04f03047",
+          "size": 391642,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int8-ov/resolve/4929ae83ea2d1df59f4b5898a9aab8aa1c29e711/openvino_decoder_model.xml?download=true"
+        },
+        "openvino_detokenizer.bin": {
+          "sha256": "f2b3c47825a1089525ff65c0c8e49271e1dee69a401a04fc827ac2de5b7766e4",
+          "size": 736198,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int8-ov/resolve/4929ae83ea2d1df59f4b5898a9aab8aa1c29e711/openvino_detokenizer.bin?download=true"
+        },
+        "openvino_detokenizer.xml": {
+          "sha256": "6e106a14f14b0771b46b7948a99b1d819ff93b2455b7da8f47761ab9dba9dc56",
+          "size": 9779,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int8-ov/resolve/4929ae83ea2d1df59f4b5898a9aab8aa1c29e711/openvino_detokenizer.xml?download=true"
+        },
+        "openvino_encoder_model.bin": {
+          "sha256": "0590a8f35f96d57801c55990028d917821ac721026e34b7f3f59d7561fc908e6",
+          "size": 645332592,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int8-ov/resolve/4929ae83ea2d1df59f4b5898a9aab8aa1c29e711/openvino_encoder_model.bin?download=true"
+        },
+        "openvino_encoder_model.xml": {
+          "sha256": "60713d4ed3a8ac8ee020e11c4737ec276d14cabc6a082537bddf2c00ba6ce070",
+          "size": 1518660,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int8-ov/resolve/4929ae83ea2d1df59f4b5898a9aab8aa1c29e711/openvino_encoder_model.xml?download=true"
+        },
+        "openvino_tokenizer.bin": {
+          "sha256": "adfa3d9a2920d0f314121270a960ab331ec0f05838544bb8ecaaa422282a6fd4",
+          "size": 1898973,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int8-ov/resolve/4929ae83ea2d1df59f4b5898a9aab8aa1c29e711/openvino_tokenizer.bin?download=true"
+        },
+        "openvino_tokenizer.xml": {
+          "sha256": "cba304e7bad54773b9d2cbccfbc8501117ecf2e3c0f4f5331742a0a3c9feed93",
+          "size": 27091,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int8-ov/resolve/4929ae83ea2d1df59f4b5898a9aab8aa1c29e711/openvino_tokenizer.xml?download=true"
+        },
+        "preprocessor_config.json": {
+          "sha256": "654cf18d3e163b948ceaf9766da56ce0b52de265d58673cf61c9376f126bd499",
+          "size": 357,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int8-ov/resolve/4929ae83ea2d1df59f4b5898a9aab8aa1c29e711/preprocessor_config.json?download=true"
+        },
+        "special_tokens_map.json": {
+          "sha256": "baea4ea09372eb4fca86b4e4346139fd73cb807d5087e9de0948e971739c3e74",
+          "size": 2186,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int8-ov/resolve/4929ae83ea2d1df59f4b5898a9aab8aa1c29e711/special_tokens_map.json?download=true"
+        },
+        "tokenizer.json": {
+          "sha256": "5c1bf30c9e716e1477bedef846b01be0013daecb89e9e3ef7ab89b23c178df1b",
+          "size": 3930645,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int8-ov/resolve/4929ae83ea2d1df59f4b5898a9aab8aa1c29e711/tokenizer.json?download=true"
+        },
+        "tokenizer_config.json": {
+          "sha256": "3c75940dfce3a294fca7041a5faff011677f1b68fa85e47511bb8cf6dccaded6",
+          "size": 282873,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int8-ov/resolve/4929ae83ea2d1df59f4b5898a9aab8aa1c29e711/tokenizer_config.json?download=true"
+        },
+        "vocab.json": {
+          "sha256": "6788c80b082e9b0d1393147d3a3e62ba19285ac0c82ace8e5ef00f37ead58971",
+          "size": 835528,
+          "url": "https://huggingface.co/OpenVINO/whisper-large-v3-turbo-int8-ov/resolve/4929ae83ea2d1df59f4b5898a9aab8aa1c29e711/vocab.json?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "whisper_medium_fp16": {
+      "base_url": "https://huggingface.co/OpenVINO/whisper-medium-fp16-ov/resolve/4508616c9c0774807e7d315c26cec49dcfe1f0a8/",
+      "files": {
+        "added_tokens.json": {
+          "sha256": "9715fd2243b6f06a5858b5e32950d2853f73dd5bc201aafcf76f5082a2d8acd1",
+          "size": 34604,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-fp16-ov/resolve/4508616c9c0774807e7d315c26cec49dcfe1f0a8/added_tokens.json?download=true"
+        },
+        "config.json": {
+          "sha256": "468a4c8675c49b8ab27717fe02223b6ae2565dc2b6411d017e7e04aec8497dec",
+          "size": 1326,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-fp16-ov/resolve/4508616c9c0774807e7d315c26cec49dcfe1f0a8/config.json?download=true"
+        },
+        "generation_config.json": {
+          "sha256": "d5dd0ffb1125f44ecae80a93f04c06c8127c2a2aff4ea2feec171d2fda919612",
+          "size": 3750,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-fp16-ov/resolve/4508616c9c0774807e7d315c26cec49dcfe1f0a8/generation_config.json?download=true"
+        },
+        "normalizer.json": {
+          "sha256": "bf1c507dc8724ca9cf9903640dacfb69dae2f00edee4f21ceba106a7392f26dd",
+          "size": 52666,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-fp16-ov/resolve/4508616c9c0774807e7d315c26cec49dcfe1f0a8/normalizer.json?download=true"
+        },
+        "openvino_decoder_model.bin": {
+          "sha256": "d89a0b3d8a77cb4b619a3555db9fdee5bf82b2254ff0a50ae8dc9edc1d0aec25",
+          "size": 913283228,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-fp16-ov/resolve/4508616c9c0774807e7d315c26cec49dcfe1f0a8/openvino_decoder_model.bin?download=true"
+        },
+        "openvino_decoder_model.xml": {
+          "sha256": "8fb57e209b791338b46e3f5b63e572ab216c7e10ad3141071d984b3ce470ab8f",
+          "size": 1893862,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-fp16-ov/resolve/4508616c9c0774807e7d315c26cec49dcfe1f0a8/openvino_decoder_model.xml?download=true"
+        },
+        "openvino_detokenizer.bin": {
+          "sha256": "2542d1fe6c4c5d838e7b7c61b24996b94ae0cb54e64ff6dbaab2b9dd5ddd7ca0",
+          "size": 736181,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-fp16-ov/resolve/4508616c9c0774807e7d315c26cec49dcfe1f0a8/openvino_detokenizer.bin?download=true"
+        },
+        "openvino_detokenizer.xml": {
+          "sha256": "3789bfaca5c267e67967bd7429b370f0ee9c65c03395aa091b0b59fc14f475ba",
+          "size": 9699,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-fp16-ov/resolve/4508616c9c0774807e7d315c26cec49dcfe1f0a8/openvino_detokenizer.xml?download=true"
+        },
+        "openvino_encoder_model.bin": {
+          "sha256": "8784a18663a2794dfe89624e6f775de29fe24546acffc4da4fd8bb2b0173cf33",
+          "size": 614432874,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-fp16-ov/resolve/4508616c9c0774807e7d315c26cec49dcfe1f0a8/openvino_encoder_model.bin?download=true"
+        },
+        "openvino_encoder_model.xml": {
+          "sha256": "9a539021be2a7e39aa7a0a0fb58f74356200220bc0d78580ed0d7eaf8c85ffc8",
+          "size": 931771,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-fp16-ov/resolve/4508616c9c0774807e7d315c26cec49dcfe1f0a8/openvino_encoder_model.xml?download=true"
+        },
+        "openvino_tokenizer.bin": {
+          "sha256": "846f3c65f7a71f120fce7aaaf41b342f0767eb13e3c4e7c2a54f1d49b5c38fda",
+          "size": 1898933,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-fp16-ov/resolve/4508616c9c0774807e7d315c26cec49dcfe1f0a8/openvino_tokenizer.bin?download=true"
+        },
+        "openvino_tokenizer.xml": {
+          "sha256": "fe367cf66aa051a81dffa6e0b2865a201a5e603df6c527f14457b99a30981459",
+          "size": 27011,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-fp16-ov/resolve/4508616c9c0774807e7d315c26cec49dcfe1f0a8/openvino_tokenizer.xml?download=true"
+        },
+        "preprocessor_config.json": {
+          "sha256": "994838f1fa6462c8b9b3c90edada831f11f3dd8b4664634e18f4694d005c9dbf",
+          "size": 356,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-fp16-ov/resolve/4508616c9c0774807e7d315c26cec49dcfe1f0a8/preprocessor_config.json?download=true"
+        },
+        "special_tokens_map.json": {
+          "sha256": "e67ae3a0aaa99abcd9f187138e12db1f65c16a14761c50ef10eef2c174a7a691",
+          "size": 2194,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-fp16-ov/resolve/4508616c9c0774807e7d315c26cec49dcfe1f0a8/special_tokens_map.json?download=true"
+        },
+        "tokenizer.json": {
+          "sha256": "7b469ff15eb7816315aa45eec391f5943d639b9d73d110f5c003df5192fd54e3",
+          "size": 3930494,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-fp16-ov/resolve/4508616c9c0774807e7d315c26cec49dcfe1f0a8/tokenizer.json?download=true"
+        },
+        "tokenizer_config.json": {
+          "sha256": "21a4fc0483c14b87f4e0bbc177a9a357479bfa7c95aaf21ad53d71e9c5afafb9",
+          "size": 282713,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-fp16-ov/resolve/4508616c9c0774807e7d315c26cec49dcfe1f0a8/tokenizer_config.json?download=true"
+        },
+        "vocab.json": {
+          "sha256": "8f680bba319e01a653d2e8a5dbc17a9157179e0576e6ce74ce0c06356c6e24f9",
+          "size": 835550,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-fp16-ov/resolve/4508616c9c0774807e7d315c26cec49dcfe1f0a8/vocab.json?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "whisper_medium_int4": {
+      "base_url": "https://huggingface.co/OpenVINO/whisper-medium-int4-ov/resolve/14bba652dc6604717bf1cbdf358645d414548522/",
+      "files": {
+        "added_tokens.json": {
+          "sha256": "9715fd2243b6f06a5858b5e32950d2853f73dd5bc201aafcf76f5082a2d8acd1",
+          "size": 34604,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int4-ov/resolve/14bba652dc6604717bf1cbdf358645d414548522/added_tokens.json?download=true"
+        },
+        "config.json": {
+          "sha256": "468a4c8675c49b8ab27717fe02223b6ae2565dc2b6411d017e7e04aec8497dec",
+          "size": 1326,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int4-ov/resolve/14bba652dc6604717bf1cbdf358645d414548522/config.json?download=true"
+        },
+        "generation_config.json": {
+          "sha256": "d5dd0ffb1125f44ecae80a93f04c06c8127c2a2aff4ea2feec171d2fda919612",
+          "size": 3750,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int4-ov/resolve/14bba652dc6604717bf1cbdf358645d414548522/generation_config.json?download=true"
+        },
+        "normalizer.json": {
+          "sha256": "bf1c507dc8724ca9cf9903640dacfb69dae2f00edee4f21ceba106a7392f26dd",
+          "size": 52666,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int4-ov/resolve/14bba652dc6604717bf1cbdf358645d414548522/normalizer.json?download=true"
+        },
+        "openvino_decoder_model.bin": {
+          "sha256": "a6330bbdc720f1b0a2c757f5fd14fbfa6844719e324d7b66686b65b8e155d19f",
+          "size": 264595939,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int4-ov/resolve/14bba652dc6604717bf1cbdf358645d414548522/openvino_decoder_model.bin?download=true"
+        },
+        "openvino_decoder_model.xml": {
+          "sha256": "804d5c5c517a4670b5818f79ced65a3d6b2fc591ae9410b4c3fc5d823fdd93fa",
+          "size": 2411268,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int4-ov/resolve/14bba652dc6604717bf1cbdf358645d414548522/openvino_decoder_model.xml?download=true"
+        },
+        "openvino_detokenizer.bin": {
+          "sha256": "2542d1fe6c4c5d838e7b7c61b24996b94ae0cb54e64ff6dbaab2b9dd5ddd7ca0",
+          "size": 736181,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int4-ov/resolve/14bba652dc6604717bf1cbdf358645d414548522/openvino_detokenizer.bin?download=true"
+        },
+        "openvino_detokenizer.xml": {
+          "sha256": "9adb820ef4576d3c317bf897afa04255f1fe1f87f63650e60143894e6ff6f2ba",
+          "size": 9699,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int4-ov/resolve/14bba652dc6604717bf1cbdf358645d414548522/openvino_detokenizer.xml?download=true"
+        },
+        "openvino_encoder_model.bin": {
+          "sha256": "05af9a9375adbc8e2c50fe8388e90ecd8d220d26380c8844201517fbd4993ffd",
+          "size": 169649312,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int4-ov/resolve/14bba652dc6604717bf1cbdf358645d414548522/openvino_encoder_model.bin?download=true"
+        },
+        "openvino_encoder_model.xml": {
+          "sha256": "8a61644577aa080c4f5e6205d4266edf01f99567533d814789f52b69c47c9b1c",
+          "size": 1291921,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int4-ov/resolve/14bba652dc6604717bf1cbdf358645d414548522/openvino_encoder_model.xml?download=true"
+        },
+        "openvino_tokenizer.bin": {
+          "sha256": "846f3c65f7a71f120fce7aaaf41b342f0767eb13e3c4e7c2a54f1d49b5c38fda",
+          "size": 1898933,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int4-ov/resolve/14bba652dc6604717bf1cbdf358645d414548522/openvino_tokenizer.bin?download=true"
+        },
+        "openvino_tokenizer.xml": {
+          "sha256": "f15e4c9573899623a9dee76f43ec204901d7bb2721f1e21531b3e82c63fc6362",
+          "size": 27011,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int4-ov/resolve/14bba652dc6604717bf1cbdf358645d414548522/openvino_tokenizer.xml?download=true"
+        },
+        "preprocessor_config.json": {
+          "sha256": "994838f1fa6462c8b9b3c90edada831f11f3dd8b4664634e18f4694d005c9dbf",
+          "size": 356,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int4-ov/resolve/14bba652dc6604717bf1cbdf358645d414548522/preprocessor_config.json?download=true"
+        },
+        "special_tokens_map.json": {
+          "sha256": "e67ae3a0aaa99abcd9f187138e12db1f65c16a14761c50ef10eef2c174a7a691",
+          "size": 2194,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int4-ov/resolve/14bba652dc6604717bf1cbdf358645d414548522/special_tokens_map.json?download=true"
+        },
+        "tokenizer.json": {
+          "sha256": "7b469ff15eb7816315aa45eec391f5943d639b9d73d110f5c003df5192fd54e3",
+          "size": 3930494,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int4-ov/resolve/14bba652dc6604717bf1cbdf358645d414548522/tokenizer.json?download=true"
+        },
+        "tokenizer_config.json": {
+          "sha256": "21a4fc0483c14b87f4e0bbc177a9a357479bfa7c95aaf21ad53d71e9c5afafb9",
+          "size": 282713,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int4-ov/resolve/14bba652dc6604717bf1cbdf358645d414548522/tokenizer_config.json?download=true"
+        },
+        "vocab.json": {
+          "sha256": "8f680bba319e01a653d2e8a5dbc17a9157179e0576e6ce74ce0c06356c6e24f9",
+          "size": 835550,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int4-ov/resolve/14bba652dc6604717bf1cbdf358645d414548522/vocab.json?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
+    "whisper_medium_int8": {
+      "base_url": "https://huggingface.co/OpenVINO/whisper-medium-int8-ov/resolve/8d43cce846729381f56bd45a1c70925cee2222ff/",
+      "files": {
+        "added_tokens.json": {
+          "sha256": "9715fd2243b6f06a5858b5e32950d2853f73dd5bc201aafcf76f5082a2d8acd1",
+          "size": 34604,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int8-ov/resolve/8d43cce846729381f56bd45a1c70925cee2222ff/added_tokens.json?download=true"
+        },
+        "config.json": {
+          "sha256": "468a4c8675c49b8ab27717fe02223b6ae2565dc2b6411d017e7e04aec8497dec",
+          "size": 1326,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int8-ov/resolve/8d43cce846729381f56bd45a1c70925cee2222ff/config.json?download=true"
+        },
+        "generation_config.json": {
+          "sha256": "d5dd0ffb1125f44ecae80a93f04c06c8127c2a2aff4ea2feec171d2fda919612",
+          "size": 3750,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int8-ov/resolve/8d43cce846729381f56bd45a1c70925cee2222ff/generation_config.json?download=true"
+        },
+        "normalizer.json": {
+          "sha256": "bf1c507dc8724ca9cf9903640dacfb69dae2f00edee4f21ceba106a7392f26dd",
+          "size": 52666,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int8-ov/resolve/8d43cce846729381f56bd45a1c70925cee2222ff/normalizer.json?download=true"
+        },
+        "openvino_decoder_model.bin": {
+          "sha256": "4ff8ba47640c78e30fdfd6b1c91f69ead9f67047877ee38baf83349927b429eb",
+          "size": 459016627,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int8-ov/resolve/8d43cce846729381f56bd45a1c70925cee2222ff/openvino_decoder_model.bin?download=true"
+        },
+        "openvino_decoder_model.xml": {
+          "sha256": "ddc857598959ed2b6f290172da1478cfa29249f1b5b8080ed91e8048e266f7fa",
+          "size": 2160825,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int8-ov/resolve/8d43cce846729381f56bd45a1c70925cee2222ff/openvino_decoder_model.xml?download=true"
+        },
+        "openvino_detokenizer.bin": {
+          "sha256": "2542d1fe6c4c5d838e7b7c61b24996b94ae0cb54e64ff6dbaab2b9dd5ddd7ca0",
+          "size": 736181,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int8-ov/resolve/8d43cce846729381f56bd45a1c70925cee2222ff/openvino_detokenizer.bin?download=true"
+        },
+        "openvino_detokenizer.xml": {
+          "sha256": "9adb820ef4576d3c317bf897afa04255f1fe1f87f63650e60143894e6ff6f2ba",
+          "size": 9699,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int8-ov/resolve/8d43cce846729381f56bd45a1c70925cee2222ff/openvino_detokenizer.xml?download=true"
+        },
+        "openvino_encoder_model.bin": {
+          "sha256": "e74ff119334068b54a6da0b039d9f8a7a8caa5a2b0a5e940f11eb4a20b2251e1",
+          "size": 313391216,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int8-ov/resolve/8d43cce846729381f56bd45a1c70925cee2222ff/openvino_encoder_model.bin?download=true"
+        },
+        "openvino_encoder_model.xml": {
+          "sha256": "fbd9387fee6a1da4ebb779227aeb77f4520370f388c0af8e215f0ad1a7cb2a44",
+          "size": 1142319,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int8-ov/resolve/8d43cce846729381f56bd45a1c70925cee2222ff/openvino_encoder_model.xml?download=true"
+        },
+        "openvino_tokenizer.bin": {
+          "sha256": "846f3c65f7a71f120fce7aaaf41b342f0767eb13e3c4e7c2a54f1d49b5c38fda",
+          "size": 1898933,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int8-ov/resolve/8d43cce846729381f56bd45a1c70925cee2222ff/openvino_tokenizer.bin?download=true"
+        },
+        "openvino_tokenizer.xml": {
+          "sha256": "f15e4c9573899623a9dee76f43ec204901d7bb2721f1e21531b3e82c63fc6362",
+          "size": 27011,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int8-ov/resolve/8d43cce846729381f56bd45a1c70925cee2222ff/openvino_tokenizer.xml?download=true"
+        },
+        "preprocessor_config.json": {
+          "sha256": "994838f1fa6462c8b9b3c90edada831f11f3dd8b4664634e18f4694d005c9dbf",
+          "size": 356,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int8-ov/resolve/8d43cce846729381f56bd45a1c70925cee2222ff/preprocessor_config.json?download=true"
+        },
+        "special_tokens_map.json": {
+          "sha256": "e67ae3a0aaa99abcd9f187138e12db1f65c16a14761c50ef10eef2c174a7a691",
+          "size": 2194,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int8-ov/resolve/8d43cce846729381f56bd45a1c70925cee2222ff/special_tokens_map.json?download=true"
+        },
+        "tokenizer.json": {
+          "sha256": "7b469ff15eb7816315aa45eec391f5943d639b9d73d110f5c003df5192fd54e3",
+          "size": 3930494,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int8-ov/resolve/8d43cce846729381f56bd45a1c70925cee2222ff/tokenizer.json?download=true"
+        },
+        "tokenizer_config.json": {
+          "sha256": "21a4fc0483c14b87f4e0bbc177a9a357479bfa7c95aaf21ad53d71e9c5afafb9",
+          "size": 282713,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int8-ov/resolve/8d43cce846729381f56bd45a1c70925cee2222ff/tokenizer_config.json?download=true"
+        },
+        "vocab.json": {
+          "sha256": "8f680bba319e01a653d2e8a5dbc17a9157179e0576e6ce74ce0c06356c6e24f9",
+          "size": 835550,
+          "url": "https://huggingface.co/OpenVINO/whisper-medium-int8-ov/resolve/8d43cce846729381f56bd45a1c70925cee2222ff/vocab.json?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    }
+  },
+  "version": 1
+}

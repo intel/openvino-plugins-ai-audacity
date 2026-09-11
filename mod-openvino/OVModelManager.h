@@ -5,11 +5,19 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <cstdint>
 #include <FileNames.h>
 
 class OVModelManager {
 
 public:
+
+   struct ModelFile
+   {
+      std::string name;
+      std::string expected_sha256;
+      std::uint64_t expected_size = 0;
+   };
 
    struct ModelInfo
    {
@@ -19,21 +27,29 @@ public:
       // The information that pops up when user clicks 'info' on the UI.
       std::string info;
 
-      // The 'base' URL where each of the files in 'fileList' can be downloaded from.
+      // The 'base' URL where each of the files in 'files' can be downloaded from.
       std::string baseUrl;
 
       // The complete URL for each file is generated as:
       // baseUrl + filename + postUrl
       std::string postUrl = "?download=true";
 
+      // Explicit model revision/version (for example Hugging Face commit id)
+      // used for compatibility stamp checks.
+      std::string revision;
+
       // relative folder path (away from from 'base' openvino-models folder).
       std::string relative_path;
 
-      // List of file names expected to be present / downloaded.
-      std::vector< std::string > fileList;
+      // List of files expected to be present / downloaded.
+      std::vector<ModelFile> files;
 
-      // If true, all files in 'fileList' are present.
+      // If true, all files in 'files' are present.
       bool installed = false;
+
+      // True when files are present but the installed model revision stamp
+      // does not match the revision expected by this plugin build.
+      bool update_available = false;
 
       //This will be set to absolute path of openvino-models + relative_path, but only
       // if 'installed' is true.
@@ -43,6 +59,23 @@ public:
       // that they both need. For example, musicgen mono & stereo both need
       // the same text encoder model files.
       std::vector< std::shared_ptr<ModelInfo>> dependencies;
+
+      void SetFileList(std::vector<std::string> fileList)
+      {
+         files.clear();
+         files.reserve(fileList.size());
+
+         for (auto& file : fileList) {
+            files.push_back({ std::move(file), {}, 0 });
+         }
+      }
+
+      void PrependFilePathPrefix(const std::string& prefix)
+      {
+         for (auto& file : files) {
+            file.name = prefix + file.name;
+         }
+      }
    };
 
    struct ModelCollection

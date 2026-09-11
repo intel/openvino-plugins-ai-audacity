@@ -4,16 +4,38 @@
 #include <NetworkManager.h>
 #include <Request.h>
 #include <IResponse.h>
+#include <crypto/SHA256.h>
 #endif
 #include <thread>
 #include <chrono>
 #include <sstream>
 #include <future>
+#include <array>
+#include <algorithm>
+#include <atomic>
+#include <cctype>
+#include <wx/textfile.h>
 
 #include <wx/file.h>
 #include <wx/log.h>
 
 namespace {
+
+constexpr size_t DownloadBufferSize = 64 * 1024;
+constexpr int DownloadMaxAttempts = 3;
+constexpr auto DownloadRetryDelay = std::chrono::milliseconds(250);
+constexpr auto DownloadFinishedPollInterval = std::chrono::milliseconds(100);
+constexpr auto DownloadCancelFinishTimeout = std::chrono::seconds(10);
+constexpr char ModelRevisionStampFileName[] = ".ov_model_revision";
+
+struct DownloadAttemptState
+{
+   std::atomic<bool> error{ false };
+   std::atomic<bool> cancelRequested{ false };
+   std::atomic<bool> timedOutWaitingForFinished{ false };
+   std::string errorSummary;
+   std::string errorDetails;
+};
 
 std::string BuildInstallDetails(
    const std::string& effect,
@@ -21,7 +43,144 @@ std::string BuildInstallDetails(
    const std::string& stage,
    const std::string& message,
    const std::string& resource = {},
-   const std::string& extra = {})
+   const std::string& extra = {});
+
+std::string NormalizeHexDigest(std::string digest)
+{
+   std::transform(digest.begin(), digest.end(), digest.begin(),
+      [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+   return digest;
+}
+
+std::string NormalizePathForComparison(const wxString& path)
+{
+   auto normalized = path.ToStdString();
+   std::transform(normalized.begin(), normalized.end(), normalized.begin(),
+      [](unsigned char c) {
+         if (c == '\\') {
+            return '/';
+         }
+#if defined(__WXMSW__) || defined(__WXOSX__)
+         return static_cast<char>(std::tolower(c));
+#else
+         return static_cast<char>(c);
+#endif
+      });
+   return normalized;
+}
+
+bool IsPathWithinBase(const wxString& basePath, const wxString& candidatePath)
+{
+   auto normalizedBase = NormalizePathForComparison(basePath);
+   auto normalizedCandidate = NormalizePathForComparison(candidatePath);
+
+   if (!normalizedBase.empty() && normalizedBase.back() != '/') {
+      normalizedBase.push_back('/');
+   }
+
+   return normalizedCandidate.rfind(normalizedBase, 0) == 0;
+}
+
+wxString BuildRevisionStampPath(const FilePath& searchPathBase, const std::string& relativePath)
+{
+   wxFileName stampPath(searchPathBase + "/" + relativePath + "/" + ModelRevisionStampFileName);
+   stampPath.Normalize();
+   return stampPath.GetFullPath();
+}
+
+bool ReadRevisionStamp(const wxString& stampPath, std::string& revision)
+{
+   revision.clear();
+
+   if (!wxFileExists(stampPath)) {
+      return false;
+   }
+
+   wxTextFile stampFile;
+   if (!stampFile.Open(stampPath)) {
+      return false;
+   }
+
+   for (size_t i = 0; i < stampFile.GetLineCount(); ++i) {
+      const wxString line = stampFile.GetLine(i);
+      if (line.StartsWith("revision=")) {
+         revision = line.Mid(9).ToStdString();
+         break;
+      }
+   }
+
+   stampFile.Close();
+   return !revision.empty();
+}
+
+OVModelManager::InstallResult WriteRevisionStamp(
+   const std::string& effect,
+   const std::shared_ptr<OVModelManager::ModelInfo>& model_info,
+   const FilePath& searchPathBase)
+{
+   if (!model_info) {
+      return OVModelManager::InstallResult::Failure(
+         "Model revision stamp write failed.",
+         BuildInstallDetails(effect, {}, "Revision Stamp", "write stamp called with null model."));
+   }
+
+   const auto revision = model_info->revision;
+   if (revision.empty()) {
+      return OVModelManager::InstallResult::Success();
+   }
+
+   wxFileName baseModelsPath(searchPathBase);
+   baseModelsPath.Normalize();
+   const auto normalizedBaseModelsPath = baseModelsPath.GetFullPath();
+
+   const auto stampPath = BuildRevisionStampPath(searchPathBase, model_info->relative_path);
+   if (!IsPathWithinBase(normalizedBaseModelsPath, stampPath)) {
+      return OVModelManager::InstallResult::Failure(
+         "Model revision stamp path validation failed.",
+         BuildInstallDetails(effect, model_info->model_name, "Revision Stamp",
+            "Resolved revision stamp path escaped the configured model directory.",
+            stampPath.ToStdString(),
+            "Model base path: " + normalizedBaseModelsPath.ToStdString()));
+   }
+
+   if (wxFileExists(stampPath) && !wxRemoveFile(stampPath)) {
+      return OVModelManager::InstallResult::Failure(
+         "Model revision stamp write failed.",
+         BuildInstallDetails(effect, model_info->model_name, "Revision Stamp",
+            "Could not remove existing model revision stamp before rewrite.",
+            stampPath.ToStdString()));
+   }
+
+   wxTextFile stampFile;
+   if (!stampFile.Create(stampPath)) {
+      return OVModelManager::InstallResult::Failure(
+         "Model revision stamp write failed.",
+         BuildInstallDetails(effect, model_info->model_name, "Revision Stamp",
+            "Could not create model revision stamp file.",
+            stampPath.ToStdString()));
+   }
+
+   stampFile.AddLine("revision=" + wxString::FromUTF8(revision.c_str()));
+   if (!stampFile.Write()) {
+      stampFile.Close();
+      return OVModelManager::InstallResult::Failure(
+         "Model revision stamp write failed.",
+         BuildInstallDetails(effect, model_info->model_name, "Revision Stamp",
+            "Could not write model revision stamp file.",
+            stampPath.ToStdString()));
+   }
+
+   stampFile.Close();
+   return OVModelManager::InstallResult::Success();
+}
+
+std::string BuildInstallDetails(
+   const std::string& effect,
+   const std::string& modelName,
+   const std::string& stage,
+   const std::string& message,
+   const std::string& resource,
+   const std::string& extra)
 {
    std::ostringstream stream;
    stream << "Effect: " << effect << "\n";
@@ -107,6 +266,8 @@ static inline std::vector<std::string> splitPath(const std::string& path, char d
 static void _check_installed_model_impl(std::shared_ptr<OVModelManager::ModelInfo> model_info, const FilePath& search_path_base)
 {
    model_info->installed = false;
+   model_info->update_available = false;
+   model_info->installation_path.clear();
 
    if (!model_info->dependencies.empty())
    {
@@ -115,6 +276,9 @@ static void _check_installed_model_impl(std::shared_ptr<OVModelManager::ModelInf
 
          if (!d->installed)
          {
+            if (d->update_available) {
+               model_info->update_available = true;
+            }
             // of the dependencies aren't installed, then no point in proceeding.
             return;
          }
@@ -122,9 +286,9 @@ static void _check_installed_model_impl(std::shared_ptr<OVModelManager::ModelInf
    }
 
    bool all_found = true;
-   for (auto& file : model_info->fileList)
+   for (const auto& file : model_info->files)
    {
-      wxFileName fullFilePath(search_path_base + "/" + model_info->relative_path + "/" + file);
+      wxFileName fullFilePath(search_path_base + "/" + model_info->relative_path + "/" + file.name);
       fullFilePath.Normalize();
 
       if (!fullFilePath.FileExists())
@@ -141,6 +305,27 @@ static void _check_installed_model_impl(std::shared_ptr<OVModelManager::ModelInf
       for (int i = 0; i < split_path.size(); i++)
       {
          fullInstallationPath = wxFileName(fullInstallationPath, wxString(split_path[i])).GetFullPath();
+      }
+
+      const auto expectedRevision = model_info->revision;
+      if (!expectedRevision.empty()) {
+         std::string installedRevision;
+         const auto stampPath = BuildRevisionStampPath(search_path_base, model_info->relative_path);
+         if (!ReadRevisionStamp(stampPath, installedRevision)) {
+            model_info->update_available = true;
+            wxLogInfo("OVModelManager: model '%s' is present but has no readable revision stamp; update/reinstall required.",
+               model_info->model_name.c_str());
+            return;
+         }
+
+         if (installedRevision != expectedRevision) {
+            model_info->update_available = true;
+            wxLogInfo("OVModelManager: model '%s' revision stamp mismatch (installed='%s', expected='%s'); update/reinstall required.",
+               model_info->model_name.c_str(),
+               installedRevision.c_str(),
+               expectedRevision.c_str());
+            return;
+         }
       }
 
       model_info->installed = true;
@@ -182,83 +367,27 @@ static inline void mkdir_relative_paths(std::string relative_file, wxString base
 OVModelManager::InstallResult OVModelManager::install_model_size(std::shared_ptr<ModelInfo> model_info, size_t& total_size)
 {
    total_size = 0;
-#ifdef HAS_NETWORKING
    if (!model_info) {
-   wxLogError("OVModelManager::install_model_size called on null model_info.");
+      wxLogError("OVModelManager::install_model_size called on null model_info.");
       return InstallResult::Failure(
          "Model size calculation failed.",
          BuildInstallDetails({}, {}, "Size Check", "install_model_size received a null model pointer."));
    }
 
-   auto baseUrl = model_info->baseUrl;
-   audacity::network_manager::NetworkManager& manager = audacity::network_manager::NetworkManager::GetInstance();
-
-   for (auto& file : model_info->fileList) {
-      std::string url = baseUrl + file + "?download=true";
-      audacity::network_manager::Request request;
-
-      try {
-         request = audacity::network_manager::Request(url);
-      }
-      catch (const std::exception& error) {
-         wxLogError("OVModelManager: failed to create HEAD request for URL '%s'. Exception: %s", url.c_str(), error.what());
+   for (const auto& file : model_info->files) {
+      if (file.expected_size == 0) {
          return InstallResult::Failure(
-            "Could not create a download request.",
-            BuildInstallDetails({}, model_info->model_name, "Size Check", "Could not create a HEAD request for model download size lookup.", url, error.what()));
+            "Model size metadata is missing.",
+            BuildInstallDetails({}, model_info->model_name, "Size Check",
+               "Model manifest lock data did not provide expected_size for one or more files.",
+               file.name,
+               "All files must include expected_size before download starts."));
       }
 
-      try {
-         auto response = manager.doHead(request);
-
-         while (!response->isFinished())
-         {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-         }
-
-         if ((response->getHTTPCode() != 200) && (response->getHTTPCode() != 302)) {
-            wxLogError("OVModelManager: unexpected HTTP status %d while fetching HEAD for URL '%s'.", response->getHTTPCode(), url.c_str());
-            return InstallResult::Failure(
-               "Could not retrieve model download metadata.",
-               BuildInstallDetails({}, model_info->model_name, "Size Check", "HEAD request returned an unexpected HTTP status.", url, "HTTP status: " + std::to_string(response->getHTTPCode())));
-         }
-
-         // For LFS files on GitHub (usually large ones, like .bin's) have 'X-Linked-Size' headers,
-         // so we look for those first. If that doesn't exist, we use 'Content-Length' header.
-         std::vector < std::string> size_headers = { "X-Linked-Size", "Content-Length" };
-         bool size_header_found = false;
-         for (auto& header : size_headers)
-         {
-            if (response->hasHeader(header)) {
-               std::string length = response->getHeader(header);
-               size_t size = (size_t)std::stoull(length);
-               total_size += size;
-
-               size_header_found = true;
-            }
-         }
-
-         if (!size_header_found)
-         {
-            wxLogError("OVModelManager: response missing X-Linked-Size and Content-Length headers for URL '%s'.", url.c_str());
-            return InstallResult::Failure(
-               "Could not determine model download size.",
-               BuildInstallDetails({}, model_info->model_name, "Size Check", "Response did not include X-Linked-Size or Content-Length.", url));
-         }
-      }
-      catch (const std::exception& error) {
-         wxLogError("OVModelManager: exception while reading HEAD response for URL '%s'. Exception: %s", url.c_str(), error.what());
-         return InstallResult::Failure(
-            "Could not retrieve model download metadata.",
-            BuildInstallDetails({}, model_info->model_name, "Size Check", "Exception while reading HEAD response for size calculation.", url, error.what()));
-      }
+      total_size += static_cast<size_t>(file.expected_size);
    }
 
    return InstallResult::Success();
-#else
-   return InstallResult::Failure(
-      "Model downloads are not available in this build.",
-      BuildInstallDetails({}, model_info ? model_info->model_name : std::string{}, "Size Check", "install_model_size called, but this build has no networking support."));
-#endif
 }
 
 static OVModelManager::InstallResult download_model_files(const std::string& effect, std::shared_ptr<OVModelManager::ModelInfo> model_info, const FilePath &base_openvino_models_path, size_t total_download_size,
@@ -273,127 +402,429 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
 
    audacity::network_manager::NetworkManager& manager = audacity::network_manager::NetworkManager::GetInstance();
 
-   bool bError = false;
-
    auto baseUrl = model_info->baseUrl;
    auto postUrl = model_info->postUrl;
-   for (auto& file : model_info->fileList) {
-      std::string url = baseUrl + file + postUrl;
+   wxFileName baseModelsPath(base_openvino_models_path);
+   baseModelsPath.Normalize();
+   const auto normalizedBaseModelsPath = baseModelsPath.GetFullPath();
 
-      audacity::network_manager::Request request;
-      std::shared_ptr<audacity::network_manager::IResponse> response;
-      try {
-         request = audacity::network_manager::Request(url);
-         response = manager.doGet(request);
-      }
-      catch (const std::exception& error) {
-         return OVModelManager::InstallResult::Failure(
-            "Model download request failed.",
-            BuildInstallDetails(effect, model_info->model_name, "Download", "Could not start a GET request for the model file.", url, error.what()));
-      }
+   for (const auto& file : model_info->files) {
+      std::string url = baseUrl + file.name + postUrl;
 
-      mkdir_relative_paths(model_info->relative_path + "/" + file, base_openvino_models_path);
-      wxFileName fullFilePath(base_openvino_models_path + "/" + model_info->relative_path + "/" + file);
-      fullFilePath.Normalize();
+      OVModelManager::InstallResult lastFailure = OVModelManager::InstallResult::Failure(
+         "Model download failed.",
+         BuildInstallDetails(effect, model_info->model_name, "Download", "Download attempt did not run.", url));
+      bool fileDownloaded = false;
+      const auto bytesDownloadedBeforeFile = bytes_downloaded_so_far;
 
-      std::shared_ptr<wxFile> wx_file = std::make_shared<wxFile>(fullFilePath.GetFullPath(), wxFile::write);
-      if (!wx_file->IsOpened()) {
-         wxLogError("OVModelManager: failed to open destination file for writing: '%s'.", fullFilePath.GetFullPath());
-         return OVModelManager::InstallResult::Failure(
-            "Could not open the destination file for writing.",
-            BuildInstallDetails(effect, model_info->model_name, "Download", "Failed to open the destination file before writing downloaded data.", fullFilePath.GetFullPath().ToStdString()));
-      }
+      for (int attempt = 1; attempt <= DownloadMaxAttempts; ++attempt) {
+         auto bytesDownloadedAttempt = std::make_shared<size_t>(bytesDownloadedBeforeFile);
+         auto attemptState = std::make_shared<DownloadAttemptState>();
 
-      std::string file_error_summary;
-      std::string file_error_details;
-
-      // write to file here
-      response->setOnDataReceivedCallback(
-         [response, wx_file, &bError, &bytes_downloaded_so_far, callback, &total_download_size, &file_error_summary, &file_error_details, &effect, model_info, url, fullFilePath](audacity::network_manager::IResponse*)
-         {
-            // only attempt save if request succeeded
-            int httpCode = response->getHTTPCode();
-            if ((httpCode == 200) || (httpCode == 302))
-            {
-               const std::string responseData = response->readAll<std::string>();
-               size_t bytesWritten = wx_file->Write(responseData.c_str(), responseData.size());
-
-               if (wx_file->Error()) {
-                  int last_error = wx_file->GetLastError();
-
-                  wxLogError("OVModelManager: file write error (wxFile last_error=%d) for '%s'.", last_error, fullFilePath.GetFullPath());
-                  file_error_summary = "Writing downloaded model data failed.";
-                  file_error_details = BuildInstallDetails(
-                     effect,
-                     model_info->model_name,
-                     "Download",
-                     "wxFile reported an error while writing the downloaded data.",
-                     fullFilePath.GetFullPath().ToStdString(),
-                     "wxFile last error: " + std::to_string(last_error) + "\nSource URL: " + url);
-                  bError = true;
-                  response->Cancel();
-                  return;
-               }
-
-               bytes_downloaded_so_far += bytesWritten;
-
-               if (total_download_size > 0 && callback) {
-                  double perc_complete = static_cast<double>(bytes_downloaded_so_far) / static_cast<double>(total_download_size);
-                  callback(static_cast<float>(perc_complete));
-               }
-
-               if (bytesWritten != responseData.size())
-               {
-                  wxLogError("OVModelManager: incomplete file write for '%s' (written=%llu, received=%llu).",
-                     fullFilePath.GetFullPath(),
-                     static_cast<unsigned long long>(bytesWritten),
-                     static_cast<unsigned long long>(responseData.size()));
-                  file_error_summary = "Incomplete model file write detected.";
-                  file_error_details = BuildInstallDetails(
-                     effect,
-                     model_info->model_name,
-                     "Download",
-                     "The downloaded data size did not match the number of bytes written to disk.",
-                     fullFilePath.GetFullPath().ToStdString(),
-                     "Bytes written: " + std::to_string(bytesWritten) + "\nBytes received: " + std::to_string(responseData.size()) + "\nSource URL: " + url);
-                  bError = true;
-                  response->Cancel();
-                  return;
-               }
+         audacity::network_manager::Request request;
+         std::shared_ptr<audacity::network_manager::IResponse> response;
+         try {
+            request = audacity::network_manager::Request(url);
+            response = manager.doGet(request);
+         }
+         catch (const std::exception& error) {
+            lastFailure = OVModelManager::InstallResult::Failure(
+               "Model download request failed.",
+               BuildInstallDetails(effect, model_info->model_name, "Download", "Could not start a GET request for the model file.", url,
+                  "Attempt: " + std::to_string(attempt) + "/" + std::to_string(DownloadMaxAttempts) + "\n" + error.what()));
+            if (attempt < DownloadMaxAttempts) {
+               std::this_thread::sleep_for(DownloadRetryDelay);
+               continue;
             }
-            else
-            {
-               wxLogError("OVModelManager: GET request returned unexpected HTTP status %d for URL '%s'.", httpCode, url.c_str());
-               file_error_summary = "Model download returned an unexpected HTTP status.";
-               file_error_details = BuildInstallDetails(
+            return lastFailure;
+         }
+
+         wxFileName fullFilePath(base_openvino_models_path + "/" + model_info->relative_path + "/" + file.name);
+         fullFilePath.Normalize();
+
+         if (!IsPathWithinBase(normalizedBaseModelsPath, fullFilePath.GetFullPath())) {
+            return OVModelManager::InstallResult::Failure(
+               "Model path validation failed.",
+               BuildInstallDetails(
                   effect,
                   model_info->model_name,
-                  "Download",
-                  "GET request returned an unexpected HTTP status.",
-                  url,
-                  "HTTP status: " + std::to_string(httpCode));
-               bError = true;
-               response->Cancel();
-               return;
+                  "Path Validation",
+                  "Resolved model file path escaped the configured model directory.",
+                  fullFilePath.GetFullPath().ToStdString(),
+                  "Model base path: " + normalizedBaseModelsPath.ToStdString()));
+         }
+
+         mkdir_relative_paths(model_info->relative_path + "/" + file.name, base_openvino_models_path);
+
+         const auto tempFilePath = fullFilePath.GetFullPath() + ".tmp";
+         const auto oldFilePath = fullFilePath.GetFullPath() + ".old";
+
+         if (wxFileExists(tempFilePath)) {
+            wxRemoveFile(tempFilePath);
+         }
+
+         std::shared_ptr<wxFile> wx_file = std::make_shared<wxFile>(tempFilePath, wxFile::write);
+         if (!wx_file->IsOpened()) {
+            return OVModelManager::InstallResult::Failure(
+               "Could not open the destination file for writing.",
+               BuildInstallDetails(effect, model_info->model_name, "Download", "Failed to open the destination temp file before writing downloaded data.", tempFilePath.ToStdString()));
+         }
+
+         auto downloadBuffer = std::make_shared<std::array<uint8_t, DownloadBufferSize>>();
+         auto fileHasher = std::make_shared<crypto::SHA256>();
+         auto fileBytesReceived = std::make_shared<std::uint64_t>(0);
+         const auto totalDownloadSizeValue = total_download_size;
+         const auto effectCopy = effect;
+
+         response->setOnDataReceivedCallback(
+            [wx_file, downloadBuffer, fileHasher, fileBytesReceived, bytesDownloadedAttempt, attemptState, tempFilePath, callback, totalDownloadSizeValue, effectCopy, model_info, url, fullFilePath, file, attempt](audacity::network_manager::IResponse* responseRaw)
+            {
+               int httpCode = responseRaw->getHTTPCode();
+               if ((httpCode == 200) || (httpCode == 302))
+               {
+                  while (true)
+                  {
+                     const auto bytesRead = responseRaw->readData(downloadBuffer->data(), downloadBuffer->size());
+                     if (bytesRead == 0) {
+                        break;
+                     }
+
+                     const size_t bytesWritten = wx_file->Write(downloadBuffer->data(), bytesRead);
+
+                     if (wx_file->Error()) {
+                        int last_error = wx_file->GetLastError();
+
+                        wxLogError("OVModelManager: file write error (wxFile last_error=%d) for '%s'.", last_error, fullFilePath.GetFullPath());
+                        attemptState->errorSummary = "Writing downloaded model data failed.";
+                        attemptState->errorDetails = BuildInstallDetails(
+                           effectCopy,
+                           model_info->model_name,
+                           "Download",
+                           "wxFile reported an error while writing the downloaded data.",
+                           tempFilePath.ToStdString(),
+                           "wxFile last error: " + std::to_string(last_error) + "\nSource URL: " + url);
+                        attemptState->error.store(true, std::memory_order_release);
+                        attemptState->cancelRequested.store(true, std::memory_order_release);
+                        responseRaw->Cancel();
+                        return;
+                     }
+
+                     *bytesDownloadedAttempt += bytesWritten;
+                     *fileBytesReceived += static_cast<std::uint64_t>(bytesRead);
+
+                     if (file.expected_size > 0 && *fileBytesReceived > file.expected_size)
+                     {
+                        wxLogError("OVModelManager: download exceeded expected file size on attempt %d/%d for '%s'. Expected %llu bytes, received %llu bytes.",
+                           attempt,
+                           DownloadMaxAttempts,
+                           fullFilePath.GetFullPath(),
+                           static_cast<unsigned long long>(file.expected_size),
+                           static_cast<unsigned long long>(*fileBytesReceived));
+                        attemptState->errorSummary = "Downloaded model file exceeded expected size.";
+                        attemptState->errorDetails = BuildInstallDetails(
+                           effectCopy,
+                           model_info->model_name,
+                           "Size Verification",
+                           "The streamed download exceeded the expected file size from model metadata before completion.",
+                           fullFilePath.GetFullPath().ToStdString(),
+                           "Attempt: " + std::to_string(attempt) + "/" + std::to_string(DownloadMaxAttempts)
+                           + "\nExpected bytes: " + std::to_string(file.expected_size)
+                           + "\nBytes received so far: " + std::to_string(*fileBytesReceived)
+                           + "\nSource URL: " + url);
+                        attemptState->error.store(true, std::memory_order_release);
+                        attemptState->cancelRequested.store(true, std::memory_order_release);
+                        responseRaw->Cancel();
+                        return;
+                     }
+
+                     if (totalDownloadSizeValue > 0 && *bytesDownloadedAttempt > totalDownloadSizeValue)
+                     {
+                        wxLogError("OVModelManager: aggregate download exceeded planned total on attempt %d/%d for '%s'. Planned %llu bytes, downloaded %llu bytes so far.",
+                           attempt,
+                           DownloadMaxAttempts,
+                           fullFilePath.GetFullPath(),
+                           static_cast<unsigned long long>(totalDownloadSizeValue),
+                           static_cast<unsigned long long>(*bytesDownloadedAttempt));
+                        attemptState->errorSummary = "Downloaded data exceeded planned total size.";
+                        attemptState->errorDetails = BuildInstallDetails(
+                           effectCopy,
+                           model_info->model_name,
+                           "Size Verification",
+                           "Accumulated downloaded bytes exceeded the planned total size before completion.",
+                           fullFilePath.GetFullPath().ToStdString(),
+                           "Attempt: " + std::to_string(attempt) + "/" + std::to_string(DownloadMaxAttempts)
+                           + "\nPlanned total bytes: " + std::to_string(totalDownloadSizeValue)
+                           + "\nDownloaded bytes so far: " + std::to_string(*bytesDownloadedAttempt)
+                           + "\nSource URL: " + url);
+                        attemptState->error.store(true, std::memory_order_release);
+                        attemptState->cancelRequested.store(true, std::memory_order_release);
+                        responseRaw->Cancel();
+                        return;
+                     }
+
+                     fileHasher->Update(downloadBuffer->data(), static_cast<std::size_t>(bytesRead));
+
+                     if (totalDownloadSizeValue > 0 && callback) {
+                        double perc_complete = static_cast<double>(*bytesDownloadedAttempt) / static_cast<double>(totalDownloadSizeValue);
+                        callback(static_cast<float>(perc_complete));
+                     }
+
+                     if (bytesWritten != bytesRead)
+                     {
+                        wxLogError("OVModelManager: incomplete file write for '%s' (written=%llu, received=%llu).",
+                           fullFilePath.GetFullPath(),
+                           static_cast<unsigned long long>(bytesWritten),
+                           static_cast<unsigned long long>(bytesRead));
+                        attemptState->errorSummary = "Incomplete model file write detected.";
+                        attemptState->errorDetails = BuildInstallDetails(
+                           effectCopy,
+                           model_info->model_name,
+                           "Download",
+                           "The downloaded data size did not match the number of bytes written to disk.",
+                           tempFilePath.ToStdString(),
+                           "Bytes written: " + std::to_string(bytesWritten) + "\nBytes received: " + std::to_string(bytesRead) + "\nSource URL: " + url);
+                        attemptState->error.store(true, std::memory_order_release);
+                        attemptState->cancelRequested.store(true, std::memory_order_release);
+                        responseRaw->Cancel();
+                        return;
+                     }
+                  }
+               }
+               else
+               {
+                  wxLogError("OVModelManager: GET request returned unexpected HTTP status %d for URL '%s'.", httpCode, url.c_str());
+                  attemptState->errorSummary = "Model download returned an unexpected HTTP status.";
+                  attemptState->errorDetails = BuildInstallDetails(
+                     effectCopy,
+                     model_info->model_name,
+                     "Download",
+                     "GET request returned an unexpected HTTP status.",
+                     url,
+                     "HTTP status: " + std::to_string(httpCode));
+                  attemptState->error.store(true, std::memory_order_release);
+                  attemptState->cancelRequested.store(true, std::memory_order_release);
+                  responseRaw->Cancel();
+                  return;
+               }
+            }
+         );
+
+         auto donePromise = std::make_shared<std::promise<void>>();
+         std::future<void> doneFuture = donePromise->get_future();
+         auto doneSignaled = std::make_shared<std::atomic<bool>>(false);
+
+         response->setRequestFinishedCallback(
+            [donePromise, doneSignaled](audacity::network_manager::IResponse*)
+            {
+               bool expected = false;
+               if (doneSignaled->compare_exchange_strong(expected, true, std::memory_order_acq_rel)) {
+                  donePromise->set_value();
+               }
+            }
+         );
+
+         bool requestFinished = false;
+         auto cancelWaitStart = std::chrono::steady_clock::time_point{};
+         while (true) {
+            const auto waitStatus = doneFuture.wait_for(DownloadFinishedPollInterval);
+            if (waitStatus == std::future_status::ready) {
+               requestFinished = true;
+               break;
+            }
+
+            if (attemptState->cancelRequested.load(std::memory_order_acquire)) {
+               const auto now = std::chrono::steady_clock::now();
+               if (cancelWaitStart == std::chrono::steady_clock::time_point{}) {
+                  cancelWaitStart = now;
+               }
+               else if ((now - cancelWaitStart) > DownloadCancelFinishTimeout) {
+                  attemptState->errorSummary = "Model download cancellation did not complete.";
+                  attemptState->errorDetails = BuildInstallDetails(
+                     effect,
+                     model_info->model_name,
+                     "Download",
+                     "The request was cancelled after an error, but no request-finished callback arrived in time.",
+                     url,
+                     "Attempt: " + std::to_string(attempt) + "/" + std::to_string(DownloadMaxAttempts));
+                  attemptState->error.store(true, std::memory_order_release);
+                  attemptState->timedOutWaitingForFinished.store(true, std::memory_order_release);
+                  response->Cancel();
+                  response->setOnDataReceivedCallback([](audacity::network_manager::IResponse*) {});
+                  break;
+               }
             }
          }
-      );
 
-      std::promise<void> donePromise;
-      std::future<void> doneFuture = donePromise.get_future();
-
-      response->setRequestFinishedCallback(
-         [&donePromise](audacity::network_manager::IResponse*)
-         {
-            donePromise.set_value();
+         if (requestFinished) {
+            doneFuture.get();
          }
-      );
 
-      //wait for request to complete.
-      doneFuture.get();
+         bytes_downloaded_so_far = *bytesDownloadedAttempt;
 
-      if (bError) {
-         return OVModelManager::InstallResult::Failure(file_error_summary, file_error_details);
+         const auto networkError = response->getError();
+         const auto networkErrorString = response->getErrorString();
+         if (!attemptState->error.load(std::memory_order_acquire) && networkError != audacity::network_manager::NetworkError::NoError) {
+            attemptState->errorSummary = "Model download failed due to a network error.";
+            attemptState->errorDetails = BuildInstallDetails(
+               effect,
+               model_info->model_name,
+               "Download",
+               "The GET request finished with a network error.",
+               url,
+               "Attempt: " + std::to_string(attempt) + "/" + std::to_string(DownloadMaxAttempts)
+               + (networkErrorString.empty() ? std::string{} : "\nNetwork error: " + networkErrorString));
+            attemptState->error.store(true, std::memory_order_release);
+         }
+
+         if (attemptState->error.load(std::memory_order_acquire)) {
+            if (wx_file->IsOpened()) {
+               wx_file->Close();
+            }
+            if (wxFileExists(tempFilePath)) {
+               wxRemoveFile(tempFilePath);
+            }
+
+            lastFailure = OVModelManager::InstallResult::Failure(attemptState->errorSummary, attemptState->errorDetails);
+            if (attemptState->timedOutWaitingForFinished.load(std::memory_order_acquire)) {
+               return lastFailure;
+            }
+
+            if (attempt < DownloadMaxAttempts) {
+               wxLogWarning("OVModelManager: retrying download attempt %d/%d for '%s'.", attempt + 1, DownloadMaxAttempts, url.c_str());
+               std::this_thread::sleep_for(DownloadRetryDelay);
+               continue;
+            }
+            return lastFailure;
+         }
+
+         if (file.expected_size > 0 && *fileBytesReceived != file.expected_size) {
+            wxLogWarning("OVModelManager: size mismatch on attempt %d/%d for '%s'. Expected %llu bytes, got %llu bytes.",
+               attempt,
+               DownloadMaxAttempts,
+               fullFilePath.GetFullPath(),
+               static_cast<unsigned long long>(file.expected_size),
+               static_cast<unsigned long long>(*fileBytesReceived));
+
+            if (wx_file->IsOpened()) {
+               wx_file->Close();
+            }
+            if (wxFileExists(tempFilePath)) {
+               wxRemoveFile(tempFilePath);
+            }
+
+            lastFailure = OVModelManager::InstallResult::Failure(
+               "Downloaded model file size did not match expected metadata.",
+               BuildInstallDetails(
+                  effect,
+                  model_info->model_name,
+                  "Size Verification",
+                  "The downloaded file size did not match the expected value from the model manifest lock data.",
+                  fullFilePath.GetFullPath().ToStdString(),
+                  "Attempt: " + std::to_string(attempt) + "/" + std::to_string(DownloadMaxAttempts)
+                  + "\nExpected bytes: " + std::to_string(file.expected_size)
+                  + "\nActual bytes: " + std::to_string(*fileBytesReceived)
+                  + "\nSource URL: " + url));
+
+            if (attempt < DownloadMaxAttempts) {
+               std::this_thread::sleep_for(DownloadRetryDelay);
+               continue;
+            }
+
+            return lastFailure;
+         }
+
+         const auto fileHash = fileHasher->Finalize();
+         if (!file.expected_sha256.empty()) {
+            const auto normalizedExpected = NormalizeHexDigest(file.expected_sha256);
+            const auto normalizedActual = NormalizeHexDigest(fileHash);
+            if (normalizedExpected != normalizedActual) {
+               wxLogWarning("OVModelManager: SHA-256 mismatch on attempt %d/%d for '%s'. Expected '%s', got '%s'.",
+                  attempt, DownloadMaxAttempts, fullFilePath.GetFullPath(), normalizedExpected.c_str(), normalizedActual.c_str());
+
+               if (wx_file->IsOpened()) {
+                  wx_file->Close();
+               }
+               if (wxFileExists(tempFilePath)) {
+                  wxRemoveFile(tempFilePath);
+               }
+
+               lastFailure = OVModelManager::InstallResult::Failure(
+                  "Downloaded model file failed checksum verification.",
+                  BuildInstallDetails(
+                     effect,
+                     model_info->model_name,
+                     "Checksum Verification",
+                     "The downloaded file checksum did not match the expected SHA-256 value.",
+                     fullFilePath.GetFullPath().ToStdString(),
+                     "Attempt: " + std::to_string(attempt) + "/" + std::to_string(DownloadMaxAttempts)
+                     + "\nExpected SHA-256: " + normalizedExpected + "\nActual SHA-256: " + normalizedActual + "\nSource URL: " + url));
+
+               if (attempt < DownloadMaxAttempts) {
+                  std::this_thread::sleep_for(DownloadRetryDelay);
+                  continue;
+               }
+
+               return lastFailure;
+            }
+         }
+
+         if (wx_file->IsOpened()) {
+            wx_file->Close();
+         }
+
+         if (wxFileExists(oldFilePath)) {
+            wxRemoveFile(oldFilePath);
+         }
+
+         if (wxFileExists(fullFilePath.GetFullPath())) {
+            if (!wxRenameFile(fullFilePath.GetFullPath(), oldFilePath)) {
+               if (wxFileExists(tempFilePath)) {
+                  wxRemoveFile(tempFilePath);
+               }
+
+               return OVModelManager::InstallResult::Failure(
+                  "Could not replace an existing model file.",
+                  BuildInstallDetails(
+                     effect,
+                     model_info->model_name,
+                     "Install Finalization",
+                     "Failed to move the existing model file out of the way before finalizing the download.",
+                     fullFilePath.GetFullPath().ToStdString(),
+                     "Backup path: " + oldFilePath.ToStdString()));
+            }
+         }
+
+         if (!wxRenameFile(tempFilePath, fullFilePath.GetFullPath())) {
+            if (wxFileExists(oldFilePath)) {
+               wxRenameFile(oldFilePath, fullFilePath.GetFullPath());
+            }
+
+            return OVModelManager::InstallResult::Failure(
+               "Could not finalize the downloaded model file.",
+               BuildInstallDetails(
+                  effect,
+                  model_info->model_name,
+                  "Install Finalization",
+                  "Failed to move the completed temp file into its final location.",
+                  fullFilePath.GetFullPath().ToStdString(),
+                  "Temp path: " + tempFilePath.ToStdString()));
+         }
+
+         if (wxFileExists(oldFilePath)) {
+            wxRemoveFile(oldFilePath);
+         }
+
+         wxLogInfo("OVModelManager: SHA-256 for '%s' downloaded from '%s' is %s.",
+            fullFilePath.GetFullPath(),
+            url.c_str(),
+            fileHash.c_str());
+
+         fileDownloaded = true;
+         break;
+      }
+
+      if (!fileDownloaded) {
+         return lastFailure;
       }
    }
 
@@ -496,11 +927,22 @@ OVModelManager::InstallResult OVModelManager::install_model(std::string effect, 
                      d->model_name);
                }
 
+               auto dependencyStampResult = WriteRevisionStamp(effect, d, base_openvino_models_path);
+               if (!dependencyStampResult) {
+                  return dependencyStampResult;
+               }
+
                _check_installed_model_impl(d, base_openvino_models_path);
                if (!d->installed) {
+                  if (d->update_available) {
+                     return InstallResult::Failure(
+                        "A required dependency revision did not match this plugin build.",
+                        BuildInstallDetails(effect, model_id, "Dependency Revision Verification", "Downloaded dependency files are present, but revision stamp verification failed.", d->model_name));
+                  }
+
                   return InstallResult::Failure(
-                     "A required dependency did not verify after download.",
-                     BuildInstallDetails(effect, model_id, "Dependency Verification", "Downloaded dependency files were not found during post-download verification.", d->model_name));
+                     "A required dependency failed file verification after download.",
+                     BuildInstallDetails(effect, model_id, "Dependency Verification", "Downloaded dependency files were missing or unreadable after download verification.", d->model_name));
                }
             }
          }
@@ -509,6 +951,11 @@ OVModelManager::InstallResult OVModelManager::install_model(std::string effect, 
       auto downloadResult = download_model_files(effect, model_info, base_openvino_models_path, total_download_size, bytes_downloaded_so_far, callback);
       if (!downloadResult) {
          return downloadResult;
+      }
+
+      auto stampResult = WriteRevisionStamp(effect, model_info, base_openvino_models_path);
+      if (!stampResult) {
+         return stampResult;
       }
 
       //re-run file check for this model.

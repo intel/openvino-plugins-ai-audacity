@@ -9,6 +9,94 @@
 #include <wx/regex.h>
 #include <wx/settings.h>
 #include <wx/textctrl.h>
+#include <unordered_set>
+#include <limits>
+
+namespace {
+
+bool AddExpectedFileSizes(const std::shared_ptr<OVModelManager::ModelInfo>& model, std::uint64_t& totalBytes)
+{
+   for (const auto& file : model->files) {
+      if (file.expected_size == 0) {
+         return false;
+      }
+
+      if (totalBytes > (std::numeric_limits<std::uint64_t>::max() - file.expected_size)) {
+         return false;
+      }
+
+      totalBytes += file.expected_size;
+   }
+
+   return true;
+}
+
+bool CalculateModelFootprintBytes(
+   const std::shared_ptr<OVModelManager::ModelInfo>& model,
+   std::uint64_t& totalBytes,
+   std::unordered_set<const OVModelManager::ModelInfo*>& visited)
+{
+   if (!model) {
+      return false;
+   }
+
+   const auto* key = model.get();
+   if (visited.find(key) != visited.end()) {
+      return true;
+   }
+
+   visited.insert(key);
+
+   if (!AddExpectedFileSizes(model, totalBytes)) {
+      return false;
+   }
+
+   for (const auto& dependency : model->dependencies) {
+      if (!CalculateModelFootprintBytes(dependency, totalBytes, visited)) {
+         return false;
+      }
+   }
+
+   return true;
+}
+
+wxString FormatSizeBytes(std::uint64_t bytes)
+{
+   constexpr double KiB = 1024.0;
+   constexpr double MiB = KiB * 1024.0;
+   constexpr double GiB = MiB * 1024.0;
+
+   if (bytes >= static_cast<std::uint64_t>(GiB)) {
+      return wxString::Format("%.2f GB", static_cast<double>(bytes) / GiB);
+   }
+
+   if (bytes >= static_cast<std::uint64_t>(MiB)) {
+      return wxString::Format("%.1f MB", static_cast<double>(bytes) / MiB);
+   }
+
+   if (bytes >= static_cast<std::uint64_t>(KiB)) {
+      return wxString::Format("%.1f KB", static_cast<double>(bytes) / KiB);
+   }
+
+   return wxString::Format("%llu B", static_cast<unsigned long long>(bytes));
+}
+
+wxString BuildInstallSizeLabel(const std::shared_ptr<OVModelManager::ModelInfo>& model)
+{
+   if (!model || model->baseUrl.empty()) {
+      return "-";
+   }
+
+   std::uint64_t totalBytes = 0;
+   std::unordered_set<const OVModelManager::ModelInfo*> visited;
+   if (!CalculateModelFootprintBytes(model, totalBytes, visited)) {
+      return "-";
+   }
+
+   return FormatSizeBytes(totalBytes);
+}
+
+}
 
 class ModelCardDialog : public wxDialog {
 public:
@@ -81,7 +169,7 @@ public:
 ModelEntryPanel::ModelEntryPanel(wxWindow* parent, const std::string peffect, std::shared_ptr<OVModelManager::ModelInfo> minfo, ModelManagerDialog* mgr, bool restartReq)
    : wxPanel(parent), effect(peffect), model(minfo), manager(mgr), restartRequired(restartReq)
 {
-   SetMinSize(wxSize(550, 40));
+   SetMinSize(wxSize(650, 40));
 
    wxFlexGridSizer* sizer = new wxFlexGridSizer(4, 5, 5);
    sizer->AddGrowableCol(0, 1);
@@ -92,30 +180,29 @@ ModelEntryPanel::ModelEntryPanel(wxWindow* parent, const std::string peffect, st
    wxButton* infoBtn = new wxButton(this, wxID_ANY, "Model Card");
    sizer->Add(infoBtn, 0, wxALIGN_CENTER_VERTICAL);
 
+   sizeText = new wxStaticText(this, wxID_ANY, BuildInstallSizeLabel(model), wxDefaultPosition, wxDefaultSize, wxALIGN_RIGHT);
+   sizeText->SetMinSize(wxSize(92, -1));
+   sizer->Add(sizeText, 0, wxALIGN_RIGHT | wxALIGN_CENTER_VERTICAL);
+
    installButton = new wxButton(this, wxID_ANY, model->installed ? "Installed" : "Install");
-   installButton->Enable(!model->installed && !restartRequired);
-   if (model->baseUrl.empty()) {
-      if (!model->installed) {
-         installButton->SetLabelText("Not Installed");
-      }
-      installButton->Enable(false);
-   }
+   const int installButtonMinWidth = GetTextExtent("Restart Required").x + 32;
+   installButton->SetMinSize(wxSize(installButtonMinWidth, -1));
 #ifndef HAS_NETWORKING
    // if we don't have networking support, disable (grey-out) install button.
    installButton->Enable(false);
 #endif
 
-   if (restartRequired && !model->installed) {
-      installButton->SetLabelText("Restart Required");
-      installButton->Enable(false);
-   }
-
    sizer->Add(installButton, 0, wxALIGN_CENTER_VERTICAL);
+
+   const int infoButtonMinWidth = GetTextExtent("Model Card").x + 32;
+   infoBtn->SetMinSize(wxSize(infoButtonMinWidth, -1));
 
    SetSizerAndFit(sizer);
 
    infoBtn->Bind(wxEVT_BUTTON, &ModelEntryPanel::OnInfo, this);
    installButton->Bind(wxEVT_BUTTON, &ModelEntryPanel::OnInstall, this);
+
+   UpdateStatus();
 }
 
 void ModelEntryPanel::OnInfo(wxCommandEvent&) {
@@ -134,6 +221,15 @@ void ModelEntryPanel::OnInstall(wxCommandEvent&) {
 }
 
 void ModelEntryPanel::UpdateStatus() {
+   RefreshSizeLabel();
+
+   if (model->baseUrl.empty()) {
+      installButton->SetLabelText(model->installed ? "Installed" : "Not Installed");
+      installButton->Enable(false);
+      installButton->SetToolTip({});
+      return;
+   }
+
    if (restartRequired && !model->installed) {
       installButton->SetLabelText("Restart Required");
       installButton->Enable(false);
@@ -141,17 +237,32 @@ void ModelEntryPanel::UpdateStatus() {
       return;
    }
 
+   if (model->update_available) {
+      installButton->SetLabelText("Update");
+      installButton->Enable(true);
+      installButton->SetToolTip("Installed model revision does not match this plugin build.");
+#ifndef HAS_NETWORKING
+      installButton->Enable(false);
+#endif
+      return;
+   }
+
    installButton->SetLabelText(model->installed ? "Installed" : "Install");
    installButton->Enable(!model->installed);
    installButton->SetToolTip({});
+#ifndef HAS_NETWORKING
+   installButton->Enable(false);
+#endif
 }
 
 void ModelEntryPanel::SetQueued() {
+   RefreshSizeLabel();
    installButton->SetLabelText("Queued");
    installButton->Disable();
 }
 
 void ModelEntryPanel::SetInstalling() {
+   RefreshSizeLabel();
    installButton->SetLabelText("Installing...");
    installButton->Disable();
 }
@@ -161,14 +272,25 @@ void ModelEntryPanel::SetInstalled() {
 }
 
 void ModelEntryPanel::SetFailed(const wxString& summary) {
+   RefreshSizeLabel();
+
    if (restartRequired && !model->installed) {
       UpdateStatus();
       return;
    }
 
-   installButton->SetLabelText("Retry Install");
-   installButton->Enable(!model->installed);
+   installButton->SetLabelText(model->update_available ? "Retry Update" : "Retry Install");
+   installButton->Enable(!model->installed && !model->baseUrl.empty());
    installButton->SetToolTip(summary);
+#ifndef HAS_NETWORKING
+   installButton->Enable(false);
+#endif
+}
+
+void ModelEntryPanel::RefreshSizeLabel() {
+   if (sizeText) {
+      sizeText->SetLabel(BuildInstallSizeLabel(model));
+   }
 }
 
 InstallQueueEntryPanel::InstallQueueEntryPanel(wxWindow* parent, ModelEntryPanel* source)
@@ -259,7 +381,7 @@ void ModelManagerDialog::ShowDialog() {
 }
 
 ModelManagerDialog::ModelManagerDialog(wxWindow* parent)
-   : wxDialog(parent, wxID_ANY, "Model Manager", wxDefaultPosition, wxSize(600, 600), wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
+   : wxDialog(parent, wxID_ANY, "Model Manager", wxDefaultPosition, wxSize(760, 600), wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
    installTimer(this)
 {
    // trigger constructions of OVModelManager
@@ -269,12 +391,12 @@ ModelManagerDialog::ModelManagerDialog(wxWindow* parent)
 
    const bool restartRequired = OpenVINOPluginSettings::IsModelDirRestartRequiredThisSession();
 
-   SetMinSize(wxSize(600, 400));
+   SetMinSize(wxSize(760, 420));
    wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
 
    scrollPanel = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 400), wxVSCROLL);
    scrollPanel->SetScrollRate(5, 5);
-   scrollPanel->SetMinSize(wxSize(550, 400));
+   scrollPanel->SetMinSize(wxSize(700, 400));
    modelSizer = new wxBoxSizer(wxVERTICAL);
    scrollPanel->SetSizer(modelSizer);
 
@@ -412,6 +534,12 @@ void ModelManagerDialog::BeginInstallFor(ModelEntryPanel* panel, InstallQueueEnt
          if (installResult) {
             if (panelIsValid) {
                livePanel->SetInstalled();
+            }
+
+            for (auto* p : dialog->allPanels) {
+               if (p && !p->IsBeingDeleted()) {
+                  p->UpdateStatus();
+               }
             }
 
             if (queueEntryIsValid) {

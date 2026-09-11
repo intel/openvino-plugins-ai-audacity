@@ -1,0 +1,123 @@
+{
+  "sources": {
+    "hf_intel_demucs_openvino": {
+      "base_url": "https://huggingface.co/Intel/demucs-openvino/resolve/3e9e7d2f15c1ff4877917a224f2f9668c9c41881/"
+    },
+    "hf_intel_vocals_mel_band_roformer_kimberleyjsn_openvino": {
+      "base_url": "https://huggingface.co/Intel/vocals_mel_band_roformer_kimberleyJSN_openvino/resolve/ce2bae0e27f9b115f38b1ddad35439df2d28cbbd/"
+    },
+    "hf_intel_crowd_mel_band_roformer_aufr33_viperx_openvino": {
+      "base_url": "https://huggingface.co/Intel/crowd_mel_band_roformer_aufr33_viperx_openvino/resolve/b35f0dc8e9ee507582bc93a6e2b52e0dba9eca93/"
+    },
+    "hf_intel_drumsep_mdx23c_jarredou_openvino": {
+      "base_url": "https://huggingface.co/Intel/drumsep_mdx23c_jarredou_openvino/resolve/2944425500506842ccc4ca130b22be8cfe95b20d/"
+    }
+  },
+  "file_sets": {
+    "demucs_pair": [
+      "htdemucs_fwd.bin",
+      "htdemucs_fwd.xml"
+    ],
+    "mel_band_roformer_bundle": [
+      "mel_band_pre.xml",
+      "mel_band_pre.bin",
+      "mel_band_post.xml",
+      "mel_band_post.bin",
+      "mel_band_fwd.xml",
+      "mel_band_fwd.bin"
+    ],
+    "mdx23c_pair": [
+      "mdx23c_fwd.xml",
+      "mdx23c_fwd.bin"
+    ]
+  },
+  "models": [
+    {
+      "effect": "Music Separation",
+      "id": "music_separation_demucs_v4",
+      "name": "Demucs v4",
+      "info_key": "music_separation_demucs_v4",
+      "source": "hf_intel_demucs_openvino",
+      "url_subdir": "htdemucs_v4",
+      "relative_path": "stem_separation/htdemucs_v4",
+      "file_set": "demucs_pair"
+    },
+    {
+      "effect": "Music Separation",
+      "id": "music_separation_demucs_v4_ft_drums",
+      "name": "Demucs v4 FT Drums",
+      "info_key": "music_separation_demucs_v4_ft_drums",
+      "source": "hf_intel_demucs_openvino",
+      "url_subdir": "htdemucs_v4_ht_drums",
+      "relative_path": "stem_separation/htdemucs_v4_ht_drums",
+      "file_set": "demucs_pair"
+    },
+    {
+      "effect": "Music Separation",
+      "id": "music_separation_demucs_v4_ft_bass",
+      "name": "Demucs v4 FT Bass",
+      "info_key": "music_separation_demucs_v4_ft_bass",
+      "source": "hf_intel_demucs_openvino",
+      "url_subdir": "htdemucs_v4_ht_bass",
+      "relative_path": "stem_separation/htdemucs_v4_ht_bass",
+      "file_set": "demucs_pair"
+    },
+    {
+      "effect": "Music Separation",
+      "id": "music_separation_demucs_v4_ft_other",
+      "name": "Demucs v4 FT Other Instruments",
+      "info_key": "music_separation_demucs_v4_ft_other",
+      "source": "hf_intel_demucs_openvino",
+      "url_subdir": "htdemucs_v4_ht_other",
+      "relative_path": "stem_separation/htdemucs_v4_ht_other",
+      "file_set": "demucs_pair"
+    },
+    {
+      "effect": "Music Separation",
+      "id": "music_separation_demucs_v4_ft_vocals",
+      "name": "Demucs v4 FT Vocals",
+      "info_key": "music_separation_demucs_v4_ft_vocals",
+      "source": "hf_intel_demucs_openvino",
+      "url_subdir": "htdemucs_v4_ht_vocals",
+      "relative_path": "stem_separation/htdemucs_v4_ht_vocals",
+      "file_set": "demucs_pair"
+    },
+    {
+      "effect": "Music Separation",
+      "id": "music_separation_demucs_v4_6s",
+      "name": "Demucs v4 6s",
+      "info_key": "music_separation_demucs_v4_6s",
+      "source": "hf_intel_demucs_openvino",
+      "url_subdir": "htdemucs_v4_6s",
+      "relative_path": "stem_separation/htdemucs_v4_6s",
+      "file_set": "demucs_pair"
+    },
+    {
+      "effect": "Music Separation",
+      "id": "music_separation_mel_vocals_kimberley_jenson",
+      "name": "MelBandRoformer Vocals (@KimberleyJensen)",
+      "info_key": "music_separation_mel_vocals_kimberley_jenson",
+      "source": "hf_intel_vocals_mel_band_roformer_kimberleyjsn_openvino",
+      "relative_path": "stem_separation/melband_roformer_kimberley_jenson",
+      "file_set": "mel_band_roformer_bundle"
+    },
+    {
+      "effect": "Music Separation",
+      "id": "music_separation_mel_crowd_aufr33_viperx",
+      "name": "MelBandRoformer Crowd (@aufr33, @viperx)",
+      "info_key": "music_separation_mel_crowd_aufr33_viperx",
+      "source": "hf_intel_crowd_mel_band_roformer_aufr33_viperx_openvino",
+      "relative_path": "stem_separation/melband_roformer_crowd",
+      "file_set": "mel_band_roformer_bundle"
+    },
+    {
+      "effect": "Music Separation",
+      "id": "music_separation_msdx23c_drum_sep_jarredou",
+      "name": "MDX23C Drum Separation (@jarredou)",
+      "info_key": "music_separation_msdx23c_drum_sep_jarredou",
+      "source": "hf_intel_drumsep_mdx23c_jarredou_openvino",
+      "relative_path": "stem_separation/drumsep_jarredou_mdx23c",
+      "file_set": "mdx23c_pair"
+    }
+  ]
+}

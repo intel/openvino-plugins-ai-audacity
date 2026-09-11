@@ -60,6 +60,7 @@ public:
 private:
    void OnInfo(wxCommandEvent& event);
    void OnInstall(wxCommandEvent& event);
+   void RefreshSizeLabel();
 
    std::string effect;
    std::shared_ptr<OVModelManager::ModelInfo> model;
@@ -67,6 +68,7 @@ private:
    bool restartRequired{ false };
 
    wxButton* installButton;
+   wxStaticText* sizeText;
 };
 
 class InstallQueueEntryPanel : public wxPanel {

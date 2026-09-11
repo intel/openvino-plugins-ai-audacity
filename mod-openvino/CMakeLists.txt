@@ -96,12 +96,14 @@ set( SOURCES
       OVModelManager.h
       OVModelManager.cpp
       OVModelManagerPopulation.cpp
+      model_download_manifest_info.h
       model_md_card_info.h
 )
 
 set( LIBRARIES
    PRIVATE
       Audacity
+      lib-crypto
       openvino::runtime
       openvino::genai
       ${TORCH_LIBRARIES}

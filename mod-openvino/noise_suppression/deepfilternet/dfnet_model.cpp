@@ -99,15 +99,6 @@ namespace ov_deepfilternet
 
       _bDF3 = (model_selection == ModelSelection::DEEPFILTERNET3);
 
-      if (_bDF3)
-      {
-         model_folder = FullPath(model_folder, "deepfilternet3");
-      }
-      else
-      {
-         model_folder = FullPath(model_folder, "deepfilternet2");
-      }
-
       if (lookahead > 0)
       {
          _pad_feat = std::make_shared<torch::nn::ConstantPad2d>(torch::nn::ConstantPad2dOptions({ 0, 0, -lookahead, lookahead }, 0.0));
