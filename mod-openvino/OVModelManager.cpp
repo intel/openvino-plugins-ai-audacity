@@ -432,7 +432,6 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
             return lastFailure;
          }
 
-         mkdir_relative_paths(model_info->relative_path + "/" + file.name, base_openvino_models_path);
          wxFileName fullFilePath(base_openvino_models_path + "/" + model_info->relative_path + "/" + file.name);
          fullFilePath.Normalize();
 
@@ -447,6 +446,8 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
                   fullFilePath.GetFullPath().ToStdString(),
                   "Model base path: " + normalizedBaseModelsPath.ToStdString()));
          }
+
+         mkdir_relative_paths(model_info->relative_path + "/" + file.name, base_openvino_models_path);
 
          const auto tempFilePath = fullFilePath.GetFullPath() + ".tmp";
          const auto oldFilePath = fullFilePath.GetFullPath() + ".old";
