@@ -28,6 +28,15 @@ constexpr auto DownloadFinishedPollInterval = std::chrono::milliseconds(100);
 constexpr auto DownloadCancelFinishTimeout = std::chrono::seconds(10);
 constexpr char ModelRevisionStampFileName[] = ".ov_model_revision";
 
+struct DownloadAttemptState
+{
+   std::atomic<bool> error{ false };
+   std::atomic<bool> cancelRequested{ false };
+   std::atomic<bool> timedOutWaitingForFinished{ false };
+   std::string errorSummary;
+   std::string errorDetails;
+};
+
 std::string BuildInstallDetails(
    const std::string& effect,
    const std::string& modelName,
@@ -393,8 +402,6 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
 
    audacity::network_manager::NetworkManager& manager = audacity::network_manager::NetworkManager::GetInstance();
 
-   bool bError = false;
-
    auto baseUrl = model_info->baseUrl;
    auto postUrl = model_info->postUrl;
    wxFileName baseModelsPath(base_openvino_models_path);
@@ -411,8 +418,8 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
       const auto bytesDownloadedBeforeFile = bytes_downloaded_so_far;
 
       for (int attempt = 1; attempt <= DownloadMaxAttempts; ++attempt) {
-         bError = false;
-         bytes_downloaded_so_far = bytesDownloadedBeforeFile;
+         auto bytesDownloadedAttempt = std::make_shared<size_t>(bytesDownloadedBeforeFile);
+         auto attemptState = std::make_shared<DownloadAttemptState>();
 
          audacity::network_manager::Request request;
          std::shared_ptr<audacity::network_manager::IResponse> response;
@@ -463,15 +470,14 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
                BuildInstallDetails(effect, model_info->model_name, "Download", "Failed to open the destination temp file before writing downloaded data.", tempFilePath.ToStdString()));
          }
 
-         std::string file_error_summary;
-         std::string file_error_details;
          auto downloadBuffer = std::make_shared<std::array<uint8_t, DownloadBufferSize>>();
          auto fileHasher = std::make_shared<crypto::SHA256>();
          auto fileBytesReceived = std::make_shared<std::uint64_t>(0);
-         auto cancelRequested = std::make_shared<std::atomic<bool>>(false);
+         const auto totalDownloadSizeValue = total_download_size;
+         const auto effectCopy = effect;
 
          response->setOnDataReceivedCallback(
-            [wx_file, downloadBuffer, fileHasher, fileBytesReceived, cancelRequested, tempFilePath, &bError, &bytes_downloaded_so_far, callback, &total_download_size, &file_error_summary, &file_error_details, &effect, model_info, url, fullFilePath, file, attempt](audacity::network_manager::IResponse* responseRaw)
+            [wx_file, downloadBuffer, fileHasher, fileBytesReceived, bytesDownloadedAttempt, attemptState, tempFilePath, callback, totalDownloadSizeValue, effectCopy, model_info, url, fullFilePath, file, attempt](audacity::network_manager::IResponse* responseRaw)
             {
                int httpCode = responseRaw->getHTTPCode();
                if ((httpCode == 200) || (httpCode == 302))
@@ -489,21 +495,21 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
                         int last_error = wx_file->GetLastError();
 
                         wxLogError("OVModelManager: file write error (wxFile last_error=%d) for '%s'.", last_error, fullFilePath.GetFullPath());
-                        file_error_summary = "Writing downloaded model data failed.";
-                        file_error_details = BuildInstallDetails(
-                           effect,
+                        attemptState->errorSummary = "Writing downloaded model data failed.";
+                        attemptState->errorDetails = BuildInstallDetails(
+                           effectCopy,
                            model_info->model_name,
                            "Download",
                            "wxFile reported an error while writing the downloaded data.",
                            tempFilePath.ToStdString(),
                            "wxFile last error: " + std::to_string(last_error) + "\nSource URL: " + url);
-                        bError = true;
-                        cancelRequested->store(true, std::memory_order_release);
+                        attemptState->error.store(true, std::memory_order_release);
+                        attemptState->cancelRequested.store(true, std::memory_order_release);
                         responseRaw->Cancel();
                         return;
                      }
 
-                     bytes_downloaded_so_far += bytesWritten;
+                     *bytesDownloadedAttempt += bytesWritten;
                      *fileBytesReceived += static_cast<std::uint64_t>(bytesRead);
 
                      if (file.expected_size > 0 && *fileBytesReceived > file.expected_size)
@@ -514,9 +520,9 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
                            fullFilePath.GetFullPath(),
                            static_cast<unsigned long long>(file.expected_size),
                            static_cast<unsigned long long>(*fileBytesReceived));
-                        file_error_summary = "Downloaded model file exceeded expected size.";
-                        file_error_details = BuildInstallDetails(
-                           effect,
+                        attemptState->errorSummary = "Downloaded model file exceeded expected size.";
+                        attemptState->errorDetails = BuildInstallDetails(
+                           effectCopy,
                            model_info->model_name,
                            "Size Verification",
                            "The streamed download exceeded the expected file size from model metadata before completion.",
@@ -525,41 +531,41 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
                            + "\nExpected bytes: " + std::to_string(file.expected_size)
                            + "\nBytes received so far: " + std::to_string(*fileBytesReceived)
                            + "\nSource URL: " + url);
-                        bError = true;
-                        cancelRequested->store(true, std::memory_order_release);
+                        attemptState->error.store(true, std::memory_order_release);
+                        attemptState->cancelRequested.store(true, std::memory_order_release);
                         responseRaw->Cancel();
                         return;
                      }
 
-                     if (total_download_size > 0 && bytes_downloaded_so_far > total_download_size)
+                     if (totalDownloadSizeValue > 0 && *bytesDownloadedAttempt > totalDownloadSizeValue)
                      {
                         wxLogError("OVModelManager: aggregate download exceeded planned total on attempt %d/%d for '%s'. Planned %llu bytes, downloaded %llu bytes so far.",
                            attempt,
                            DownloadMaxAttempts,
                            fullFilePath.GetFullPath(),
-                           static_cast<unsigned long long>(total_download_size),
-                           static_cast<unsigned long long>(bytes_downloaded_so_far));
-                        file_error_summary = "Downloaded data exceeded planned total size.";
-                        file_error_details = BuildInstallDetails(
-                           effect,
+                           static_cast<unsigned long long>(totalDownloadSizeValue),
+                           static_cast<unsigned long long>(*bytesDownloadedAttempt));
+                        attemptState->errorSummary = "Downloaded data exceeded planned total size.";
+                        attemptState->errorDetails = BuildInstallDetails(
+                           effectCopy,
                            model_info->model_name,
                            "Size Verification",
                            "Accumulated downloaded bytes exceeded the planned total size before completion.",
                            fullFilePath.GetFullPath().ToStdString(),
                            "Attempt: " + std::to_string(attempt) + "/" + std::to_string(DownloadMaxAttempts)
-                           + "\nPlanned total bytes: " + std::to_string(total_download_size)
-                           + "\nDownloaded bytes so far: " + std::to_string(bytes_downloaded_so_far)
+                           + "\nPlanned total bytes: " + std::to_string(totalDownloadSizeValue)
+                           + "\nDownloaded bytes so far: " + std::to_string(*bytesDownloadedAttempt)
                            + "\nSource URL: " + url);
-                        bError = true;
-                        cancelRequested->store(true, std::memory_order_release);
+                        attemptState->error.store(true, std::memory_order_release);
+                        attemptState->cancelRequested.store(true, std::memory_order_release);
                         responseRaw->Cancel();
                         return;
                      }
 
                      fileHasher->Update(downloadBuffer->data(), static_cast<std::size_t>(bytesRead));
 
-                     if (total_download_size > 0 && callback) {
-                        double perc_complete = static_cast<double>(bytes_downloaded_so_far) / static_cast<double>(total_download_size);
+                     if (totalDownloadSizeValue > 0 && callback) {
+                        double perc_complete = static_cast<double>(*bytesDownloadedAttempt) / static_cast<double>(totalDownloadSizeValue);
                         callback(static_cast<float>(perc_complete));
                      }
 
@@ -569,16 +575,16 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
                            fullFilePath.GetFullPath(),
                            static_cast<unsigned long long>(bytesWritten),
                            static_cast<unsigned long long>(bytesRead));
-                        file_error_summary = "Incomplete model file write detected.";
-                        file_error_details = BuildInstallDetails(
-                           effect,
+                        attemptState->errorSummary = "Incomplete model file write detected.";
+                        attemptState->errorDetails = BuildInstallDetails(
+                           effectCopy,
                            model_info->model_name,
                            "Download",
                            "The downloaded data size did not match the number of bytes written to disk.",
                            tempFilePath.ToStdString(),
                            "Bytes written: " + std::to_string(bytesWritten) + "\nBytes received: " + std::to_string(bytesRead) + "\nSource URL: " + url);
-                        bError = true;
-                        cancelRequested->store(true, std::memory_order_release);
+                        attemptState->error.store(true, std::memory_order_release);
+                        attemptState->cancelRequested.store(true, std::memory_order_release);
                         responseRaw->Cancel();
                         return;
                      }
@@ -587,16 +593,16 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
                else
                {
                   wxLogError("OVModelManager: GET request returned unexpected HTTP status %d for URL '%s'.", httpCode, url.c_str());
-                  file_error_summary = "Model download returned an unexpected HTTP status.";
-                  file_error_details = BuildInstallDetails(
-                     effect,
+                  attemptState->errorSummary = "Model download returned an unexpected HTTP status.";
+                  attemptState->errorDetails = BuildInstallDetails(
+                     effectCopy,
                      model_info->model_name,
                      "Download",
                      "GET request returned an unexpected HTTP status.",
                      url,
                      "HTTP status: " + std::to_string(httpCode));
-                  bError = true;
-                  cancelRequested->store(true, std::memory_order_release);
+                  attemptState->error.store(true, std::memory_order_release);
+                  attemptState->cancelRequested.store(true, std::memory_order_release);
                   responseRaw->Cancel();
                   return;
                }
@@ -626,22 +632,24 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
                break;
             }
 
-            if (cancelRequested->load(std::memory_order_acquire)) {
+            if (attemptState->cancelRequested.load(std::memory_order_acquire)) {
                const auto now = std::chrono::steady_clock::now();
                if (cancelWaitStart == std::chrono::steady_clock::time_point{}) {
                   cancelWaitStart = now;
                }
                else if ((now - cancelWaitStart) > DownloadCancelFinishTimeout) {
-                  file_error_summary = "Model download cancellation did not complete.";
-                  file_error_details = BuildInstallDetails(
+                  attemptState->errorSummary = "Model download cancellation did not complete.";
+                  attemptState->errorDetails = BuildInstallDetails(
                      effect,
                      model_info->model_name,
                      "Download",
                      "The request was cancelled after an error, but no request-finished callback arrived in time.",
                      url,
                      "Attempt: " + std::to_string(attempt) + "/" + std::to_string(DownloadMaxAttempts));
-                  bError = true;
+                  attemptState->error.store(true, std::memory_order_release);
+                  attemptState->timedOutWaitingForFinished.store(true, std::memory_order_release);
                   response->Cancel();
+                  response->setOnDataReceivedCallback([](audacity::network_manager::IResponse*) {});
                   break;
                }
             }
@@ -651,11 +659,13 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
             doneFuture.get();
          }
 
+         bytes_downloaded_so_far = *bytesDownloadedAttempt;
+
          const auto networkError = response->getError();
          const auto networkErrorString = response->getErrorString();
-         if (!bError && networkError != audacity::network_manager::NetworkError::NoError) {
-            file_error_summary = "Model download failed due to a network error.";
-            file_error_details = BuildInstallDetails(
+         if (!attemptState->error.load(std::memory_order_acquire) && networkError != audacity::network_manager::NetworkError::NoError) {
+            attemptState->errorSummary = "Model download failed due to a network error.";
+            attemptState->errorDetails = BuildInstallDetails(
                effect,
                model_info->model_name,
                "Download",
@@ -663,10 +673,10 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
                url,
                "Attempt: " + std::to_string(attempt) + "/" + std::to_string(DownloadMaxAttempts)
                + (networkErrorString.empty() ? std::string{} : "\nNetwork error: " + networkErrorString));
-            bError = true;
+            attemptState->error.store(true, std::memory_order_release);
          }
 
-         if (bError) {
+         if (attemptState->error.load(std::memory_order_acquire)) {
             if (wx_file->IsOpened()) {
                wx_file->Close();
             }
@@ -674,7 +684,11 @@ static OVModelManager::InstallResult download_model_files(const std::string& eff
                wxRemoveFile(tempFilePath);
             }
 
-            lastFailure = OVModelManager::InstallResult::Failure(file_error_summary, file_error_details);
+            lastFailure = OVModelManager::InstallResult::Failure(attemptState->errorSummary, attemptState->errorDetails);
+            if (attemptState->timedOutWaitingForFinished.load(std::memory_order_acquire)) {
+               return lastFailure;
+            }
+
             if (attempt < DownloadMaxAttempts) {
                wxLogWarning("OVModelManager: retrying download attempt %d/%d for '%s'.", attempt + 1, DownloadMaxAttempts, url.c_str());
                std::this_thread::sleep_for(DownloadRetryDelay);
