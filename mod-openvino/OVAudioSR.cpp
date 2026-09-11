@@ -3,6 +3,7 @@
 
 #include "OVAudioSR.h"
 #include "OpenVINOPluginPrefs.h"
+#include "ConfigInterface.h"
 #include "WaveTrack.h"
 #include "WaveChannelUtilities.h"
 #include "EffectOutputTracks.h"
@@ -108,6 +109,266 @@ EffectType EffectOVAudioSR::GetType() const
 
 bool EffectOVAudioSR::IsInteractive() const
 {
+   return true;
+}
+
+bool EffectOVAudioSR::SaveSettingsAsString(
+   const EffectSettings& settings, wxString& parms) const
+{
+   CommandParameters eap;
+   if (!SaveSettings(settings, eap))
+   {
+      return false;
+   }
+
+   return eap.GetParameters(parms);
+}
+
+OptionalMessage EffectOVAudioSR::LoadSettingsFromString(
+   const wxString& parms, EffectSettings& settings) const
+{
+   CommandParameters eap(parms);
+   if (!eap.SetParameters(parms))
+   {
+      return {};
+   }
+
+   if (!LoadSettings(eap, settings))
+   {
+      return {};
+   }
+
+   return { nullptr };
+}
+
+bool EffectOVAudioSR::SaveSettings(
+   const EffectSettings&, CommandParameters& parms) const
+{
+   parms.Write(wxT("ModelSelectionChoice"), m_modelSelectionChoice);
+   parms.Write(wxT("EncoderDeviceSelectionChoice"), m_encoderDeviceSelectionChoice);
+   parms.Write(wxT("DDPMDeviceSelectionChoice"), m_ddpmDeviceSelectionChoice);
+   parms.Write(wxT("DecoderDeviceSelectionChoice"), m_decoderDeviceSelectionChoice);
+   parms.Write(wxT("ChunkSizeSelectionChoice"), m_ChunkSizeSelectionChoice);
+   parms.Write(wxT("Advanced"), mbAdvanced);
+   parms.Write(wxT("NormalizeOutputRMS"), mbNormalizeOutputRMS);
+   parms.Write(wxT("NumSteps"), mNumSteps);
+   parms.Write(wxT("GuidanceScale"), mGuidanceScale);
+   parms.Write(wxT("Seed"), wxString(_seed_str));
+   return true;
+}
+
+bool EffectOVAudioSR::LoadSettings(
+   const CommandParameters& parms, EffectSettings&) const
+{
+   auto* self = const_cast<EffectOVAudioSR*>(this);
+
+   int intValue = 0;
+   if (parms.Read(wxT("ModelSelectionChoice"), &intValue))
+   {
+      self->m_modelSelectionChoice = intValue;
+   }
+   if (parms.Read(wxT("EncoderDeviceSelectionChoice"), &intValue))
+   {
+      self->m_encoderDeviceSelectionChoice = intValue;
+   }
+   if (parms.Read(wxT("DDPMDeviceSelectionChoice"), &intValue))
+   {
+      self->m_ddpmDeviceSelectionChoice = intValue;
+   }
+   if (parms.Read(wxT("DecoderDeviceSelectionChoice"), &intValue))
+   {
+      self->m_decoderDeviceSelectionChoice = intValue;
+   }
+   if (parms.Read(wxT("ChunkSizeSelectionChoice"), &intValue))
+   {
+      self->m_ChunkSizeSelectionChoice = intValue;
+   }
+   if (parms.Read(wxT("NumSteps"), &intValue))
+   {
+      self->mNumSteps = intValue;
+   }
+
+   bool boolValue = false;
+   if (parms.Read(wxT("Advanced"), &boolValue))
+   {
+      self->mbAdvanced = boolValue;
+   }
+   if (parms.Read(wxT("NormalizeOutputRMS"), &boolValue))
+   {
+      self->mbNormalizeOutputRMS = boolValue;
+   }
+
+   float floatValue = 0.0f;
+   if (parms.Read(wxT("GuidanceScale"), &floatValue))
+   {
+      self->mGuidanceScale = floatValue;
+   }
+
+   wxString stringValue;
+   if (parms.Read(wxT("Seed"), &stringValue))
+   {
+      self->_seed_str = audacity::ToUTF8(stringValue);
+   }
+
+   self->ClampSelectionChoices();
+   return true;
+}
+
+OptionalMessage EffectOVAudioSR::LoadUserPreset(
+   const RegistryPath& name, EffectSettings& settings) const
+{
+   auto result = Effect::LoadUserPreset(name, settings);
+   if (!result)
+   {
+      return result;
+   }
+
+   auto* self = const_cast<EffectOVAudioSR*>(this);
+   const auto userPresetRoot = UserPresetsGroup({});
+   const bool shouldWarn = name.StartsWith(userPresetRoot);
+   wxString warning;
+
+   wxString modelName;
+   if (GetConfig(GetDefinition(), PluginSettings::Private,
+      name, wxT("ModelName"), modelName))
+   {
+      const auto modelNameUtf8 = audacity::ToUTF8(modelName);
+      const auto modelIt = std::find(
+         self->mSupportedModels.begin(),
+         self->mSupportedModels.end(),
+         modelNameUtf8);
+      if (modelIt != self->mSupportedModels.end())
+      {
+         self->m_modelSelectionChoice =
+            static_cast<int>(std::distance(self->mSupportedModels.begin(), modelIt));
+      }
+      else if (shouldWarn)
+      {
+         warning += wxString::Format(
+            "Preset references model '%s', but it is not installed.\n",
+            modelName);
+      }
+   }
+
+   wxString encoderDeviceName;
+   if (GetConfig(GetDefinition(), PluginSettings::Private,
+      name, wxT("EncoderDeviceName"), encoderDeviceName))
+   {
+      const auto encoderUtf8 = audacity::ToUTF8(encoderDeviceName);
+      const auto encoderIt = std::find(
+         self->mSupportedNonNPUDevices.begin(),
+         self->mSupportedNonNPUDevices.end(),
+         encoderUtf8);
+      if (encoderIt != self->mSupportedNonNPUDevices.end())
+      {
+         self->m_encoderDeviceSelectionChoice = static_cast<int>(
+            std::distance(self->mSupportedNonNPUDevices.begin(), encoderIt));
+      }
+      else if (shouldWarn)
+      {
+         warning += wxString::Format(
+            "Preset references encoder device '%s', but it is not available.\n",
+            encoderDeviceName);
+      }
+   }
+
+   wxString ddpmDeviceName;
+   if (GetConfig(GetDefinition(), PluginSettings::Private,
+      name, wxT("DDPMDeviceName"), ddpmDeviceName))
+   {
+      const auto ddpmUtf8 = audacity::ToUTF8(ddpmDeviceName);
+      const auto ddpmIt = std::find(
+         self->mSupportedDevices.begin(),
+         self->mSupportedDevices.end(),
+         ddpmUtf8);
+      if (ddpmIt != self->mSupportedDevices.end())
+      {
+         self->m_ddpmDeviceSelectionChoice = static_cast<int>(
+            std::distance(self->mSupportedDevices.begin(), ddpmIt));
+      }
+      else if (shouldWarn)
+      {
+         warning += wxString::Format(
+            "Preset references DDPM device '%s', but it is not available.\n",
+            ddpmDeviceName);
+      }
+   }
+
+   wxString decoderDeviceName;
+   if (GetConfig(GetDefinition(), PluginSettings::Private,
+      name, wxT("DecoderDeviceName"), decoderDeviceName))
+   {
+      const auto decoderUtf8 = audacity::ToUTF8(decoderDeviceName);
+      const auto decoderIt = std::find(
+         self->mSupportedNonNPUDevices.begin(),
+         self->mSupportedNonNPUDevices.end(),
+         decoderUtf8);
+      if (decoderIt != self->mSupportedNonNPUDevices.end())
+      {
+         self->m_decoderDeviceSelectionChoice = static_cast<int>(
+            std::distance(self->mSupportedNonNPUDevices.begin(), decoderIt));
+      }
+      else if (shouldWarn)
+      {
+         warning += wxString::Format(
+            "Preset references decoder device '%s', but it is not available.\n",
+            decoderDeviceName);
+      }
+   }
+
+   self->ClampSelectionChoices();
+
+   if (!warning.empty())
+   {
+      warning += "Some preset options could not be restored. Available defaults were used.";
+      EffectUIServices::DoMessageBox(
+         *this,
+         TranslatableString{ warning, {} },
+         wxICON_WARNING,
+         XO("Preset Warning"));
+   }
+
+   return result;
+}
+
+bool EffectOVAudioSR::SaveUserPreset(
+   const RegistryPath& name, const EffectSettings& settings) const
+{
+   if (!Effect::SaveUserPreset(name, settings))
+   {
+      return false;
+   }
+
+   auto* self = const_cast<EffectOVAudioSR*>(this);
+   self->ClampSelectionChoices();
+
+   if (!self->mSupportedModels.empty())
+   {
+      const auto& modelName = self->mSupportedModels[self->m_modelSelectionChoice];
+      SetConfig(GetDefinition(), PluginSettings::Private,
+         name, wxT("ModelName"), wxString(modelName));
+   }
+
+   if (!self->mSupportedNonNPUDevices.empty())
+   {
+      const auto& encoderDevice =
+         self->mSupportedNonNPUDevices[self->m_encoderDeviceSelectionChoice];
+      SetConfig(GetDefinition(), PluginSettings::Private,
+         name, wxT("EncoderDeviceName"), wxString(encoderDevice));
+
+      const auto& decoderDevice =
+         self->mSupportedNonNPUDevices[self->m_decoderDeviceSelectionChoice];
+      SetConfig(GetDefinition(), PluginSettings::Private,
+         name, wxT("DecoderDeviceName"), wxString(decoderDevice));
+   }
+
+   if (!self->mSupportedDevices.empty())
+   {
+      const auto& ddpmDevice = self->mSupportedDevices[self->m_ddpmDeviceSelectionChoice];
+      SetConfig(GetDefinition(), PluginSettings::Private,
+         name, wxT("DDPMDeviceName"), wxString(ddpmDevice));
+   }
+
    return true;
 }
 
@@ -1244,10 +1505,48 @@ bool EffectOVAudioSR::Process(EffectInstance&, EffectSettings&)
 
 bool EffectOVAudioSR::TransferDataToWindow(const EffectSettings&)
 {
+   ClampSelectionChoices();
+
+   if (mTypeChoiceModelCtrl && mTypeChoiceModelCtrl->GetCount() > 0)
+   {
+      mTypeChoiceModelCtrl->SetSelection(m_modelSelectionChoice);
+   }
+   if (mTypeChoiceDeviceCtrl_Encoder && mTypeChoiceDeviceCtrl_Encoder->GetCount() > 0)
+   {
+      mTypeChoiceDeviceCtrl_Encoder->SetSelection(m_encoderDeviceSelectionChoice);
+   }
+   if (mTypeChoiceDeviceCtrl_DDPM && mTypeChoiceDeviceCtrl_DDPM->GetCount() > 0)
+   {
+      mTypeChoiceDeviceCtrl_DDPM->SetSelection(m_ddpmDeviceSelectionChoice);
+   }
+   if (mTypeChoiceDeviceCtrl_Decoder && mTypeChoiceDeviceCtrl_Decoder->GetCount() > 0)
+   {
+      mTypeChoiceDeviceCtrl_Decoder->SetSelection(m_decoderDeviceSelectionChoice);
+   }
+   if (mTypeChoiceChunkSizeCtrl && mTypeChoiceChunkSizeCtrl->GetCount() > 0)
+   {
+      mTypeChoiceChunkSizeCtrl->SetSelection(m_ChunkSizeSelectionChoice);
+   }
+
    if (!mUIParent || !mUIParent->TransferDataToWindow())
    {
       return false;
    }
+
+   if (mShowAdvancedOptionsCheckbox)
+   {
+      mShowAdvancedOptionsCheckbox->SetValue(mbAdvanced);
+   }
+   if (mNormalizeOutputRMSCheckBox)
+   {
+      mNormalizeOutputRMSCheckBox->SetValue(mbNormalizeOutputRMS);
+   }
+   if (mSeed)
+   {
+      mSeed->SetValue(wxString(_seed_str));
+   }
+
+   show_or_hide_advanced_options();
 
    EffectEditor::EnablePreview(mUIParent, false);
 
@@ -1268,6 +1567,48 @@ bool EffectOVAudioSR::TransferDataFromWindow(EffectSettings&)
    }
 
    mbNormalizeOutputRMS = mNormalizeOutputRMSCheckBox->GetValue();
+   mbAdvanced = mShowAdvancedOptionsCheckbox ? mShowAdvancedOptionsCheckbox->GetValue() : mbAdvanced;
+   if (mSeed)
+   {
+      _seed_str = audacity::ToUTF8(mSeed->GetValue());
+   }
+
+   ClampSelectionChoices();
 
    return true;
+}
+
+void EffectOVAudioSR::ClampSelectionChoices()
+{
+   if (!mSupportedModels.empty())
+   {
+      m_modelSelectionChoice = std::clamp(
+         m_modelSelectionChoice,
+         0,
+         static_cast<int>(mSupportedModels.size()) - 1);
+   }
+
+   if (!mSupportedNonNPUDevices.empty())
+   {
+      m_encoderDeviceSelectionChoice = std::clamp(
+         m_encoderDeviceSelectionChoice,
+         0,
+         static_cast<int>(mSupportedNonNPUDevices.size()) - 1);
+      m_decoderDeviceSelectionChoice = std::clamp(
+         m_decoderDeviceSelectionChoice,
+         0,
+         static_cast<int>(mSupportedNonNPUDevices.size()) - 1);
+   }
+
+   if (!mSupportedDevices.empty())
+   {
+      m_ddpmDeviceSelectionChoice = std::clamp(
+         m_ddpmDeviceSelectionChoice,
+         0,
+         static_cast<int>(mSupportedDevices.size()) - 1);
+   }
+
+   m_ChunkSizeSelectionChoice = std::clamp(m_ChunkSizeSelectionChoice, 0, 1);
+   mNumSteps = std::clamp(mNumSteps, 1, 100);
+   mGuidanceScale = std::clamp(mGuidanceScale, 1.0f, 10.0f);
 }

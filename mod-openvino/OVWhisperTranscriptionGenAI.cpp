@@ -3,6 +3,7 @@
 
 #include "OVWhisperTranscriptionGenAI.h"
 #include "OpenVINOPluginPrefs.h"
+#include "ConfigInterface.h"
 #include "LoadEffects.h"
 #include "WaveTrack.h"
 #include "EffectOutputTracks.h"
@@ -43,6 +44,8 @@
 #include "openvino/genai/whisper_pipeline.hpp"
 
 #include "OVModelManagerUI.h"
+
+#include <algorithm>
 
 struct ovgenai_whisper_lang_entry
 {
@@ -232,6 +235,238 @@ VendorSymbol EffectOVWhisperTranscriptionGenAI::GetVendor() const
 EffectType EffectOVWhisperTranscriptionGenAI::GetType() const
 {
    return EffectTypeAnalyze;
+}
+
+bool EffectOVWhisperTranscriptionGenAI::SaveSettingsAsString(
+   const EffectSettings& settings, wxString& parms) const
+{
+   CommandParameters eap;
+   if (!SaveSettings(settings, eap))
+   {
+      return false;
+   }
+
+   return eap.GetParameters(parms);
+}
+
+OptionalMessage EffectOVWhisperTranscriptionGenAI::LoadSettingsFromString(
+   const wxString& parms, EffectSettings& settings) const
+{
+   CommandParameters eap(parms);
+   if (!eap.SetParameters(parms))
+   {
+      return {};
+   }
+
+   if (!LoadSettings(eap, settings))
+   {
+      return {};
+   }
+
+   return { nullptr };
+}
+
+bool EffectOVWhisperTranscriptionGenAI::SaveSettings(
+   const EffectSettings&, CommandParameters& parms) const
+{
+   parms.Write(wxT("DeviceSelectionChoice"), m_deviceSelectionChoice);
+   parms.Write(wxT("ModelSelectionChoice"), m_modelSelectionChoice);
+   parms.Write(wxT("ModeSelectionChoice"), m_modeSelectionChoice);
+   parms.Write(wxT("LanguageSelectionChoice"), m_languageSelectionChoice);
+   parms.Write(wxT("Advanced"), mbAdvanced);
+   parms.Write(wxT("InitialPrompt"), wxString(mInitialPrompt));
+   parms.Write(wxT("Hotwords"), wxString(mHotwords));
+   return true;
+}
+
+bool EffectOVWhisperTranscriptionGenAI::LoadSettings(
+   const CommandParameters& parms, EffectSettings&) const
+{
+   auto* self = const_cast<EffectOVWhisperTranscriptionGenAI*>(this);
+
+   int intValue = 0;
+   if (parms.Read(wxT("DeviceSelectionChoice"), &intValue))
+   {
+      self->m_deviceSelectionChoice = intValue;
+   }
+   if (parms.Read(wxT("ModelSelectionChoice"), &intValue))
+   {
+      self->m_modelSelectionChoice = intValue;
+   }
+   if (parms.Read(wxT("ModeSelectionChoice"), &intValue))
+   {
+      self->m_modeSelectionChoice = intValue;
+   }
+   if (parms.Read(wxT("LanguageSelectionChoice"), &intValue))
+   {
+      self->m_languageSelectionChoice = intValue;
+   }
+
+   bool boolValue = false;
+   if (parms.Read(wxT("Advanced"), &boolValue))
+   {
+      self->mbAdvanced = boolValue;
+   }
+
+   wxString stringValue;
+   if (parms.Read(wxT("InitialPrompt"), &stringValue))
+   {
+      self->mInitialPrompt = audacity::ToUTF8(stringValue);
+   }
+   if (parms.Read(wxT("Hotwords"), &stringValue))
+   {
+      self->mHotwords = audacity::ToUTF8(stringValue);
+   }
+
+   self->ClampSelectionChoices();
+   return true;
+}
+
+OptionalMessage EffectOVWhisperTranscriptionGenAI::LoadUserPreset(
+   const RegistryPath& name, EffectSettings& settings) const
+{
+   auto result = Effect::LoadUserPreset(name, settings);
+   if (!result)
+   {
+      return result;
+   }
+
+   auto* self = const_cast<EffectOVWhisperTranscriptionGenAI*>(this);
+   const auto userPresetRoot = UserPresetsGroup({});
+   const bool shouldWarn = name.StartsWith(userPresetRoot);
+   wxString warning;
+
+   wxString modelName;
+   if (GetConfig(GetDefinition(), PluginSettings::Private,
+      name, wxT("ModelName"), modelName))
+   {
+      const auto modelNameUtf8 = audacity::ToUTF8(modelName);
+      const auto modelIt = std::find(
+         self->mSupportedModels.begin(),
+         self->mSupportedModels.end(),
+         modelNameUtf8);
+      if (modelIt != self->mSupportedModels.end())
+      {
+         self->m_modelSelectionChoice =
+            static_cast<int>(std::distance(self->mSupportedModels.begin(), modelIt));
+      }
+      else if (shouldWarn)
+      {
+         warning += wxString::Format(
+            "Preset references model '%s', but it is not installed.\n",
+            modelName);
+      }
+   }
+
+   wxString deviceName;
+   if (GetConfig(GetDefinition(), PluginSettings::Private,
+      name, wxT("DeviceName"), deviceName))
+   {
+      const auto deviceNameUtf8 = audacity::ToUTF8(deviceName);
+      const auto deviceIt = std::find(
+         self->mSupportedDevices.begin(),
+         self->mSupportedDevices.end(),
+         deviceNameUtf8);
+      if (deviceIt != self->mSupportedDevices.end())
+      {
+         self->m_deviceSelectionChoice =
+            static_cast<int>(std::distance(self->mSupportedDevices.begin(), deviceIt));
+      }
+      else if (shouldWarn)
+      {
+         warning += wxString::Format(
+            "Preset references device '%s', but it is not available.\n",
+            deviceName);
+      }
+   }
+
+   wxString modeName;
+   if (GetConfig(GetDefinition(), PluginSettings::Private,
+      name, wxT("ModeName"), modeName))
+   {
+      const auto modeNameUtf8 = audacity::ToUTF8(modeName);
+      const auto modeIt = std::find(
+         self->mSupportedModes.begin(),
+         self->mSupportedModes.end(),
+         modeNameUtf8);
+      if (modeIt != self->mSupportedModes.end())
+      {
+         self->m_modeSelectionChoice =
+            static_cast<int>(std::distance(self->mSupportedModes.begin(), modeIt));
+      }
+   }
+
+   wxString languageName;
+   if (GetConfig(GetDefinition(), PluginSettings::Private,
+      name, wxT("LanguageName"), languageName))
+   {
+      const auto languageNameUtf8 = audacity::ToUTF8(languageName);
+      const auto languageIt = std::find(
+         self->mSupportedLanguages.begin(),
+         self->mSupportedLanguages.end(),
+         languageNameUtf8);
+      if (languageIt != self->mSupportedLanguages.end())
+      {
+         self->m_languageSelectionChoice =
+            static_cast<int>(std::distance(self->mSupportedLanguages.begin(), languageIt));
+      }
+   }
+
+   self->ClampSelectionChoices();
+
+   if (!warning.empty())
+   {
+      warning += "Some preset options could not be restored. Available defaults were used.";
+      EffectUIServices::DoMessageBox(
+         *this,
+         TranslatableString{ warning, {} },
+         wxICON_WARNING,
+         XO("Preset Warning"));
+   }
+
+   return result;
+}
+
+bool EffectOVWhisperTranscriptionGenAI::SaveUserPreset(
+   const RegistryPath& name, const EffectSettings& settings) const
+{
+   if (!Effect::SaveUserPreset(name, settings))
+   {
+      return false;
+   }
+
+   auto* self = const_cast<EffectOVWhisperTranscriptionGenAI*>(this);
+   self->ClampSelectionChoices();
+
+   if (!self->mSupportedModels.empty())
+   {
+      const auto& modelName = self->mSupportedModels[self->m_modelSelectionChoice];
+      SetConfig(GetDefinition(), PluginSettings::Private,
+         name, wxT("ModelName"), wxString(modelName));
+   }
+
+   if (!self->mSupportedDevices.empty())
+   {
+      const auto& deviceName = self->mSupportedDevices[self->m_deviceSelectionChoice];
+      SetConfig(GetDefinition(), PluginSettings::Private,
+         name, wxT("DeviceName"), wxString(deviceName));
+   }
+
+   if (!self->mSupportedModes.empty())
+   {
+      const auto& modeName = self->mSupportedModes[self->m_modeSelectionChoice];
+      SetConfig(GetDefinition(), PluginSettings::Private,
+         name, wxT("ModeName"), wxString(modeName));
+   }
+
+   if (!self->mSupportedLanguages.empty())
+   {
+      const auto& languageName = self->mSupportedLanguages[self->m_languageSelectionChoice];
+      SetConfig(GetDefinition(), PluginSettings::Private,
+         name, wxT("LanguageName"), wxString(languageName));
+   }
+
+   return true;
 }
 
 bool EffectOVWhisperTranscriptionGenAI::Process(EffectInstance&, EffectSettings&)
@@ -702,6 +937,25 @@ void EffectOVWhisperTranscriptionGenAI::OnDeviceInfoButtonClicked(wxCommandEvent
 
 bool EffectOVWhisperTranscriptionGenAI::TransferDataToWindow(const EffectSettings&)
 {
+   ClampSelectionChoices();
+
+   if (mTypeChoiceDeviceCtrl && mTypeChoiceDeviceCtrl->GetCount() > 0)
+   {
+      mTypeChoiceDeviceCtrl->SetSelection(m_deviceSelectionChoice);
+   }
+   if (mTypeChoiceModelCtrl && mTypeChoiceModelCtrl->GetCount() > 0)
+   {
+      mTypeChoiceModelCtrl->SetSelection(m_modelSelectionChoice);
+   }
+   if (mTypeChoiceModeCtrl && mTypeChoiceModeCtrl->GetCount() > 0)
+   {
+      mTypeChoiceModeCtrl->SetSelection(m_modeSelectionChoice);
+   }
+   if (mTypeChoiceLanguageCtrl && mTypeChoiceLanguageCtrl->GetCount() > 0)
+   {
+      mTypeChoiceLanguageCtrl->SetSelection(m_languageSelectionChoice);
+   }
+
    if (!mUIParent || !mUIParent->TransferDataToWindow())
    {
       return false;
@@ -712,6 +966,21 @@ bool EffectOVWhisperTranscriptionGenAI::TransferDataToWindow(const EffectSetting
       wxLogInfo("OpenVINO Whisper Transcription has no models installed.");
       EffectEditor::EnableApply(mUIParent, false);
    }
+
+   if (mShowAdvancedOptionsCheckbox)
+   {
+      mShowAdvancedOptionsCheckbox->SetValue(mbAdvanced);
+   }
+   if (mInitialPromptCtrl)
+   {
+      mInitialPromptCtrl->ChangeValue(wxString(mInitialPrompt));
+   }
+   if (mHotwordsCtrl)
+   {
+      mHotwordsCtrl->ChangeValue(wxString(mHotwords));
+   }
+
+   show_or_hide_advanced_options();
 
    return true;
 }
@@ -725,6 +994,7 @@ bool EffectOVWhisperTranscriptionGenAI::TransferDataFromWindow(EffectSettings&)
 
    mInitialPrompt = audacity::ToUTF8(mInitialPromptCtrl->GetLineText(0));
    mHotwords = audacity::ToUTF8(mHotwordsCtrl->GetLineText(0));
+   ClampSelectionChoices();
 
    return true;
 }
@@ -755,12 +1025,15 @@ std::unique_ptr<EffectEditor> EffectOVWhisperTranscriptionGenAI::PopulateOrExcha
       mGuiModelSelections.push_back({ TranslatableString{ wxString(m), {}} });
    }
 
+   ClampSelectionChoices();
+
    OVModelManager::InstalledCallback callback =
       [this](const std::string& model_name) {
       wxTheApp->CallAfter([=]() {
          if (std::find(mSupportedModels.begin(), mSupportedModels.end(), model_name) == mSupportedModels.end()) {
             mSupportedModels.push_back(model_name);
             mGuiModelSelections.push_back({ TranslatableString{ wxString(model_name), {}} });
+            ClampSelectionChoices();
          }
 
          if (mUIParent)
@@ -859,5 +1132,52 @@ std::unique_ptr<EffectEditor> EffectOVWhisperTranscriptionGenAI::PopulateOrExcha
    show_or_hide_advanced_options();
 
    return nullptr;
+}
+
+void EffectOVWhisperTranscriptionGenAI::ClampSelectionChoices()
+{
+   if (!mSupportedDevices.empty())
+   {
+      m_deviceSelectionChoice = std::clamp(
+         m_deviceSelectionChoice,
+         0,
+         static_cast<int>(mSupportedDevices.size()) - 1);
+   }
+   else
+   {
+      m_deviceSelectionChoice = 0;
+   }
+
+   if (!mSupportedModels.empty())
+   {
+      m_modelSelectionChoice = std::clamp(
+         m_modelSelectionChoice,
+         0,
+         static_cast<int>(mSupportedModels.size()) - 1);
+   }
+
+   if (!mSupportedModes.empty())
+   {
+      m_modeSelectionChoice = std::clamp(
+         m_modeSelectionChoice,
+         0,
+         static_cast<int>(mSupportedModes.size()) - 1);
+   }
+   else
+   {
+      m_modeSelectionChoice = 0;
+   }
+
+   if (!mSupportedLanguages.empty())
+   {
+      m_languageSelectionChoice = std::clamp(
+         m_languageSelectionChoice,
+         0,
+         static_cast<int>(mSupportedLanguages.size()) - 1);
+   }
+   else
+   {
+      m_languageSelectionChoice = 0;
+   }
 }
 

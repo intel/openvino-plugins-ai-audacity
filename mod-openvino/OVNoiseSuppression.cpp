@@ -3,6 +3,7 @@
 
 #include "OVNoiseSuppression.h"
 #include "OpenVINOPluginPrefs.h"
+#include "ConfigInterface.h"
 #include "WaveTrack.h"
 #include "EffectOutputTracks.h"
 #include "effects/EffectEditor.h"
@@ -40,6 +41,8 @@
 #include "noise_suppression_df_model.h"
 
 #include "OVModelManagerUI.h"
+
+#include <algorithm>
 
 const ComponentInterfaceSymbol EffectOVNoiseSuppression::Symbol{ XO("Noise Suppression") };
 
@@ -103,6 +106,182 @@ EffectType EffectOVNoiseSuppression::GetType() const
 
 bool EffectOVNoiseSuppression::IsInteractive() const
 {
+   return true;
+}
+
+bool EffectOVNoiseSuppression::SaveSettingsAsString(
+   const EffectSettings& settings, wxString& parms) const
+{
+   CommandParameters eap;
+   if (!SaveSettings(settings, eap))
+   {
+      return false;
+   }
+
+   return eap.GetParameters(parms);
+}
+
+OptionalMessage EffectOVNoiseSuppression::LoadSettingsFromString(
+   const wxString& parms, EffectSettings& settings) const
+{
+   CommandParameters eap(parms);
+   if (!eap.SetParameters(parms))
+   {
+      return {};
+   }
+
+   if (!LoadSettings(eap, settings))
+   {
+      return {};
+   }
+
+   return { nullptr };
+}
+
+bool EffectOVNoiseSuppression::SaveSettings(
+   const EffectSettings&, CommandParameters& parms) const
+{
+   parms.Write(wxT("DeviceSelectionChoice"), m_deviceSelectionChoice);
+   parms.Write(wxT("ModelSelectionChoice"), m_modelSelectionChoice);
+   parms.Write(wxT("Advanced"), mbAdvanced);
+   parms.Write(wxT("AttenuationLimit"), mAttenuationLimit);
+   parms.Write(wxT("DF3RunPostFilter"), mbRunDF3PostFilter);
+   return true;
+}
+
+bool EffectOVNoiseSuppression::LoadSettings(
+   const CommandParameters& parms, EffectSettings&) const
+{
+   auto* self = const_cast<EffectOVNoiseSuppression*>(this);
+
+   int intValue = 0;
+   if (parms.Read(wxT("DeviceSelectionChoice"), &intValue))
+   {
+      self->m_deviceSelectionChoice = intValue;
+   }
+   if (parms.Read(wxT("ModelSelectionChoice"), &intValue))
+   {
+      self->m_modelSelectionChoice = intValue;
+   }
+
+   bool boolValue = false;
+   if (parms.Read(wxT("Advanced"), &boolValue))
+   {
+      self->mbAdvanced = boolValue;
+   }
+   if (parms.Read(wxT("DF3RunPostFilter"), &boolValue))
+   {
+      self->mbRunDF3PostFilter = boolValue;
+   }
+
+   float floatValue = 0.0f;
+   if (parms.Read(wxT("AttenuationLimit"), &floatValue))
+   {
+      self->mAttenuationLimit = floatValue;
+   }
+
+   self->ClampSelectionChoices();
+   return true;
+}
+
+OptionalMessage EffectOVNoiseSuppression::LoadUserPreset(
+   const RegistryPath& name, EffectSettings& settings) const
+{
+   auto result = Effect::LoadUserPreset(name, settings);
+   if (!result)
+   {
+      return result;
+   }
+
+   auto* self = const_cast<EffectOVNoiseSuppression*>(this);
+   const auto userPresetRoot = UserPresetsGroup({});
+   const bool shouldWarn = name.StartsWith(userPresetRoot);
+   wxString warning;
+
+   wxString modelName;
+   if (GetConfig(GetDefinition(), PluginSettings::Private,
+      name, wxT("ModelName"), modelName))
+   {
+      const auto modelNameUtf8 = audacity::ToUTF8(modelName);
+      const auto modelIt = std::find(
+         self->mSupportedModels.begin(),
+         self->mSupportedModels.end(),
+         modelNameUtf8);
+      if (modelIt != self->mSupportedModels.end())
+      {
+         self->m_modelSelectionChoice =
+            static_cast<int>(std::distance(self->mSupportedModels.begin(), modelIt));
+      }
+      else if (shouldWarn)
+      {
+         warning += wxString::Format(
+            "Preset references model '%s', but it is not installed.\n",
+            modelName);
+      }
+   }
+
+   wxString deviceName;
+   if (GetConfig(GetDefinition(), PluginSettings::Private,
+      name, wxT("DeviceName"), deviceName))
+   {
+      const auto deviceNameUtf8 = audacity::ToUTF8(deviceName);
+      const auto deviceIt = std::find(
+         self->mSupportedDevices.begin(),
+         self->mSupportedDevices.end(),
+         deviceNameUtf8);
+      if (deviceIt != self->mSupportedDevices.end())
+      {
+         self->m_deviceSelectionChoice =
+            static_cast<int>(std::distance(self->mSupportedDevices.begin(), deviceIt));
+      }
+      else if (shouldWarn)
+      {
+         warning += wxString::Format(
+            "Preset references device '%s', but it is not available.\n",
+            deviceName);
+      }
+   }
+
+   self->ClampSelectionChoices();
+
+   if (!warning.empty())
+   {
+      warning += "Some preset options could not be restored. Available defaults were used.";
+      EffectUIServices::DoMessageBox(
+         *this,
+         TranslatableString{ warning, {} },
+         wxICON_WARNING,
+         XO("Preset Warning"));
+   }
+
+   return result;
+}
+
+bool EffectOVNoiseSuppression::SaveUserPreset(
+   const RegistryPath& name, const EffectSettings& settings) const
+{
+   if (!Effect::SaveUserPreset(name, settings))
+   {
+      return false;
+   }
+
+   auto* self = const_cast<EffectOVNoiseSuppression*>(this);
+   self->ClampSelectionChoices();
+
+   if (!self->mSupportedModels.empty())
+   {
+      const auto& modelName = self->mSupportedModels[self->m_modelSelectionChoice];
+      SetConfig(GetDefinition(), PluginSettings::Private,
+         name, wxT("ModelName"), wxString(modelName));
+   }
+
+   if (!self->mSupportedDevices.empty())
+   {
+      const auto& deviceName = self->mSupportedDevices[self->m_deviceSelectionChoice];
+      SetConfig(GetDefinition(), PluginSettings::Private,
+         name, wxT("DeviceName"), wxString(deviceName));
+   }
+
    return true;
 }
 
@@ -185,6 +364,17 @@ void EffectOVNoiseSuppression::OnModelManagerButtonClicked(wxCommandEvent& evt)
 
 bool EffectOVNoiseSuppression::TransferDataToWindow(const EffectSettings&)
 {
+   ClampSelectionChoices();
+
+   if (mTypeChoiceModelCtrl && mTypeChoiceModelCtrl->GetCount() > 0)
+   {
+      mTypeChoiceModelCtrl->SetSelection(m_modelSelectionChoice);
+   }
+   if (mTypeChoiceDeviceCtrl && mTypeChoiceDeviceCtrl->GetCount() > 0)
+   {
+      mTypeChoiceDeviceCtrl->SetSelection(m_deviceSelectionChoice);
+   }
+
    if (!mUIParent || !mUIParent->TransferDataToWindow())
    {
       return false;
@@ -199,6 +389,11 @@ bool EffectOVNoiseSuppression::TransferDataToWindow(const EffectSettings&)
    }
 
    mDF3RunPostFilter->SetValue(mbRunDF3PostFilter);
+   if (mShowAdvancedOptionsCheckbox)
+   {
+      mShowAdvancedOptionsCheckbox->SetValue(mbAdvanced);
+   }
+   show_or_hide_advanced_options();
 
    return true;
 }
@@ -211,6 +406,7 @@ bool EffectOVNoiseSuppression::TransferDataFromWindow(EffectSettings&)
    }
 
    mbRunDF3PostFilter = mDF3RunPostFilter->GetValue();
+   ClampSelectionChoices();
 
    return true;
 }
@@ -236,12 +432,15 @@ std::unique_ptr<EffectEditor> EffectOVNoiseSuppression::PopulateOrExchange(
       mGuiModelSelections.push_back({ TranslatableString{ wxString(m), {}} });
    }
 
+   ClampSelectionChoices();
+
    OVModelManager::InstalledCallback callback =
       [this](const std::string& model_name) {
       wxTheApp->CallAfter([=]() {
          if (std::find(mSupportedModels.begin(), mSupportedModels.end(), model_name) == mSupportedModels.end()) {
             mSupportedModels.push_back(model_name);
             mGuiModelSelections.push_back({ TranslatableString{ wxString(model_name), {}} });
+            ClampSelectionChoices();
          }
 
          if (mUIParent)
@@ -348,6 +547,31 @@ std::unique_ptr<EffectEditor> EffectOVNoiseSuppression::PopulateOrExchange(
 bool EffectOVNoiseSuppression::UpdateProgress(double perc)
 {
    return !TotalProgress(perc);
+}
+
+void EffectOVNoiseSuppression::ClampSelectionChoices()
+{
+   if (!mSupportedDevices.empty())
+   {
+      m_deviceSelectionChoice = std::clamp(
+         m_deviceSelectionChoice,
+         0,
+         static_cast<int>(mSupportedDevices.size()) - 1);
+   }
+   else
+   {
+      m_deviceSelectionChoice = 0;
+   }
+
+   if (!mSupportedModels.empty())
+   {
+      m_modelSelectionChoice = std::clamp(
+         m_modelSelectionChoice,
+         0,
+         static_cast<int>(mSupportedModels.size()) - 1);
+   }
+
+   mAttenuationLimit = std::clamp(mAttenuationLimit, 0.0f, 100.0f);
 }
 
 static bool NSProgressCallback(float perc_complete, void* user)
