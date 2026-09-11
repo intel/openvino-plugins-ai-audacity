@@ -51,7 +51,11 @@ std::string NormalizePathForComparison(const wxString& path)
          if (c == '\\') {
             return '/';
          }
+#if defined(__WXMSW__) || defined(__WXOSX__)
          return static_cast<char>(std::tolower(c));
+#else
+         return static_cast<char>(c);
+#endif
       });
    return normalized;
 }
