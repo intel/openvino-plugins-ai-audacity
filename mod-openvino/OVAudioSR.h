@@ -5,6 +5,7 @@
 
 #include "StatefulEffect.h"
 #include "effects/StatefulEffectUIServices.h"
+#include "ShuttleAutomation.h"
 #include <wx/weakref.h>
 #include <mutex>
 
@@ -39,6 +40,19 @@ public:
 
    EffectType GetType() const override;
    bool IsInteractive() const override;
+   bool SaveSettingsAsString(
+      const EffectSettings& settings, wxString& parms) const override;
+   [[nodiscard]] OptionalMessage LoadSettingsFromString(
+      const wxString& parms, EffectSettings& settings) const override;
+   bool SaveSettings(
+      const EffectSettings& settings, CommandParameters& parms) const override;
+   bool LoadSettings(
+      const CommandParameters& parms, EffectSettings& settings) const override;
+
+   OptionalMessage LoadUserPreset(
+      const RegistryPath& name, EffectSettings& settings) const override;
+   bool SaveUserPreset(
+      const RegistryPath& name, const EffectSettings& settings) const override;
 
    bool Process(EffectInstance& instance, EffectSettings& settings) override;
 
@@ -109,6 +123,7 @@ private:
    float mGuidanceScale = 3.5f;
 
    void show_or_hide_advanced_options();
+   void ClampSelectionChoices();
    wxSizer* advancedSizer = nullptr;
    bool mbAdvanced = false;
 

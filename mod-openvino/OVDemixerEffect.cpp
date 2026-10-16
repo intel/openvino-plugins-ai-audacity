@@ -3,6 +3,7 @@
 
 #include "OVDemixerEffect.h"
 #include "OpenVINOPluginPrefs.h"
+#include "ConfigInterface.h"
 #include "WaveTrack.h"
 #include "EffectOutputTracks.h"
 #include "effects/EffectEditor.h"
@@ -37,6 +38,7 @@
 #include "demix/mel_band_roformer.h"
 #include "demix/apollo.h"
 #include "demix/mdx23c.h"
+#include <algorithm>
 
 BEGIN_EVENT_TABLE(EffectOVDemixerEffect, wxEvtHandler)
 EVT_BUTTON(ID_Type_DeviceInfoButton, EffectOVDemixerEffect::OnDeviceInfoButtonClicked)
@@ -103,6 +105,206 @@ bool EffectOVDemixerEffect::IsInteractive() const
     return true;
 }
 
+bool EffectOVDemixerEffect::SaveSettingsAsString(
+    const EffectSettings& settings, wxString& parms) const
+{
+    return Effect::SaveSettingsAsString(settings, parms);
+}
+
+OptionalMessage EffectOVDemixerEffect::LoadSettingsFromString(
+    const wxString& parms, EffectSettings& settings) const
+{
+    return Effect::LoadSettingsFromString(parms, settings);
+}
+
+bool EffectOVDemixerEffect::SaveSettings(
+    const EffectSettings&, CommandParameters& parms) const
+{
+    parms.Write(wxT("ModelSelectionChoice"), m_modelSelectionChoice);
+    parms.Write(wxT("DeviceSelectionChoice"), m_deviceSelectionChoice);
+    parms.Write(wxT("SeparationModeSelectionChoice"), m_separationModeSelectionChoice);
+    parms.Write(wxT("NumberOfOverlaps"), mNumberOfOverlaps);
+    return true;
+}
+
+bool EffectOVDemixerEffect::LoadSettings(
+    const CommandParameters& parms, EffectSettings&) const
+{
+    auto* self = const_cast<EffectOVDemixerEffect*>(this);
+
+    int loadedValue = 0;
+    if (parms.Read(wxT("ModelSelectionChoice"), &loadedValue))
+    {
+        self->m_modelSelectionChoice = loadedValue;
+    }
+    if (parms.Read(wxT("DeviceSelectionChoice"), &loadedValue))
+    {
+        self->m_deviceSelectionChoice = loadedValue;
+    }
+    if (parms.Read(wxT("SeparationModeSelectionChoice"), &loadedValue))
+    {
+        self->m_separationModeSelectionChoice = loadedValue;
+    }
+    if (parms.Read(wxT("NumberOfOverlaps"), &loadedValue))
+    {
+        self->mNumberOfOverlaps = loadedValue;
+    }
+
+    self->ClampSelectionChoices();
+    return true;
+}
+
+OptionalMessage EffectOVDemixerEffect::LoadUserPreset(
+    const RegistryPath& name, EffectSettings& settings) const
+{
+    auto result = Effect::LoadUserPreset(name, settings);
+    if (!result)
+    {
+        return result;
+    }
+
+    auto* self = const_cast<EffectOVDemixerEffect*>(this);
+    const auto userPresetRoot = UserPresetsGroup({});
+    const bool shouldWarn = name.StartsWith(userPresetRoot);
+    wxString warning;
+
+    wxString modelName;
+    if (GetConfig(GetDefinition(), PluginSettings::Private,
+        name, wxT("ModelName"), modelName))
+    {
+        const auto modelNameUtf8 = audacity::ToUTF8(modelName);
+        const auto modelIt = std::find(
+            self->mSupportedModels.begin(),
+            self->mSupportedModels.end(),
+            modelNameUtf8);
+        if (modelIt != self->mSupportedModels.end())
+        {
+            self->m_modelSelectionChoice =
+                static_cast<int>(std::distance(self->mSupportedModels.begin(), modelIt));
+        }
+        else if (shouldWarn)
+        {
+            warning += XO("Preset references model '%s', but it is not installed.\n")
+                .Format(modelName)
+                .Translation();
+        }
+    }
+
+    wxString deviceName;
+    if (GetConfig(GetDefinition(), PluginSettings::Private,
+        name, wxT("DeviceName"), deviceName))
+    {
+        const auto deviceNameUtf8 = audacity::ToUTF8(deviceName);
+        const auto deviceIt = std::find(
+            self->mSupportedDevices.begin(),
+            self->mSupportedDevices.end(),
+            deviceNameUtf8);
+        if (deviceIt != self->mSupportedDevices.end())
+        {
+            self->m_deviceSelectionChoice =
+                static_cast<int>(std::distance(self->mSupportedDevices.begin(), deviceIt));
+        }
+        else if (shouldWarn)
+        {
+            warning += XO("Preset references device '%s', but it is not available.\n")
+                .Format(deviceName)
+                .Translation();
+        }
+    }
+
+    wxString separationModeName;
+    if (GetConfig(GetDefinition(), PluginSettings::Private,
+        name, wxT("SeparationModeName"), separationModeName)
+        && !self->mSupportedModels.empty())
+    {
+        const auto selectedModel = self->mSupportedModels[self->m_modelSelectionChoice];
+        const auto sepModeIt = self->m_model_to_separation_modes.find(selectedModel);
+        if (sepModeIt != self->m_model_to_separation_modes.end())
+        {
+            const auto& options = sepModeIt->second.guiSeparationModeSelections;
+            bool foundSeparationMode = false;
+            for (int index = 0; index < static_cast<int>(options.size()); ++index)
+            {
+                if (options[index].StrippedTranslation() == separationModeName)
+                {
+                    self->m_separationModeSelectionChoice = index;
+                    foundSeparationMode = true;
+                    break;
+                }
+            }
+
+            if (!foundSeparationMode && shouldWarn)
+            {
+                warning += XO("Preset references separation mode '%s', but it is not available for the selected model.\n")
+                    .Format(separationModeName)
+                    .Translation();
+            }
+        }
+    }
+
+    self->ClampSelectionChoices();
+
+    if (!warning.empty())
+    {
+        warning += XO("Some preset options could not be restored. Available defaults were used.")
+            .Translation();
+        EffectUIServices::DoMessageBox(
+            *this,
+            Verbatim(warning),
+            wxICON_WARNING,
+            XO("Preset Warning"));
+    }
+
+    return result;
+}
+
+bool EffectOVDemixerEffect::SaveUserPreset(
+    const RegistryPath& name, const EffectSettings& settings) const
+{
+    if (!Effect::SaveUserPreset(name, settings))
+    {
+        return false;
+    }
+
+    auto* self = const_cast<EffectOVDemixerEffect*>(this);
+    self->ClampSelectionChoices();
+
+    if (!self->mSupportedModels.empty())
+    {
+        const auto& modelName = self->mSupportedModels[self->m_modelSelectionChoice];
+        SetConfig(GetDefinition(), PluginSettings::Private,
+            name, wxT("ModelName"), wxString::FromUTF8(modelName.c_str()));
+    }
+
+    if (!self->mSupportedDevices.empty())
+    {
+        const auto& deviceName = self->mSupportedDevices[self->m_deviceSelectionChoice];
+        SetConfig(GetDefinition(), PluginSettings::Private,
+            name, wxT("DeviceName"), wxString::FromUTF8(deviceName.c_str()));
+    }
+
+    if (self->m_bDisplaySepMode && !self->mSupportedModels.empty())
+    {
+        const auto& selectedModel = self->mSupportedModels[self->m_modelSelectionChoice];
+        const auto sepModeIt = self->m_model_to_separation_modes.find(selectedModel);
+        if (sepModeIt != self->m_model_to_separation_modes.end())
+        {
+            const auto& options = sepModeIt->second.guiSeparationModeSelections;
+            if (!options.empty())
+            {
+                const auto sepModeChoice = std::clamp(
+                    self->m_separationModeSelectionChoice,
+                    0,
+                    static_cast<int>(options.size()) - 1);
+                SetConfig(GetDefinition(), PluginSettings::Private,
+                    name, wxT("SeparationModeName"), options[sepModeChoice].StrippedTranslation());
+            }
+        }
+    }
+
+    return true;
+}
+
 std::unique_ptr<EffectEditor> EffectOVDemixerEffect::PopulateOrExchange(
     ShuttleGui& S, EffectInstance&, EffectSettingsAccess&,
     const EffectOutputs*)
@@ -124,12 +326,15 @@ std::unique_ptr<EffectEditor> EffectOVDemixerEffect::PopulateOrExchange(
         mGuiModelSelections.push_back({ TranslatableString{ wxString(m), {}} });
     }
 
+    ClampSelectionChoices();
+
     OVModelManager::InstalledCallback callback =
         [this](const std::string& model_name) {
         wxTheApp->CallAfter([=]() {
             if (std::find(mSupportedModels.begin(), mSupportedModels.end(), model_name) == mSupportedModels.end()) {
                 mSupportedModels.push_back(model_name);
                 mGuiModelSelections.push_back({ TranslatableString{ wxString(model_name), {}} });
+                ClampSelectionChoices();
             }
 
             if (mUIParent)
@@ -263,11 +468,23 @@ void EffectOVDemixerEffect::SetModelSeparationModeSelections()
     if (!mTypeChoiceSeparationModeCtrl || !mTypeChoiceModelSelection || !m_bDisplaySepMode)
         return;
 
+    if (mTypeChoiceModelSelection->GetCount() <= 0)
+    {
+        mTypeChoiceSeparationModeCtrl->Clear();
+        return;
+    }
+
     int current_selection = mTypeChoiceModelSelection->GetCurrentSelection();
     if (current_selection == -1)
     {
         current_selection = m_modelSelectionChoice;
     }
+
+    current_selection = std::clamp(
+        current_selection,
+        0,
+        static_cast<int>(mTypeChoiceModelSelection->GetCount()) - 1);
+    m_modelSelectionChoice = current_selection;
 
     auto selected_model = audacity::ToUTF8(mTypeChoiceModelSelection->GetString(current_selection));
 
@@ -285,6 +502,18 @@ void EffectOVDemixerEffect::SetModelSeparationModeSelections()
     {
         mTypeChoiceSeparationModeCtrl->AppendString(mode_selection.StrippedTranslation());
     }
+
+    if (mTypeChoiceSeparationModeCtrl->GetCount() <= 0)
+    {
+        m_separationModeSelectionChoice = 0;
+        FitWindowToCorrectSize();
+        return;
+    }
+
+    m_separationModeSelectionChoice = std::clamp(
+        m_separationModeSelectionChoice,
+        0,
+        static_cast<int>(mTypeChoiceSeparationModeCtrl->GetCount()) - 1);
 
     mTypeChoiceSeparationModeCtrl->SetSelection(m_separationModeSelectionChoice);
 
@@ -341,6 +570,32 @@ bool EffectOVDemixerEffect::Process(EffectInstance&, EffectSettings&)
     try
     {
         mIsCancelled = false;
+
+        ClampSelectionChoices();
+
+        if (mSupportedModels.empty())
+        {
+            throw std::runtime_error(m_effectName + " has no installed models.");
+        }
+
+        if (m_modelSelectionChoice < 0
+            || m_modelSelectionChoice >= static_cast<int>(mSupportedModels.size()))
+        {
+            throw std::runtime_error(
+                "Invalid model choice id: " + std::to_string(m_modelSelectionChoice));
+        }
+
+        if (mSupportedDevices.empty())
+        {
+            throw std::runtime_error("No OpenVINO devices found.");
+        }
+
+        if (m_deviceSelectionChoice < 0
+            || m_deviceSelectionChoice >= static_cast<int>(mSupportedDevices.size()))
+        {
+            throw std::runtime_error(
+                "Invalid device choice id: " + std::to_string(m_deviceSelectionChoice));
+        }
 
         std::string model_selection_str = mSupportedModels[m_modelSelectionChoice];
 
@@ -465,12 +720,6 @@ bool EffectOVDemixerEffect::Process(EffectInstance&, EffectSettings&)
         }
 
         auto stem_labels = sep_mode_it->second.stems;
-
-        if (m_deviceSelectionChoice >= mSupportedDevices.size())
-        {
-            throw std::runtime_error("Invalid device choice id:  " +
-                std::to_string(m_deviceSelectionChoice));
-        }
 
         EffectOutputTracks outputs{ *mTracks, GetType(), {{ mT0, mT1 }} };
 
@@ -746,6 +995,15 @@ bool EffectOVDemixerEffect::Process(EffectInstance&, EffectSettings&)
 
 bool EffectOVDemixerEffect::TransferDataToWindow(const EffectSettings&)
 {
+    ClampSelectionChoices();
+
+    if (mTypeChoiceModelSelection && mTypeChoiceModelSelection->GetCount() > 0)
+    {
+        mTypeChoiceModelSelection->SetSelection(m_modelSelectionChoice);
+    }
+
+    SetModelSeparationModeSelections();
+
     if (!mUIParent || !mUIParent->TransferDataToWindow())
     {
         return false;
@@ -772,4 +1030,26 @@ bool EffectOVDemixerEffect::TransferDataToWindow(const EffectSettings&)
     EffectEditor::EnablePreview(mUIParent, false);
 
     return true;
+}
+
+void EffectOVDemixerEffect::ClampSelectionChoices()
+{
+    if (!mSupportedModels.empty())
+    {
+        m_modelSelectionChoice = std::clamp(
+            m_modelSelectionChoice,
+            0,
+            static_cast<int>(mSupportedModels.size()) - 1);
+    }
+
+    if (!mSupportedDevices.empty())
+    {
+        m_deviceSelectionChoice = std::clamp(
+            m_deviceSelectionChoice,
+            0,
+            static_cast<int>(mSupportedDevices.size()) - 1);
+    }
+
+    mNumberOfOverlaps = std::clamp(mNumberOfOverlaps, 1, 8);
+    m_separationModeSelectionChoice = std::max(0, m_separationModeSelectionChoice);
 }
