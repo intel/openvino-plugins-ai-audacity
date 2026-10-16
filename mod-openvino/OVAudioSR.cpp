@@ -39,6 +39,8 @@
 
 #include "OVModelManagerUI.h"
 
+#include <algorithm>
+
 const ComponentInterfaceSymbol EffectOVAudioSR::Symbol{ XO("Super Resolution") };
 
 namespace { BuiltinEffectsModule::Registration< EffectOVAudioSR > reg; }
@@ -115,30 +117,13 @@ bool EffectOVAudioSR::IsInteractive() const
 bool EffectOVAudioSR::SaveSettingsAsString(
    const EffectSettings& settings, wxString& parms) const
 {
-   CommandParameters eap;
-   if (!SaveSettings(settings, eap))
-   {
-      return false;
-   }
-
-   return eap.GetParameters(parms);
+   return Effect::SaveSettingsAsString(settings, parms);
 }
 
 OptionalMessage EffectOVAudioSR::LoadSettingsFromString(
    const wxString& parms, EffectSettings& settings) const
 {
-   CommandParameters eap(parms);
-   if (!eap.SetParameters(parms))
-   {
-      return {};
-   }
-
-   if (!LoadSettings(eap, settings))
-   {
-      return {};
-   }
-
-   return { nullptr };
+   return Effect::LoadSettingsFromString(parms, settings);
 }
 
 bool EffectOVAudioSR::SaveSettings(
@@ -153,7 +138,7 @@ bool EffectOVAudioSR::SaveSettings(
    parms.Write(wxT("NormalizeOutputRMS"), mbNormalizeOutputRMS);
    parms.Write(wxT("NumSteps"), mNumSteps);
    parms.Write(wxT("GuidanceScale"), mGuidanceScale);
-   parms.Write(wxT("Seed"), wxString(_seed_str));
+   parms.Write(wxT("Seed"), wxString::FromUTF8(_seed_str.c_str()));
    return true;
 }
 
@@ -244,9 +229,9 @@ OptionalMessage EffectOVAudioSR::LoadUserPreset(
       }
       else if (shouldWarn)
       {
-         warning += wxString::Format(
-            "Preset references model '%s', but it is not installed.\n",
-            modelName);
+         warning += XO("Preset references model '%s', but it is not installed.\n")
+            .Format(modelName)
+            .Translation();
       }
    }
 
@@ -266,9 +251,9 @@ OptionalMessage EffectOVAudioSR::LoadUserPreset(
       }
       else if (shouldWarn)
       {
-         warning += wxString::Format(
-            "Preset references encoder device '%s', but it is not available.\n",
-            encoderDeviceName);
+         warning += XO("Preset references encoder device '%s', but it is not available.\n")
+            .Format(encoderDeviceName)
+            .Translation();
       }
    }
 
@@ -288,9 +273,9 @@ OptionalMessage EffectOVAudioSR::LoadUserPreset(
       }
       else if (shouldWarn)
       {
-         warning += wxString::Format(
-            "Preset references DDPM device '%s', but it is not available.\n",
-            ddpmDeviceName);
+         warning += XO("Preset references DDPM device '%s', but it is not available.\n")
+            .Format(ddpmDeviceName)
+            .Translation();
       }
    }
 
@@ -310,9 +295,9 @@ OptionalMessage EffectOVAudioSR::LoadUserPreset(
       }
       else if (shouldWarn)
       {
-         warning += wxString::Format(
-            "Preset references decoder device '%s', but it is not available.\n",
-            decoderDeviceName);
+         warning += XO("Preset references decoder device '%s', but it is not available.\n")
+            .Format(decoderDeviceName)
+            .Translation();
       }
    }
 
@@ -320,10 +305,11 @@ OptionalMessage EffectOVAudioSR::LoadUserPreset(
 
    if (!warning.empty())
    {
-      warning += "Some preset options could not be restored. Available defaults were used.";
+      warning += XO("Some preset options could not be restored. Available defaults were used.")
+         .Translation();
       EffectUIServices::DoMessageBox(
          *this,
-         TranslatableString{ warning, {} },
+         Verbatim(warning),
          wxICON_WARNING,
          XO("Preset Warning"));
    }
@@ -346,7 +332,7 @@ bool EffectOVAudioSR::SaveUserPreset(
    {
       const auto& modelName = self->mSupportedModels[self->m_modelSelectionChoice];
       SetConfig(GetDefinition(), PluginSettings::Private,
-         name, wxT("ModelName"), wxString(modelName));
+         name, wxT("ModelName"), wxString::FromUTF8(modelName.c_str()));
    }
 
    if (!self->mSupportedNonNPUDevices.empty())
@@ -354,19 +340,19 @@ bool EffectOVAudioSR::SaveUserPreset(
       const auto& encoderDevice =
          self->mSupportedNonNPUDevices[self->m_encoderDeviceSelectionChoice];
       SetConfig(GetDefinition(), PluginSettings::Private,
-         name, wxT("EncoderDeviceName"), wxString(encoderDevice));
+         name, wxT("EncoderDeviceName"), wxString::FromUTF8(encoderDevice.c_str()));
 
       const auto& decoderDevice =
          self->mSupportedNonNPUDevices[self->m_decoderDeviceSelectionChoice];
       SetConfig(GetDefinition(), PluginSettings::Private,
-         name, wxT("DecoderDeviceName"), wxString(decoderDevice));
+         name, wxT("DecoderDeviceName"), wxString::FromUTF8(decoderDevice.c_str()));
    }
 
    if (!self->mSupportedDevices.empty())
    {
       const auto& ddpmDevice = self->mSupportedDevices[self->m_ddpmDeviceSelectionChoice];
       SetConfig(GetDefinition(), PluginSettings::Private,
-         name, wxT("DDPMDeviceName"), wxString(ddpmDevice));
+         name, wxT("DDPMDeviceName"), wxString::FromUTF8(ddpmDevice.c_str()));
    }
 
    return true;

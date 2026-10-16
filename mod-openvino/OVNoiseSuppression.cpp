@@ -112,30 +112,13 @@ bool EffectOVNoiseSuppression::IsInteractive() const
 bool EffectOVNoiseSuppression::SaveSettingsAsString(
    const EffectSettings& settings, wxString& parms) const
 {
-   CommandParameters eap;
-   if (!SaveSettings(settings, eap))
-   {
-      return false;
-   }
-
-   return eap.GetParameters(parms);
+   return Effect::SaveSettingsAsString(settings, parms);
 }
 
 OptionalMessage EffectOVNoiseSuppression::LoadSettingsFromString(
    const wxString& parms, EffectSettings& settings) const
 {
-   CommandParameters eap(parms);
-   if (!eap.SetParameters(parms))
-   {
-      return {};
-   }
-
-   if (!LoadSettings(eap, settings))
-   {
-      return {};
-   }
-
-   return { nullptr };
+   return Effect::LoadSettingsFromString(parms, settings);
 }
 
 bool EffectOVNoiseSuppression::SaveSettings(
@@ -214,9 +197,9 @@ OptionalMessage EffectOVNoiseSuppression::LoadUserPreset(
       }
       else if (shouldWarn)
       {
-         warning += wxString::Format(
-            "Preset references model '%s', but it is not installed.\n",
-            modelName);
+         warning += XO("Preset references model '%s', but it is not installed.\n")
+            .Format(modelName)
+            .Translation();
       }
    }
 
@@ -236,9 +219,9 @@ OptionalMessage EffectOVNoiseSuppression::LoadUserPreset(
       }
       else if (shouldWarn)
       {
-         warning += wxString::Format(
-            "Preset references device '%s', but it is not available.\n",
-            deviceName);
+         warning += XO("Preset references device '%s', but it is not available.\n")
+            .Format(deviceName)
+            .Translation();
       }
    }
 
@@ -246,10 +229,11 @@ OptionalMessage EffectOVNoiseSuppression::LoadUserPreset(
 
    if (!warning.empty())
    {
-      warning += "Some preset options could not be restored. Available defaults were used.";
+      warning += XO("Some preset options could not be restored. Available defaults were used.")
+         .Translation();
       EffectUIServices::DoMessageBox(
          *this,
-         TranslatableString{ warning, {} },
+         Verbatim(warning),
          wxICON_WARNING,
          XO("Preset Warning"));
    }
@@ -272,14 +256,14 @@ bool EffectOVNoiseSuppression::SaveUserPreset(
    {
       const auto& modelName = self->mSupportedModels[self->m_modelSelectionChoice];
       SetConfig(GetDefinition(), PluginSettings::Private,
-         name, wxT("ModelName"), wxString(modelName));
+         name, wxT("ModelName"), wxString::FromUTF8(modelName.c_str()));
    }
 
    if (!self->mSupportedDevices.empty())
    {
       const auto& deviceName = self->mSupportedDevices[self->m_deviceSelectionChoice];
       SetConfig(GetDefinition(), PluginSettings::Private,
-         name, wxT("DeviceName"), wxString(deviceName));
+         name, wxT("DeviceName"), wxString::FromUTF8(deviceName.c_str()));
    }
 
    return true;

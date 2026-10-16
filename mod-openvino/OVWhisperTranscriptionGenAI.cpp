@@ -240,30 +240,13 @@ EffectType EffectOVWhisperTranscriptionGenAI::GetType() const
 bool EffectOVWhisperTranscriptionGenAI::SaveSettingsAsString(
    const EffectSettings& settings, wxString& parms) const
 {
-   CommandParameters eap;
-   if (!SaveSettings(settings, eap))
-   {
-      return false;
-   }
-
-   return eap.GetParameters(parms);
+   return Effect::SaveSettingsAsString(settings, parms);
 }
 
 OptionalMessage EffectOVWhisperTranscriptionGenAI::LoadSettingsFromString(
    const wxString& parms, EffectSettings& settings) const
 {
-   CommandParameters eap(parms);
-   if (!eap.SetParameters(parms))
-   {
-      return {};
-   }
-
-   if (!LoadSettings(eap, settings))
-   {
-      return {};
-   }
-
-   return { nullptr };
+   return Effect::LoadSettingsFromString(parms, settings);
 }
 
 bool EffectOVWhisperTranscriptionGenAI::SaveSettings(
@@ -274,8 +257,8 @@ bool EffectOVWhisperTranscriptionGenAI::SaveSettings(
    parms.Write(wxT("ModeSelectionChoice"), m_modeSelectionChoice);
    parms.Write(wxT("LanguageSelectionChoice"), m_languageSelectionChoice);
    parms.Write(wxT("Advanced"), mbAdvanced);
-   parms.Write(wxT("InitialPrompt"), wxString(mInitialPrompt));
-   parms.Write(wxT("Hotwords"), wxString(mHotwords));
+   parms.Write(wxT("InitialPrompt"), wxString::FromUTF8(mInitialPrompt.c_str()));
+   parms.Write(wxT("Hotwords"), wxString::FromUTF8(mHotwords.c_str()));
    return true;
 }
 
@@ -352,9 +335,9 @@ OptionalMessage EffectOVWhisperTranscriptionGenAI::LoadUserPreset(
       }
       else if (shouldWarn)
       {
-         warning += wxString::Format(
-            "Preset references model '%s', but it is not installed.\n",
-            modelName);
+         warning += XO("Preset references model '%s', but it is not installed.\n")
+            .Format(modelName)
+            .Translation();
       }
    }
 
@@ -374,9 +357,9 @@ OptionalMessage EffectOVWhisperTranscriptionGenAI::LoadUserPreset(
       }
       else if (shouldWarn)
       {
-         warning += wxString::Format(
-            "Preset references device '%s', but it is not available.\n",
-            deviceName);
+         warning += XO("Preset references device '%s', but it is not available.\n")
+            .Format(deviceName)
+            .Translation();
       }
    }
 
@@ -416,10 +399,11 @@ OptionalMessage EffectOVWhisperTranscriptionGenAI::LoadUserPreset(
 
    if (!warning.empty())
    {
-      warning += "Some preset options could not be restored. Available defaults were used.";
+      warning += XO("Some preset options could not be restored. Available defaults were used.")
+         .Translation();
       EffectUIServices::DoMessageBox(
          *this,
-         TranslatableString{ warning, {} },
+         Verbatim(warning),
          wxICON_WARNING,
          XO("Preset Warning"));
    }
@@ -442,28 +426,28 @@ bool EffectOVWhisperTranscriptionGenAI::SaveUserPreset(
    {
       const auto& modelName = self->mSupportedModels[self->m_modelSelectionChoice];
       SetConfig(GetDefinition(), PluginSettings::Private,
-         name, wxT("ModelName"), wxString(modelName));
+         name, wxT("ModelName"), wxString::FromUTF8(modelName.c_str()));
    }
 
    if (!self->mSupportedDevices.empty())
    {
       const auto& deviceName = self->mSupportedDevices[self->m_deviceSelectionChoice];
       SetConfig(GetDefinition(), PluginSettings::Private,
-         name, wxT("DeviceName"), wxString(deviceName));
+         name, wxT("DeviceName"), wxString::FromUTF8(deviceName.c_str()));
    }
 
    if (!self->mSupportedModes.empty())
    {
       const auto& modeName = self->mSupportedModes[self->m_modeSelectionChoice];
       SetConfig(GetDefinition(), PluginSettings::Private,
-         name, wxT("ModeName"), wxString(modeName));
+         name, wxT("ModeName"), wxString::FromUTF8(modeName.c_str()));
    }
 
    if (!self->mSupportedLanguages.empty())
    {
       const auto& languageName = self->mSupportedLanguages[self->m_languageSelectionChoice];
       SetConfig(GetDefinition(), PluginSettings::Private,
-         name, wxT("LanguageName"), wxString(languageName));
+         name, wxT("LanguageName"), wxString::FromUTF8(languageName.c_str()));
    }
 
    return true;
@@ -973,11 +957,11 @@ bool EffectOVWhisperTranscriptionGenAI::TransferDataToWindow(const EffectSetting
    }
    if (mInitialPromptCtrl)
    {
-      mInitialPromptCtrl->ChangeValue(wxString(mInitialPrompt));
+      mInitialPromptCtrl->ChangeValue(wxString::FromUTF8(mInitialPrompt.c_str()));
    }
    if (mHotwordsCtrl)
    {
-      mHotwordsCtrl->ChangeValue(wxString(mHotwords));
+      mHotwordsCtrl->ChangeValue(wxString::FromUTF8(mHotwords.c_str()));
    }
 
    show_or_hide_advanced_options();
@@ -1117,12 +1101,12 @@ std::unique_ptr<EffectEditor> EffectOVWhisperTranscriptionGenAI::PopulateOrExcha
       S.StartMultiColumn(2, wxLEFT);
       {
          mInitialPromptCtrl = S.Style(wxTE_LEFT)
-            .AddTextBox(XXO("Initial Prompt:"), wxString(mInitialPrompt), 30);
+            .AddTextBox(XXO("Initial Prompt:"), wxString::FromUTF8(mInitialPrompt.c_str()), 30);
 
          advancedSizer = mInitialPromptCtrl->GetContainingSizer();
 
          mHotwordsCtrl = S.Style(wxTE_LEFT)
-            .AddTextBox(XXO("Hotwords:"), wxString(mHotwords), 30);
+            .AddTextBox(XXO("Hotwords:"), wxString::FromUTF8(mHotwords.c_str()), 30);
       }
       S.EndMultiColumn();
 

@@ -305,27 +305,13 @@ bool EffectOVTextToSpeechGenAI::IsInteractive() const
 bool EffectOVTextToSpeechGenAI::SaveSettingsAsString(
    const EffectSettings& settings, wxString& parms) const
 {
-   CommandParameters eap;
-   if (!SaveSettings(settings, eap)) {
-      return false;
-   }
-
-   return eap.GetParameters(parms);
+   return Effect::SaveSettingsAsString(settings, parms);
 }
 
 OptionalMessage EffectOVTextToSpeechGenAI::LoadSettingsFromString(
    const wxString& parms, EffectSettings& settings) const
 {
-   CommandParameters eap(parms);
-   if (!eap.SetParameters(parms)) {
-      return {};
-   }
-
-   if (!LoadSettings(eap, settings)) {
-      return {};
-   }
-
-   return { nullptr };
+   return Effect::LoadSettingsFromString(parms, settings);
 }
 
 bool EffectOVTextToSpeechGenAI::SaveSettings(
@@ -394,9 +380,9 @@ OptionalMessage EffectOVTextToSpeechGenAI::LoadUserPreset(
             std::distance(self->mSupportedTtsModels.begin(), modelIt));
       }
       else if (shouldWarn) {
-         warning += wxString::Format(
-            "Preset references model '%s', but it is not installed.\n",
-            modelName);
+         warning += XO("Preset references model '%s', but it is not installed.\n")
+            .Format(modelName)
+            .Translation();
       }
    }
 
@@ -413,9 +399,9 @@ OptionalMessage EffectOVTextToSpeechGenAI::LoadUserPreset(
             std::distance(self->mSupportedDevices.begin(), deviceIt));
       }
       else if (shouldWarn) {
-         warning += wxString::Format(
-            "Preset references device '%s', but it is not available.\n",
-            deviceName);
+         warning += XO("Preset references device '%s', but it is not available.\n")
+            .Format(deviceName)
+            .Translation();
       }
    }
 
@@ -448,19 +434,20 @@ OptionalMessage EffectOVTextToSpeechGenAI::LoadUserPreset(
             std::distance(self->mVisibleVoices.begin(), voiceIt));
       }
       else if (shouldWarn) {
-         warning += wxString::Format(
-            "Preset references voice '%s', but it is not available for the selected model/language.\n",
-            voiceName);
+         warning += XO("Preset references voice '%s', but it is not available for the selected model/language.\n")
+            .Format(voiceName)
+            .Translation();
       }
    }
 
    self->ClampSelectionChoices();
 
    if (!warning.empty()) {
-      warning += "Some preset options could not be restored. Available defaults were used.";
+      warning += XO("Some preset options could not be restored. Available defaults were used.")
+         .Translation();
       EffectUIServices::DoMessageBox(
          *this,
-         TranslatableString{ warning, {} },
+         Verbatim(warning),
          wxICON_WARNING,
          XO("Preset Warning"));
    }
@@ -481,25 +468,25 @@ bool EffectOVTextToSpeechGenAI::SaveUserPreset(
    if (!self->mSupportedTtsModels.empty()) {
       const auto& modelName = self->mSupportedTtsModels[self->mTtsModelSelectionChoice];
       SetConfig(GetDefinition(), PluginSettings::Private,
-         name, wxT("ModelName"), wxString(modelName));
+         name, wxT("ModelName"), wxString::FromUTF8(modelName.c_str()));
    }
 
    if (!self->mSupportedDevices.empty()) {
       const auto& deviceName = self->mSupportedDevices[self->mDeviceSelectionChoice];
       SetConfig(GetDefinition(), PluginSettings::Private,
-         name, wxT("DeviceName"), wxString(deviceName));
+         name, wxT("DeviceName"), wxString::FromUTF8(deviceName.c_str()));
    }
 
    if (!self->mSupportedLanguages.empty()) {
       const auto& languageName = self->mSupportedLanguages[self->mLanguageSelectionChoice];
       SetConfig(GetDefinition(), PluginSettings::Private,
-         name, wxT("LanguageName"), wxString(languageName));
+         name, wxT("LanguageName"), wxString::FromUTF8(languageName.c_str()));
    }
 
    if (!self->mVisibleVoices.empty()) {
       const auto& voiceName = self->mVisibleVoices[self->mVoiceSelectionChoice];
       SetConfig(GetDefinition(), PluginSettings::Private,
-         name, wxT("VoiceName"), wxString(voiceName));
+         name, wxT("VoiceName"), wxString::FromUTF8(voiceName.c_str()));
    }
 
    return true;
