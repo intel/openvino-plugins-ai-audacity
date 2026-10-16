@@ -5,7 +5,7 @@
       "id": "text_to_speech_kokoro_82m",
       "name": "Kokoro-82M",
       "info_key": "text_to_speech_kokoro_82m",
-      "base_url": "",
+      "base_url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/",
       "relative_path": "text_to_speech/ov_Kokoro-82M",
       "files": [
         "openvino_model.xml",

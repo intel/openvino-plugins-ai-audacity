@@ -700,6 +700,337 @@
       },
       "post_url": "?download=true"
     },
+    "text_to_speech_kokoro_82m": {
+      "base_url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/",
+      "files": {
+        "config.json": {
+          "sha256": "95ecf2f3c6f8dce3d3894fcf06b2640d8867e33d6a69fe68c6be457d4a5ec09c",
+          "size": 3170,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/config.json?download=true"
+        },
+        "data/gb_gold.json": {
+          "sha256": "29e62f4b60261c88f7f3c2c7811ca3825978948090b72d2b27d565b729282f71",
+          "size": 2838552,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/data/gb_gold.json?download=true"
+        },
+        "data/gb_silver.json": {
+          "sha256": "48131e2d92ccc41655f4543e87e0f938e71463eb5a54be7f0693bb712ebb6bce",
+          "size": 3663898,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/data/gb_silver.json?download=true"
+        },
+        "data/ja_words.txt": {
+          "sha256": "a93a8e8aee24db307a32becb8bf01c4c2908ecf37e6c91f7a705fafdfeba67ff",
+          "size": 1921140,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/data/ja_words.txt?download=true"
+        },
+        "data/us_gold.json": {
+          "sha256": "dc414872a49a28ae6c141463d502fd945f3b2fde040484fdc47d00cc4612686f",
+          "size": 3000469,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/data/us_gold.json?download=true"
+        },
+        "data/us_silver.json": {
+          "sha256": "de8f67be911bb6c659187b4a65fd966b6a30e56350e0f790d763210b053ac475",
+          "size": 3099517,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/data/us_silver.json?download=true"
+        },
+        "data/vi_acronyms.json": {
+          "sha256": "5da337cdde5231e72680fa4bf29f5dfe906f769492e9ee950ac2d73a28eba529",
+          "size": 136822,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/data/vi_acronyms.json?download=true"
+        },
+        "data/vi_symbols.json": {
+          "sha256": "d963c9261f6ae0211c5941a357dff58f3599b5db98ed38e4cc722bc67ffcb728",
+          "size": 1298,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/data/vi_symbols.json?download=true"
+        },
+        "data/vi_teencode.json": {
+          "sha256": "e35baf886a44a92e08c5d900abbcf921eb69efa198821e2a9de85ca8f5dfa7f3",
+          "size": 10889,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/data/vi_teencode.json?download=true"
+        },
+        "openvino_model.bin": {
+          "sha256": "62a9f805c419bedaf1eab758ee1a8b50923d30c912d8c0eb44b2b55288815896",
+          "size": 190018895,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/openvino_model.bin?download=true"
+        },
+        "openvino_model.xml": {
+          "sha256": "41c7191bd91d09b80ea829df529ce7b80edb44d06b727d30966d7b1e90eb61b4",
+          "size": 2340543,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/openvino_model.xml?download=true"
+        },
+        "voices/af_alloy.bin": {
+          "sha256": "c4a6b876047fd7fb472edf4ebd63cfac7c3b958a7cae7c106e8f038ca6308c45",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/af_alloy.bin?download=true"
+        },
+        "voices/af_aoede.bin": {
+          "sha256": "4a004c33430762e2461eedb2013fad808ef4ab3121f5300f554476caf58d8361",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/af_aoede.bin?download=true"
+        },
+        "voices/af_bella.bin": {
+          "sha256": "f69d836209b78eb8c66e75e3cda491e26ea838a3674257e9d4e5703cbaf55c8b",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/af_bella.bin?download=true"
+        },
+        "voices/af_heart.bin": {
+          "sha256": "d583ccff3cdca2f7fae535cb998ac07e9fcb90f09737b9a41fa2734ec44a8f0b",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/af_heart.bin?download=true"
+        },
+        "voices/af_jessica.bin": {
+          "sha256": "a240a5e3c15b43563d6e923bdca8ef5613a23471d9b77653694012435df23bd8",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/af_jessica.bin?download=true"
+        },
+        "voices/af_kore.bin": {
+          "sha256": "9be5221b6a941c04b561959b8ff0b06e809444dcc4ab7e75a7b23606f691819e",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/af_kore.bin?download=true"
+        },
+        "voices/af_nicole.bin": {
+          "sha256": "cd2191ab31b914ed7b318416b0e4440fdf392ddad9106a060819aa600a64f59a",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/af_nicole.bin?download=true"
+        },
+        "voices/af_nova.bin": {
+          "sha256": "18778272caa0d0eebaea251c35fd635f038434f9eee5e691d02a174bd328414f",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/af_nova.bin?download=true"
+        },
+        "voices/af_river.bin": {
+          "sha256": "00a2bcf82b1d86e8f19902ede58c65ccf6c0e43b44b7d74fad54e5d8933c9c30",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/af_river.bin?download=true"
+        },
+        "voices/af_sarah.bin": {
+          "sha256": "4409fbc125afabacc615d94db5398d847006a737b0247d6892b7a9a0007a2f0a",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/af_sarah.bin?download=true"
+        },
+        "voices/af_sky.bin": {
+          "sha256": "4435255c9744f3f31659e0d714ab7689bf65d9e77ec1cce060f083912614f0b9",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/af_sky.bin?download=true"
+        },
+        "voices/am_adam.bin": {
+          "sha256": "162b035ed91cfc48b6046982184c645f72edcdd1b82843347f605d7bf7b15716",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/am_adam.bin?download=true"
+        },
+        "voices/am_echo.bin": {
+          "sha256": "3968b92c3c4cd1c4416dbded36c13eaa388a90d5788d02a13e4d781f5f8cf3c3",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/am_echo.bin?download=true"
+        },
+        "voices/am_eric.bin": {
+          "sha256": "e8b5be17edd1e3636901ce7598baafe2dc8dd8ff707a0c23bf9e461add7e2832",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/am_eric.bin?download=true"
+        },
+        "voices/am_fenrir.bin": {
+          "sha256": "c27989f741f7ee34d273a39d8a595cc0837d35f5ced9a29b7cc162614616df43",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/am_fenrir.bin?download=true"
+        },
+        "voices/am_liam.bin": {
+          "sha256": "52403be32fd047c6a44517cb0bcd6b134f2a18baa73e70ef41651e0eab921ade",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/am_liam.bin?download=true"
+        },
+        "voices/am_michael.bin": {
+          "sha256": "1d1f21dd8da39c30705cd4c75d039d265e9bc4a2a93ed09bc9e1b1225eb95ba1",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/am_michael.bin?download=true"
+        },
+        "voices/am_onyx.bin": {
+          "sha256": "da5d135b424164916d75a68ffb4c2abce3d7d5ccc82dd1ee6cf447ce286145e6",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/am_onyx.bin?download=true"
+        },
+        "voices/am_puck.bin": {
+          "sha256": "fcf73c989033e9233e0b98713eca600c8c74dcc1614b37009d5450ff4a2274a0",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/am_puck.bin?download=true"
+        },
+        "voices/am_santa.bin": {
+          "sha256": "61150cf726ab6c5ed7a99f90a304f91f5a72c00c592e89ec94e5df11c319227a",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/am_santa.bin?download=true"
+        },
+        "voices/bf_alice.bin": {
+          "sha256": "08afa6ba24da61ea5e8efa139e5aadc938d83f0a6da5a900adaf763ac1da5573",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/bf_alice.bin?download=true"
+        },
+        "voices/bf_emma.bin": {
+          "sha256": "669fe0647f9dd04fcab92f1439a40eeb4c8b4ab1f82e4996fe3d918ce4a63b73",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/bf_emma.bin?download=true"
+        },
+        "voices/bf_isabella.bin": {
+          "sha256": "3754352c4aaa46d17f27654ab7518d65b62ad6163a0f55a5f4330c2da2c4e94f",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/bf_isabella.bin?download=true"
+        },
+        "voices/bf_lily.bin": {
+          "sha256": "5e0ee32ebe64a467124976b14e69590746f1c4ce41a12b587a50c862edfea335",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/bf_lily.bin?download=true"
+        },
+        "voices/bm_daniel.bin": {
+          "sha256": "6b3194bbceffb746733cbc22c8f593dd44e401a71d53895a2dca891bc595a1e8",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/bm_daniel.bin?download=true"
+        },
+        "voices/bm_fable.bin": {
+          "sha256": "f889083196807b4adb15e9204252165f503b8d33d3982e681c52443c49d798f1",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/bm_fable.bin?download=true"
+        },
+        "voices/bm_george.bin": {
+          "sha256": "c4b235a4c1f2cd3b939fed08b899ce9385638b763f7b73a59616c4fc9bd6c9bc",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/bm_george.bin?download=true"
+        },
+        "voices/bm_lewis.bin": {
+          "sha256": "b8f671cef828c30e66fdf0b0756a76bba58f6bb3398cbbf27058642acbcedb97",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/bm_lewis.bin?download=true"
+        },
+        "voices/ef_dora.bin": {
+          "sha256": "f66ec66bd295acb18372e37008533a9a3228483ccd294e7538d5d9294ac9a532",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/ef_dora.bin?download=true"
+        },
+        "voices/em_alex.bin": {
+          "sha256": "27809e9eafdcbcfff90a3016c697568676531de2a2c39cee29c96c7bd6b83e95",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/em_alex.bin?download=true"
+        },
+        "voices/em_santa.bin": {
+          "sha256": "ad43b774e1ca24d05c6161297d8aeb770ac3d29bb95daf516727af5f7d543683",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/em_santa.bin?download=true"
+        },
+        "voices/ff_siwis.bin": {
+          "sha256": "a35f5675ad08948e326ae75fd0ea16ba5d0042e4f76b5f3d1df77d0a48c54861",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/ff_siwis.bin?download=true"
+        },
+        "voices/hf_alpha.bin": {
+          "sha256": "040be6a4425411cc01fda5fd06693c76bfa78572632852bc8cda9c99232ffb56",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/hf_alpha.bin?download=true"
+        },
+        "voices/hf_beta.bin": {
+          "sha256": "cd83ae0bb9b2e4e4fb92b4973bd8d1822ca0036d3c498bf4fc89aa8e33917cc7",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/hf_beta.bin?download=true"
+        },
+        "voices/hm_omega.bin": {
+          "sha256": "b02d9222d9ed00ce26b302173a862c2c93f96cc40b5c422b8d14910b9ff34137",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/hm_omega.bin?download=true"
+        },
+        "voices/hm_psi.bin": {
+          "sha256": "644daf88ba8aeb7bd08950bbdcd4453bb280864e49dc4df93fabc6be32e03f37",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/hm_psi.bin?download=true"
+        },
+        "voices/if_sara.bin": {
+          "sha256": "409b69248798fcdc2542330c76953d230710f19b057e59cb82fdc3c4cf71265c",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/if_sara.bin?download=true"
+        },
+        "voices/im_nicola.bin": {
+          "sha256": "bc578e510d52a96d6940d46f12e96d7b3df00905dbea075113226d100e6e1ab0",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/im_nicola.bin?download=true"
+        },
+        "voices/jf_alpha.bin": {
+          "sha256": "56b479360aad9f367aeb8cef908f9201cf48b4555e488c5f4590c9dfcd978bb6",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/jf_alpha.bin?download=true"
+        },
+        "voices/jf_gongitsune.bin": {
+          "sha256": "0f1181f3772d27b7c12aaf4bcd71e31b186c4146e330d074a3dc64ee392af396",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/jf_gongitsune.bin?download=true"
+        },
+        "voices/jf_nezumi.bin": {
+          "sha256": "13cb71eebb0b48739d444558322aa35a8c9a489b80e1e631f14d2e6aea93026b",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/jf_nezumi.bin?download=true"
+        },
+        "voices/jf_tebukuro.bin": {
+          "sha256": "29c6c0561b4288d59639677bebe7533c919743d5ea68d0d2ae992644beea6696",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/jf_tebukuro.bin?download=true"
+        },
+        "voices/jm_kumo.bin": {
+          "sha256": "09e959d239724c734d65661f06f14cdabcddfd476bfaaad905a937099ae9e64f",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/jm_kumo.bin?download=true"
+        },
+        "voices/pf_dora.bin": {
+          "sha256": "3da7b5b2d91847ebf5646f57631af6ececae3c29a89cd300f06edf9aa6cfe9ee",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/pf_dora.bin?download=true"
+        },
+        "voices/pm_alex.bin": {
+          "sha256": "0175c753f59c54e7fd5a995bedef0c5ff2fb67e0043dd3dcb2ae74ec2acbeb2a",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/pm_alex.bin?download=true"
+        },
+        "voices/pm_santa.bin": {
+          "sha256": "8b012db3185778afe2e45a62cbad69db73021774fe68dda634bcc748a982eede",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/pm_santa.bin?download=true"
+        },
+        "voices/zf_xiaobei.bin": {
+          "sha256": "5dde6e1c9c4f12c8b327bc29c0cee361a23b52b952c04636858ba637ec66e640",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/zf_xiaobei.bin?download=true"
+        },
+        "voices/zf_xiaoni.bin": {
+          "sha256": "08892b62a39af0a615cd0581238db7e19e44c578e8fa0bfd0e586e93327d9cba",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/zf_xiaoni.bin?download=true"
+        },
+        "voices/zf_xiaoxiao.bin": {
+          "sha256": "03adb5d5e3ddd88b047954e974e651cb0a4b524c985057e5d872e962c7be1169",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/zf_xiaoxiao.bin?download=true"
+        },
+        "voices/zf_xiaoyi.bin": {
+          "sha256": "bc1555c5c486099196ac254bae5e0bb543c121952a3092f50b7d8724f1bc36b3",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/zf_xiaoyi.bin?download=true"
+        },
+        "voices/zm_yunjian.bin": {
+          "sha256": "de48a00bdbf3649f07162269a2b6e0513604389bfac8a2e6c75cb34b323ad6fa",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/zm_yunjian.bin?download=true"
+        },
+        "voices/zm_yunxi.bin": {
+          "sha256": "7243892fb4e560d47014090ddf010f8b8b790f3c6b029ff82b2ac06aa4e27c8b",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/zm_yunxi.bin?download=true"
+        },
+        "voices/zm_yunxia.bin": {
+          "sha256": "6b2b8fc15b3df19a368daebe5c581c7fabf433ee5b8a17ffd6b3d723cff8936d",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/zm_yunxia.bin?download=true"
+        },
+        "voices/zm_yunyang.bin": {
+          "sha256": "261e2c89470534dbbcb8fd98b8fdc495ec94063d9bb6c8277f7be43cccba3f42",
+          "size": 522240,
+          "url": "https://huggingface.co/OpenVINO/Kokoro-82M-fp16-ov/resolve/23ecb168eeb6d9d71393c7da52247333f6a2bd88/voices/zm_yunyang.bin?download=true"
+        }
+      },
+      "post_url": "?download=true"
+    },
     "whisper_base_fp16": {
       "base_url": "https://huggingface.co/OpenVINO/whisper-base-fp16-ov/resolve/84fbe975a79a8c996fd32c036558f29e2db6670f/",
       "files": {
