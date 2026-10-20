@@ -5,6 +5,7 @@
 
 #include "StatefulEffect.h"
 #include "effects/StatefulEffectUIServices.h"
+#include "ShuttleAutomation.h"
 #include <wx/weakref.h>
 #include <mutex>
 
@@ -27,6 +28,19 @@ public:
 
     EffectType GetType() const override;
     bool IsInteractive() const override;
+    bool SaveSettingsAsString(
+        const EffectSettings& settings, wxString& parms) const override;
+    [[nodiscard]] OptionalMessage LoadSettingsFromString(
+        const wxString& parms, EffectSettings& settings) const override;
+    bool SaveSettings(
+        const EffectSettings& settings, CommandParameters& parms) const override;
+    bool LoadSettings(
+        const CommandParameters& parms, EffectSettings& settings) const override;
+
+    OptionalMessage LoadUserPreset(
+        const RegistryPath& name, EffectSettings& settings) const override;
+    bool SaveUserPreset(
+        const RegistryPath& name, const EffectSettings& settings) const override;
 
     bool Process(EffectInstance& instance, EffectSettings& settings) override;
 
@@ -43,7 +57,6 @@ public:
     void OnModelManagerButtonClicked(wxCommandEvent& evt);
 
 protected:
-
     virtual const std::string ModelManagerName() const = 0;
 
     struct SeparationModeEntry
@@ -105,6 +118,7 @@ private:
     std::unordered_map< std::string, SeparationModeEntry > m_model_to_separation_modes;
 
     void SetModelSeparationModeSelections();
+    void ClampSelectionChoices();
     void FitWindowToCorrectSize();
 
     std::string m_effectName = "Unknown Effect";

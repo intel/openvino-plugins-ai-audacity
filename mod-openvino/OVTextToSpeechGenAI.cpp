@@ -21,6 +21,7 @@
 #include <wx/valgen.h>
 
 #include "CodeConversions.h"
+#include "ConfigInterface.h"
 #include "EffectOutputTracks.h"
 #include "LoadEffects.h"
 #include "OpenVINOPluginPrefs.h"
@@ -298,6 +299,196 @@ EffectType EffectOVTextToSpeechGenAI::GetType() const
 
 bool EffectOVTextToSpeechGenAI::IsInteractive() const
 {
+   return true;
+}
+
+bool EffectOVTextToSpeechGenAI::SaveSettingsAsString(
+   const EffectSettings& settings, wxString& parms) const
+{
+   return Effect::SaveSettingsAsString(settings, parms);
+}
+
+OptionalMessage EffectOVTextToSpeechGenAI::LoadSettingsFromString(
+   const wxString& parms, EffectSettings& settings) const
+{
+   return Effect::LoadSettingsFromString(parms, settings);
+}
+
+bool EffectOVTextToSpeechGenAI::SaveSettings(
+   const EffectSettings&, CommandParameters& parms) const
+{
+   // Persist only stable generation controls, not dynamic text-source context or input text.
+   parms.Write(wxT("DeviceSelectionChoice"), mDeviceSelectionChoice);
+   parms.Write(wxT("TtsModelSelectionChoice"), mTtsModelSelectionChoice);
+   parms.Write(wxT("VoiceSelectionChoice"), mVoiceSelectionChoice);
+   parms.Write(wxT("LanguageSelectionChoice"), mLanguageSelectionChoice);
+   parms.Write(wxT("FilterVoicesByLanguage"), mFilterVoicesByLanguage);
+   return true;
+}
+
+bool EffectOVTextToSpeechGenAI::LoadSettings(
+   const CommandParameters& parms, EffectSettings&) const
+{
+   auto* self = const_cast<EffectOVTextToSpeechGenAI*>(this);
+
+   int intValue = 0;
+   if (parms.Read(wxT("DeviceSelectionChoice"), &intValue)) {
+      self->mDeviceSelectionChoice = intValue;
+   }
+   if (parms.Read(wxT("TtsModelSelectionChoice"), &intValue)) {
+      self->mTtsModelSelectionChoice = intValue;
+   }
+   if (parms.Read(wxT("VoiceSelectionChoice"), &intValue)) {
+      self->mVoiceSelectionChoice = intValue;
+   }
+   if (parms.Read(wxT("LanguageSelectionChoice"), &intValue)) {
+      self->mLanguageSelectionChoice = intValue;
+   }
+
+   bool boolValue = false;
+   if (parms.Read(wxT("FilterVoicesByLanguage"), &boolValue)) {
+      self->mFilterVoicesByLanguage = boolValue;
+   }
+
+   self->ClampSelectionChoices();
+   return true;
+}
+
+OptionalMessage EffectOVTextToSpeechGenAI::LoadUserPreset(
+   const RegistryPath& name, EffectSettings& settings) const
+{
+   auto result = Effect::LoadUserPreset(name, settings);
+   if (!result) {
+      return result;
+   }
+
+   auto* self = const_cast<EffectOVTextToSpeechGenAI*>(this);
+   const auto userPresetRoot = UserPresetsGroup({});
+   const bool shouldWarn = name.StartsWith(userPresetRoot);
+   wxString warning;
+
+   wxString modelName;
+   if (GetConfig(GetDefinition(), PluginSettings::Private,
+      name, wxT("ModelName"), modelName)) {
+      const auto modelNameUtf8 = audacity::ToUTF8(modelName);
+      const auto modelIt = std::find(
+         self->mSupportedTtsModels.begin(),
+         self->mSupportedTtsModels.end(),
+         modelNameUtf8);
+      if (modelIt != self->mSupportedTtsModels.end()) {
+         self->mTtsModelSelectionChoice = static_cast<int>(
+            std::distance(self->mSupportedTtsModels.begin(), modelIt));
+      }
+      else if (shouldWarn) {
+         warning += XO("Preset references model '%s', but it is not installed.\n")
+            .Format(modelName)
+            .Translation();
+      }
+   }
+
+   wxString deviceName;
+   if (GetConfig(GetDefinition(), PluginSettings::Private,
+      name, wxT("DeviceName"), deviceName)) {
+      const auto deviceNameUtf8 = audacity::ToUTF8(deviceName);
+      const auto deviceIt = std::find(
+         self->mSupportedDevices.begin(),
+         self->mSupportedDevices.end(),
+         deviceNameUtf8);
+      if (deviceIt != self->mSupportedDevices.end()) {
+         self->mDeviceSelectionChoice = static_cast<int>(
+            std::distance(self->mSupportedDevices.begin(), deviceIt));
+      }
+      else if (shouldWarn) {
+         warning += XO("Preset references device '%s', but it is not available.\n")
+            .Format(deviceName)
+            .Translation();
+      }
+   }
+
+   wxString languageName;
+   if (GetConfig(GetDefinition(), PluginSettings::Private,
+      name, wxT("LanguageName"), languageName)) {
+      const auto languageNameUtf8 = audacity::ToUTF8(languageName);
+      const auto languageIt = std::find(
+         self->mSupportedLanguages.begin(),
+         self->mSupportedLanguages.end(),
+         languageNameUtf8);
+      if (languageIt != self->mSupportedLanguages.end()) {
+         self->mLanguageSelectionChoice = static_cast<int>(
+            std::distance(self->mSupportedLanguages.begin(), languageIt));
+      }
+   }
+
+   self->RefreshVoicesForCurrentModel();
+
+   wxString voiceName;
+   if (GetConfig(GetDefinition(), PluginSettings::Private,
+      name, wxT("VoiceName"), voiceName)) {
+      const auto voiceNameUtf8 = audacity::ToUTF8(voiceName);
+      const auto voiceIt = std::find(
+         self->mVisibleVoices.begin(),
+         self->mVisibleVoices.end(),
+         voiceNameUtf8);
+      if (voiceIt != self->mVisibleVoices.end()) {
+         self->mVoiceSelectionChoice = static_cast<int>(
+            std::distance(self->mVisibleVoices.begin(), voiceIt));
+      }
+      else if (shouldWarn) {
+         warning += XO("Preset references voice '%s', but it is not available for the selected model/language.\n")
+            .Format(voiceName)
+            .Translation();
+      }
+   }
+
+   self->ClampSelectionChoices();
+
+   if (!warning.empty()) {
+      warning += XO("Some preset options could not be restored. Available defaults were used.")
+         .Translation();
+      EffectUIServices::DoMessageBox(
+         *this,
+         Verbatim(warning),
+         wxICON_WARNING,
+         XO("Preset Warning"));
+   }
+
+   return result;
+}
+
+bool EffectOVTextToSpeechGenAI::SaveUserPreset(
+   const RegistryPath& name, const EffectSettings& settings) const
+{
+   if (!Effect::SaveUserPreset(name, settings)) {
+      return false;
+   }
+
+   auto* self = const_cast<EffectOVTextToSpeechGenAI*>(this);
+   self->ClampSelectionChoices();
+
+   if (!self->mSupportedTtsModels.empty()) {
+      const auto& modelName = self->mSupportedTtsModels[self->mTtsModelSelectionChoice];
+      SetConfig(GetDefinition(), PluginSettings::Private,
+         name, wxT("ModelName"), wxString::FromUTF8(modelName.c_str()));
+   }
+
+   if (!self->mSupportedDevices.empty()) {
+      const auto& deviceName = self->mSupportedDevices[self->mDeviceSelectionChoice];
+      SetConfig(GetDefinition(), PluginSettings::Private,
+         name, wxT("DeviceName"), wxString::FromUTF8(deviceName.c_str()));
+   }
+
+   if (!self->mSupportedLanguages.empty()) {
+      const auto& languageName = self->mSupportedLanguages[self->mLanguageSelectionChoice];
+      SetConfig(GetDefinition(), PluginSettings::Private,
+         name, wxT("LanguageName"), wxString::FromUTF8(languageName.c_str()));
+   }
+
+   if (!self->mVisibleVoices.empty()) {
+      const auto& voiceName = self->mVisibleVoices[self->mVoiceSelectionChoice];
+      SetConfig(GetDefinition(), PluginSettings::Private,
+         name, wxT("VoiceName"), wxString::FromUTF8(voiceName.c_str()));
+   }
+
    return true;
 }
 
@@ -856,6 +1047,8 @@ std::unique_ptr<EffectEditor> EffectOVTextToSpeechGenAI::PopulateOrExchange(
       mGuiTtsModelSelections.push_back({ TranslatableString{ wxString(m), {} } });
    }
 
+   ClampSelectionChoices();
+
    // Register callback so newly-installed models appear in the choice list live.
    OVModelManager::InstalledCallback callback =
       [this](const std::string& model_name) {
@@ -880,9 +1073,7 @@ std::unique_ptr<EffectEditor> EffectOVTextToSpeechGenAI::PopulateOrExchange(
       };
    OVModelManager::instance().register_installed_callback(OVModelManager::TtsName(), callback);
 
-   if (mTtsModelSelectionChoice < 0 && !mSupportedTtsModels.empty()) {
-      mTtsModelSelectionChoice = 0;
-   }
+   ClampSelectionChoices();
    RefreshVoicesForCurrentModel();
 
    S.AddSpace(0, 5);
@@ -960,6 +1151,19 @@ std::unique_ptr<EffectEditor> EffectOVTextToSpeechGenAI::PopulateOrExchange(
 
 bool EffectOVTextToSpeechGenAI::TransferDataToWindow(const EffectSettings&)
 {
+   ClampSelectionChoices();
+   RefreshVoicesForCurrentModel();
+
+   if (mTypeChoiceDeviceCtrl && mTypeChoiceDeviceCtrl->GetCount() > 0) {
+      mTypeChoiceDeviceCtrl->SetSelection(mDeviceSelectionChoice);
+   }
+   if (mTypeChoiceTtsModelCtrl && mTypeChoiceTtsModelCtrl->GetCount() > 0) {
+      mTypeChoiceTtsModelCtrl->SetSelection(mTtsModelSelectionChoice);
+   }
+   if (mTypeChoiceLanguageCtrl && mTypeChoiceLanguageCtrl->GetCount() > 0) {
+      mTypeChoiceLanguageCtrl->SetSelection(mLanguageSelectionChoice);
+   }
+
    if (!mUIParent || !mUIParent->TransferDataToWindow()) {
       return false;
    }
@@ -990,7 +1194,39 @@ bool EffectOVTextToSpeechGenAI::TransferDataFromWindow(EffectSettings&)
    }
 
    mInputText = audacity::ToUTF8(mInputTextCtrl->GetValue());
+   ClampSelectionChoices();
    return true;
+}
+
+void EffectOVTextToSpeechGenAI::ClampSelectionChoices()
+{
+   if (!mSupportedDevices.empty()) {
+      mDeviceSelectionChoice = std::clamp(
+         mDeviceSelectionChoice,
+         0,
+         static_cast<int>(mSupportedDevices.size()) - 1);
+   }
+
+   if (!mSupportedTtsModels.empty()) {
+      mTtsModelSelectionChoice = std::clamp(
+         mTtsModelSelectionChoice,
+         0,
+         static_cast<int>(mSupportedTtsModels.size()) - 1);
+   }
+
+   if (!mSupportedLanguages.empty()) {
+      mLanguageSelectionChoice = std::clamp(
+         mLanguageSelectionChoice,
+         0,
+         static_cast<int>(mSupportedLanguages.size()) - 1);
+   }
+
+   if (!mVisibleVoices.empty()) {
+      mVoiceSelectionChoice = std::clamp(
+         mVoiceSelectionChoice,
+         0,
+         static_cast<int>(mVisibleVoices.size()) - 1);
+   }
 }
 
 void EffectOVTextToSpeechGenAI::UpdateInputTextEnabledState()
