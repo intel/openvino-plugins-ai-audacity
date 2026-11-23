@@ -4,6 +4,7 @@ There are a few options for running the OpenVINO module on Linux:
 
 1. [Install the Audacity Snap](#install-the-audacity-snap)
 2. [Audacity OpenVINO module build for Linux (Ubuntu 22.04)](#audacity-openvino-module-build-for-linux-ubuntu-2204)
+3. [Audacity OpenVINO module build for Linux (Arch Linux)](#audacity-openvino-module-build-for-linux-arch-linux)
 
 ## Install the Audacity Snap
 
@@ -360,6 +361,41 @@ After the above sequence of commands you should have a single ```openvino-models
 ```
 sudo cp -R openvino-models /usr/local/lib/
 ```
+
+# Audacity OpenVINO module build for Linux (Arch Linux)
+
+To build on Arch Linux, we can follow most of the steps for Ubuntu 22.04 above, but will need to make a few adjustments. 
+
+## dependency installation
+
+`install_openvino_dependencies.sh` does not support Arch, so we'll need to grab our dependencies by hand. Here's everything you'll need to install for the whole project:
+
+```
+sudo pacman -S base-devel cmake ninja ocl-icd opencl-clhpp git-lfs
+git lfs install
+```
+
+You'll also need `gtk2` from the AUR, which can be installed in a few ways. Using `yay`:
+
+```
+yay -S gtk2
+```
+
+## gcc 15+ compatibility
+
+The Conan build for Audacity will pull in a version of m4 that is incompatible with gcc 15+, so we'll need to set some environment flags:
+
+```
+export CFLAGS='-std=gnu17 -D_GNU_SOURCE'
+export CXXFLAGS='-D_GNU_SOURCE -I/usr/include/cairo'
+```
+
+The Cmake build will still fail, so now search in ~/.conan2 for any `conanfile.py` that references `m4/1.4.20@audacity/stable` and replace it with `m4/1.4.19@audacity/stable`. This grep will find them for you; there should be one reference in `libtool` and two in `autoconf`.
+
+```
+grep -r m4/1.4.20 ~/.conan2
+```
+
 
 # Need Help? :raising_hand_man:
 For any questions about this build procedure, feel free to submit an issue [here](https://github.com/intel/openvino-plugins-ai-audacity/issues)
